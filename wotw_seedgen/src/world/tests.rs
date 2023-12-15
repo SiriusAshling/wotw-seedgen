@@ -1,6 +1,7 @@
 use super::*;
 use crate::{generator::ItemPool, tests::AREAS};
 use rand_pcg::Pcg64Mcg;
+use wotw_seedgen_seed_language::output::CommonItem;
 use wotw_seedgen_settings::{Difficulty, UniverseSettings, DEFAULT_SPAWN};
 use wotw_seedgen_static_assets::{LOC_DATA, STATE_DATA, UBER_STATE_DATA};
 
@@ -32,7 +33,7 @@ fn reach_check() {
     for item in pool.drain(&mut Pcg64Mcg::new(0xcafef00dd15ea5e5)) {
         world.simulate(&item, &output);
     }
-    world.set_spirit_light(10000, &output);
+    world.simulate(&CommonItem::SpiritLight(10000), &output);
 
     let reached = world
         .reached()
@@ -50,7 +51,8 @@ fn reach_check() {
         .collect::<FxHashSet<_>>();
 
     if !(reached == all_locations) {
-        let diff: Vec<_> = all_locations.difference(&reached).collect();
+        let mut diff = all_locations.difference(&reached).collect::<Vec<_>>();
+        diff.sort_unstable();
         eprintln!(
             "difference ({} / {} items): {:?}",
             reached.len(),
@@ -70,10 +72,14 @@ fn reach_check() {
         uber_states,
     );
 
-    world.modify_resource(Resource::HealthFragment, 7, &output);
-    world.modify_resource(Resource::EnergyFragment, 6, &output);
-    world.set_skill(Skill::DoubleJump, true, &output);
-    world.set_shard(Shard::TripleJump, true, &output);
+    for _ in 0..7 {
+        world.simulate(&CommonItem::Resource(Resource::HealthFragment), &output);
+    }
+    for _ in 0..6 {
+        world.simulate(&CommonItem::Resource(Resource::EnergyFragment), &output);
+    }
+    world.simulate(&CommonItem::Skill(Skill::DoubleJump), &output);
+    world.simulate(&CommonItem::Shard(Shard::TripleJump), &output);
 
     let reached = world
         .reached()

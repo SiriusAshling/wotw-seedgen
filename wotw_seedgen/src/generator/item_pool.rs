@@ -258,14 +258,20 @@ impl ItemPool {
         Some(action)
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.items.is_empty()
     }
-
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+    #[inline]
     pub fn contains(&self, inventory: &Inventory) -> bool {
         self.inventory.contains(inventory)
     }
 
+    #[inline]
     pub fn drain<'pool>(&'pool mut self, rng: &mut Pcg64Mcg) -> Drain<'pool> {
         Drain::new(self, rng)
     }

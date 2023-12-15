@@ -14,8 +14,7 @@ pub struct ReachedLocations<'graph> {
 
 impl<'graph, 'settings> World<'graph, 'settings> {
     pub(super) fn reach_recursion(
-        &self,
-        player: &Player,
+        &mut self,
         current_node_index: usize,
         mut best_orbs: OrbVariants,
         context: &mut ReachContext<'graph>,
@@ -26,13 +25,13 @@ impl<'graph, 'settings> World<'graph, 'settings> {
         let current_node = &self.graph.nodes[current_node_index];
         match current_node {
             Node::Anchor(anchor) => {
-                let max_orbs = player.max_orbs();
+                let max_orbs = self.player.max_orbs();
                 if best_orbs
                     .get(0)
                     .map_or(true, |first_orbs| first_orbs != &max_orbs)
                 {
                     for refill in &anchor.refills {
-                        let mut refill_orbs = player.is_met(
+                        let mut refill_orbs = self.player.is_met(
                             &refill.requirement,
                             &self.logic_states,
                             best_orbs.clone(),
@@ -43,7 +42,7 @@ impl<'graph, 'settings> World<'graph, 'settings> {
                                 best_orbs = smallvec![max_orbs];
                                 break;
                             }
-                            player.refill(refill.value, &mut refill_orbs);
+                            self.player.refill(refill.value, &mut refill_orbs);
                             best_orbs = orbs::either(&best_orbs, &refill_orbs);
                         }
                     }
@@ -54,7 +53,7 @@ impl<'graph, 'settings> World<'graph, 'settings> {
                         // TODO loop with improved orbs?
                         continue;
                     }
-                    let target_orbs = player.is_met(
+                    let target_orbs = self.player.is_met(
                         &connection.requirement,
                         &self.logic_states,
                         best_orbs.clone(),
@@ -80,29 +79,19 @@ impl<'graph, 'settings> World<'graph, 'settings> {
                             }
                         }
                     } else {
-                        self.reach_recursion(player, connection.to, target_orbs, context);
+                        self.reach_recursion(connection.to, target_orbs, context);
                     }
                 }
             }
-            Node::Pickup(_) => context.reached_locations.reached.push(current_node),
-            Node::State(_) => {
+            Node::Pickup(_) | Node::State(_) | Node::LogicalState(_) => {
                 // TODO simulate uberState change?
-                context.logic_states.insert(current_node_index);
+                self.logic_states.insert(current_node_index);
                 context.reached_locations.reached.push(current_node);
-                self.follow_state_progressions(player, current_node_index, context);
-            }
-            Node::LogicalState(_) => {
-                context.logic_states.insert(current_node_index);
-                context.reached_locations.reached.push(current_node);
-                self.follow_state_progressions(player, current_node_index, context);
+                self.follow_state_progressions(current_node_index, context);
             }
         }
     }
-    pub(super) fn reached_by_teleporter(
-        &self,
-        player: &Player,
-        context: &mut ReachContext<'graph>,
-    ) {
+    pub(super) fn reached_by_teleporter(&mut self, context: &mut ReachContext<'graph>) {
         if context
             .best_orbs
             .iter()
@@ -125,30 +114,25 @@ impl<'graph, 'settings> World<'graph, 'settings> {
                 .position(|node| node.identifier() == TP_ANCHOR)
             {
                 if !context.best_orbs.contains_key(&tp_anchor) {
-                    self.reach_recursion(player, tp_anchor, smallvec![player.max_orbs()], context);
+                    self.reach_recursion(tp_anchor, smallvec![self.player.max_orbs()], context);
                 }
             }
         }
     }
-    fn follow_state_progressions(
-        &self,
-        player: &Player,
-        index: usize,
-        context: &mut ReachContext<'graph>,
-    ) {
+    fn follow_state_progressions(&mut self, index: usize, context: &mut ReachContext<'graph>) {
         if let Some(connections) = context.state_progressions.get(&index) {
             for (from, connection) in connections.clone() {
                 if context.best_orbs.contains_key(&connection.to) {
                     // TODO loop with improved orbs?
                     continue;
                 }
-                let target_orbs = player.is_met(
+                let target_orbs = self.player.is_met(
                     &connection.requirement,
                     &self.logic_states,
                     context.best_orbs[&from].clone(),
                 );
                 if !target_orbs.is_empty() {
-                    self.reach_recursion(player, connection.to, target_orbs, context);
+                    self.reach_recursion(connection.to, target_orbs, context);
                 }
             }
         }
@@ -160,7 +144,6 @@ pub struct ReachContext<'graph> {
     pub progression_check: bool,
     state_progressions: FxHashMap<usize, Vec<(usize, &'graph Connection)>>,
     best_orbs: FxHashMap<usize, OrbVariants>,
-    pub logic_states: FxHashSet<usize>,
     pub reached_locations: ReachedLocations<'graph>,
 }
 

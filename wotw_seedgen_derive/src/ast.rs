@@ -25,6 +25,7 @@ pub fn ast_impl(input: syn::DeriveInput) -> Result<proc_macro::TokenStream> {
         )),
     }?;
 
+    // TODO try out how using the dbg! macro looks for the debug stuff?
     let debug = attrs.debug.then(|| {
         let message =
             format!("parsing `{ident}`. current token is `{{:?}}`. current slice is {{:?}}. upcoming is {{:?}}{{}}");

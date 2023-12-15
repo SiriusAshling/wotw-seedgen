@@ -8,15 +8,19 @@ use std::fmt::{self, Display};
 /// If [`ParseIdentToken::is_ident`] returns `true`, the token's slice will be stored as-is inside this type.
 ///
 /// ```
-/// use wotw_seedgen_parse::{parse_ast, Identifier, ParseIdentToken, ParseToken};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{parse_ast, Identifier, LogosTokenizer, ParseIdentToken};
 ///
-/// #[derive(ParseToken)]
+/// #[derive(Clone, Copy, Logos)]
 /// #[logos(skip r"\s+")]
 /// enum Token {
 ///     #[regex(r"\w+")]
 ///     Identifier,
 ///     #[regex(r".", priority = 0)]
 ///     Symbol,
+///     Error,
+///     Eof,
 /// }
 ///
 /// impl ParseIdentToken for Token {
@@ -25,8 +29,11 @@ use std::fmt::{self, Display};
 ///     }
 /// }
 ///
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
 /// assert_eq!(
-///     parse_ast::<Token, _>("   OriIsAGoodGame   ").parsed,
+///     parse_ast("   OriIsAGoodGame   ", tokenizer).into_result(),
 ///     Ok(Identifier("OriIsAGoodGame"))
 /// );
 /// ```
@@ -55,15 +62,19 @@ where
 /// The implementation will not check the kind of `Token`, but it will only succeed if the `Token` contains *only* the character
 ///
 /// ```
-/// use wotw_seedgen_parse::{Ast, parse_ast, ParseIntToken, ParseToken, Symbol};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{Ast, LogosTokenizer, parse_ast, ParseIntToken, Symbol};
 ///
-/// #[derive(ParseToken)]
+/// #[derive(Clone, Copy, Logos)]
 /// #[logos(skip r"\s+")]
 /// enum Token {
 ///     #[regex(r"[A-Za-z_]\w*")]
 ///     Identifier,
 ///     #[regex(r"\d+")]
 ///     Number,
+///     Error,
+///     Eof,
 /// }
 ///
 /// impl ParseIntToken for Token {
@@ -81,8 +92,11 @@ where
 /// #[derive(Debug, PartialEq, Ast)]
 /// struct HugsPlease;
 ///
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
 /// assert_eq!(
-///     parse_ast("2x HugsPlease").parsed,
+///     parse_ast("2x HugsPlease", tokenizer).into_result(),
 ///     Ok(HugsAmount {
 ///         amount: 2,
 ///         x: Symbol,
@@ -91,7 +105,7 @@ where
 /// );
 ///
 /// // "xHugsPlease" will be tokenized as one identifier, so <Symbol<'x'>>::ast fill fail
-/// assert!(parse_ast::<_, HugsAmount>("2xHugsPlease").parsed.is_err());
+/// assert!(parse_ast::<_, HugsAmount>("2xHugsPlease", tokenizer).into_result().is_err());
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Symbol<const CHAR: char>;
@@ -123,14 +137,18 @@ impl<const CHAR: char> Display for Symbol<CHAR> {
 /// After calling [`NoTrailingInput::ast`], the `parser` will always be exhausted.
 ///
 /// ```
-/// use wotw_seedgen_parse::{NoTrailingInput, parse_ast, ParseIntToken, ParseToken, Symbol};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{LogosTokenizer, NoTrailingInput, parse_ast, ParseIntToken, Symbol};
 ///
-/// #[derive(ParseToken)]
+/// #[derive(Clone, Copy, Logos)]
 /// enum Token {
 ///     #[regex(r"\d+")]
 ///     Number,
 ///     #[regex(r".", priority = 0)]
 ///     Symbol,
+///     Error,
+///     Eof,
 /// }
 ///
 /// impl ParseIntToken for Token {
@@ -139,8 +157,11 @@ impl<const CHAR: char> Display for Symbol<CHAR> {
 ///     }
 /// }
 ///
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
 /// assert!(matches!(
-///     parse_ast::<Token, u8>("5$"),
+///     parse_ast::<_, u8>("5$", tokenizer),
 ///     NoTrailingInput {
 ///         parsed: Ok(5),
 ///         trailing: Err(_)

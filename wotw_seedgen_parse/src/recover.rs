@@ -32,9 +32,11 @@ pub trait Recover<'source, T: Tokenize> {
 /// is no reason to attempt the other variants anymore, for example after encountering a keyword.
 ///
 /// ```
-/// use wotw_seedgen_parse::{Ast, parse_ast, ParseIntToken, Parser, ParseToken, Recover, Recoverable, TokenDisplay};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{Ast, LogosTokenizer, parse_ast, ParseIntToken, Parser, Recover, Recoverable, TokenDisplay};
 ///
-/// #[derive(Clone, ParseToken, TokenDisplay)]
+/// #[derive(Clone, Copy, Logos, TokenDisplay)]
 /// #[logos(skip r"\s+")]
 /// enum Token {
 ///     #[token("happyness")]
@@ -43,6 +45,8 @@ pub trait Recover<'source, T: Tokenize> {
 ///     Sadness,
 ///     #[regex(r"\d+")]
 ///     Number,
+///     Error,
+///     Eof,
 /// }
 ///
 /// impl ParseIntToken for Token {
@@ -58,8 +62,8 @@ pub trait Recover<'source, T: Tokenize> {
 /// }
 ///
 /// struct RecoverSkipOne;
-/// impl<'source> Recover<'source, Token> for RecoverSkipOne {
-///     fn recover(parser: &mut Parser<'source, Token>) {
+/// impl<'source> Recover<'source, Tokenizer> for RecoverSkipOne {
+///     fn recover(parser: &mut Parser<'source, Tokenizer>) {
 ///         parser.step();
 ///     }
 /// }
@@ -71,12 +75,15 @@ pub trait Recover<'source, T: Tokenize> {
 /// #[ast(token = Token::Sadness)]
 /// struct Sadness;
 ///
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
 /// assert_eq!(
-///     parse_ast("happyness 16").parsed,
+///     parse_ast("happyness 16", tokenizer).into_result(),
 ///     Ok(Statement::Happy(Happyness, Recoverable::new(Ok(16))))
 /// );
 /// assert!(matches!(
-///     parse_ast("happyness sadness").parsed,
+///     parse_ast("happyness sadness", tokenizer).into_result(),
 ///     Ok(Statement::Happy(Happyness, Recoverable { result: Err(_), .. })) // The Statement::Sad branch was never attempted
 /// ));
 /// ```

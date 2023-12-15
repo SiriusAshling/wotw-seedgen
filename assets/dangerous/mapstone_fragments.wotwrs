@@ -38,7 +38,7 @@ on WindtornRuins.HandToHandComplete {
     store_without_triggers(baursReachGroup.firePedestal, true)
     store_without_triggers(UpperReach.UpperKS, true)
     store_without_triggers(UpperReach.LowerKS, true)
-    store_without_triggers(baursReachGroup.firePedestalBooleanUberState, true)
+    store_without_triggers(28895|61789, true)
     if critical {
         store_without_triggers(MarshPastOpher.RightEyestone, true)
         store_without_triggers(HowlsDen.BoneOre, true)

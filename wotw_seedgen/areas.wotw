@@ -59,7 +59,7 @@ anchor Teleporters:  # teleporter access
     # It also makes a 4 keystone door available! Without the Keystone=2 line here, the seed generator
     # picks this path, unlocking 4 pickups, then immediately fills those with keystones and gets stuck
   conn MarshSpawn.Main:
-    moki: MarshTP
+    moki: InkwaterTP
   conn HowlsDen.Teleporter:
     moki: DenTP
   conn EastHollow.Teleporter:
@@ -69,21 +69,21 @@ anchor Teleporters:  # teleporter access
   conn InnerWellspring.Teleporter:
     moki: WellspringTP
   conn WoodsEntry.Teleporter:
-    moki: WestWoodsTP
+    moki: WoodsEntranceTP
   conn WoodsMain.Teleporter:
-    moki: EastWoodsTP
+    moki: WoodsExitTP
   conn LowerReach.Teleporter:
     moki: ReachTP, Flap
   conn UpperDepths.Teleporter:
     moki: DepthsTP, Glide
   conn EastPools.Teleporter:
-    moki: EastPoolsTP, Water
+    moki: CentralLumaTP, Water
   conn WestPools.Teleporter:
-    moki: WestPoolsTP, Water
+    moki: LumaBossTP, Water
   conn LowerWastes.WestTP:
-    moki: WestWastesTP
+    moki: FeedingGroundsTP
   conn LowerWastes.EastTP:
-    moki: EastWastesTP, Burrow
+    moki: CentralWastesTP, Burrow
   conn UpperWastes.NorthTP:
     moki: OuterRuinsTP, Burrow
   conn WindtornRuins.RuinsTP:

@@ -527,3 +527,21 @@ impl SubAssign for Inventory {
         self.clean_water &= rhs.clean_water;
     }
 }
+impl SubAssign<&Self> for Inventory {
+    fn sub_assign(&mut self, rhs: &Self) {
+        self.spirit_light = self.spirit_light.saturating_sub(rhs.spirit_light);
+        for (resource, amount) in &rhs.resources {
+            self.add_resource(*resource, -*amount);
+        }
+        for skill in &rhs.skills {
+            self.skills.remove(skill);
+        }
+        for shard in &rhs.shards {
+            self.shards.remove(shard);
+        }
+        for teleporter in &rhs.teleporters {
+            self.teleporters.remove(teleporter);
+        }
+        self.clean_water &= rhs.clean_water;
+    }
+}

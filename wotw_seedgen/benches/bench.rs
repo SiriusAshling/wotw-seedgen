@@ -4,7 +4,7 @@ use rand_pcg::Pcg64Mcg;
 use rustc_hash::FxHashSet;
 use smallvec::smallvec;
 use std::io;
-use wotw_seedgen::{ItemPool, Player, World};
+use wotw_seedgen::{ItemPool, Player, UberStates, World};
 use wotw_seedgen_assets::{LocData, StateData};
 use wotw_seedgen_data::{Resource, Skill};
 use wotw_seedgen_logic_language::{
@@ -110,13 +110,14 @@ fn reach_checking(c: &mut Criterion) {
     let graph = Graph::compile(AREAS.clone(), LOC_DATA.clone(), STATE_DATA.clone(), &[])
         .into_result()
         .unwrap();
+    let uber_states = UberStates::new(&UBER_STATE_DATA);
 
     c.bench_function("short reach check", |b| {
         b.iter(|| {
             let output = CompilerOutput::default();
             let world_settings = WorldSettings::default();
             let spawn = graph.find_node(DEFAULT_SPAWN).unwrap();
-            let mut world = World::new(&graph, spawn, &world_settings);
+            let mut world = World::new(&graph, spawn, &world_settings, uber_states.clone());
             world.set_spirit_light(10000, &output);
             world.set_resource(Resource::HealthFragment, 40, &output);
             world.set_resource(Resource::EnergyFragment, 40, &output);
@@ -132,7 +133,8 @@ fn reach_checking(c: &mut Criterion) {
     let output = CompilerOutput::default();
     let world_settings = WorldSettings::default();
     let spawn = graph.find_node(DEFAULT_SPAWN).unwrap();
-    let mut world = World::new_spawn(&graph, spawn, &world_settings);
+    let uber_states = UberStates::new(&UBER_STATE_DATA);
+    let mut world = World::new_spawn(&graph, spawn, &world_settings, uber_states);
     let mut pool = ItemPool::default();
     for item in pool.drain(&mut Pcg64Mcg::new(0xcafef00dd15ea5e5)) {
         world.simulate(&item, &output);

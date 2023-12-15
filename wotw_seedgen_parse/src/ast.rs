@@ -30,14 +30,18 @@ use decorum::{R32, R64};
 /// This can be useful as a top-level Ast node or as [`Delimited<Open, Vec<T>, Close>`][`Delimited`], which will attempt to parse `T` until the delimited content is exhausted.
 ///
 /// ```
-/// use wotw_seedgen_parse::{parse_ast, ParseFloatToken, ParseToken, Symbol};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{LogosTokenizer, parse_ast, ParseFloatToken, Symbol};
 ///
-/// #[derive(ParseToken)]
+/// #[derive(Clone, Copy, Logos)]
 /// enum Token {
 ///     #[regex(r"\d+\.?\d*")]
 ///     Number,
 ///     #[regex(r"[A-Za-z_]\w*")]
 ///     Identifier,
+///     Error,
+///     Eof,
 /// }
 ///
 /// impl ParseFloatToken for Token {
@@ -46,12 +50,15 @@ use decorum::{R32, R64};
 ///     }
 /// }
 ///
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
 /// assert_eq!(
-///     parse_ast::<Token, (f32, Option<Symbol<'f'>>)>("4.2f").parsed,
+///     parse_ast::<_, (f32, Option<Symbol<'f'>>)>("4.2f", tokenizer).into_result(),
 ///     Ok((4.2, Some(Symbol)))
 /// );
 /// assert_eq!(
-///     parse_ast::<Token, (f32, Option<Symbol<'f'>>)>("4.2").parsed,
+///     parse_ast::<_, (f32, Option<Symbol<'f'>>)>("4.2", tokenizer).into_result(),
 ///     Ok((4.2, None))
 /// );
 /// ```
@@ -75,14 +82,18 @@ use decorum::{R32, R64};
 /// Unnamed and named fields behave the same.
 ///
 /// ```
-/// use wotw_seedgen_parse::{Ast, parse_ast, ParseIntToken, ParseToken, Symbol};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{Ast, LogosTokenizer, parse_ast, ParseIntToken, Symbol};
 ///
-/// #[derive(ParseToken)]
+/// #[derive(Clone, Copy, Logos)]
 /// enum Token {
 ///     #[regex(r"\d+")]
 ///     Number,
 ///     #[regex(r".", priority = 0)]
 ///     Symbol,
+///     Error,
+///     Eof,
 /// }
 ///
 /// impl ParseIntToken for Token {
@@ -97,8 +108,11 @@ use decorum::{R32, R64};
 ///     percent: Symbol<'%'>,
 /// }
 ///
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
 /// assert_eq!(
-///     parse_ast("80%").parsed,
+///     parse_ast("80%", tokenizer).into_result(),
 ///     Ok(Percentage {
 ///         value: 80,
 ///         percent: Symbol,
@@ -112,20 +126,27 @@ use decorum::{R32, R64};
 /// You can change the casing using the `#[ast(case = ...)]` attribute.
 ///
 /// ```
-/// use wotw_seedgen_parse::{Ast, parse_ast, ParseToken};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{Ast, LogosTokenizer, parse_ast};
 ///
-/// #[derive(ParseToken)]
+/// #[derive(Clone, Copy, Logos)]
 /// enum Token {
 ///     #[regex(r"\w+")]
 ///     Identifier,
+///     Error,
+///     Eof,
 /// }
 ///
 /// #[derive(Debug, PartialEq, Ast)]
 /// #[ast(case = "snake")]
 /// struct HappyNoises;
 ///
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
 /// assert_eq!(
-///     parse_ast("happy_noises").parsed,
+///     parse_ast("happy_noises", tokenizer).into_result(),
 ///     Ok(HappyNoises)
 /// )
 /// ```
@@ -136,20 +157,27 @@ use decorum::{R32, R64};
 /// You can use `#[derive(TokenDisplay)]` on your `Token` for a specialized [`Display`] implementation.
 ///
 /// ```
-/// use wotw_seedgen_parse::{Ast, parse_ast, ParseToken, TokenDisplay};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{Ast, LogosTokenizer, parse_ast, TokenDisplay};
 ///
-/// #[derive(Clone, ParseToken, TokenDisplay)]
+/// #[derive(Clone, Copy, Logos, TokenDisplay)]
 /// enum Token {
 ///     #[token("fun")]
 ///     Fun,
+///     Error,
+///     Eof,
 /// }
 ///
 /// #[derive(Debug, PartialEq, Ast)]
 /// #[ast(token = Token::Fun)]
 /// struct Fun;
 ///
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
 /// assert_eq!(
-///     parse_ast("fun").parsed,
+///     parse_ast("fun", tokenizer).into_result(),
 ///     Ok(Fun)
 /// )
 /// ```
@@ -160,14 +188,18 @@ use decorum::{R32, R64};
 /// Variants with fields behave like `struct`s with fields, unit variants behave like unit `struct`s.
 ///
 /// ```
-/// use wotw_seedgen_parse::{Ast, parse_ast, ParseToken, ParseStringToken, TokenDisplay};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{Ast, LogosTokenizer, parse_ast, ParseStringToken, TokenDisplay};
 ///
-/// #[derive(Clone, ParseToken, TokenDisplay)]
+/// #[derive(Clone, Copy, Logos, TokenDisplay)]
 /// enum Token {
 ///     #[token("foo")]
 ///     Foo,
 ///     #[regex(r#""[^"]*""#)]
 ///     String,
+///     Error,
+///     Eof,
 /// }
 ///
 /// impl ParseStringToken for Token {
@@ -183,13 +215,16 @@ use decorum::{R32, R64};
 ///     String(&'source str),
 /// }
 ///
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
 /// assert_eq!(
-///     parse_ast("foo").parsed,
+///     parse_ast("foo", tokenizer).into_result(),
 ///     Ok(Content::Foo)
 /// );
 ///
 /// assert_eq!(
-///     parse_ast("\"bar\"").parsed,
+///     parse_ast("\"bar\"", tokenizer).into_result(),
 ///     Ok(Content::String("bar"))
 /// );
 /// ```
@@ -202,16 +237,20 @@ use decorum::{R32, R64};
 /// This is what the derive does as well. It will look like:
 ///
 /// ```
-/// use wotw_seedgen_parse::{Ast, ParseToken, Parser, Result};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{Ast, LogosTokenizer, Parser, Result};
 ///
-/// #[derive(ParseToken)]
+/// #[derive(Clone, Copy, Logos)]
 /// enum Token {
 ///     // Token definitions
 /// }
 ///
+/// type Tokenizer = LogosTokenizer<Token>;
+///
 /// pub struct CustomAst;
-/// impl<'source> Ast<'source, Token> for CustomAst {
-///     fn ast(parser: &mut Parser<'source, Token>) -> Result<Self> {
+/// impl<'source> Ast<'source, Tokenizer> for CustomAst {
+///     fn ast(parser: &mut Parser<'source, Tokenizer>) -> Result<Self> {
 ///         todo!()
 ///     }
 /// }
@@ -226,12 +265,17 @@ use decorum::{R32, R64};
 /// If you already progressed using [`Parser::step`] or nested [`Ast::ast`] calls and
 /// only later determine parsing should fail, consider using a pattern like:
 ///
+// TODO not sure how to adjust this doctest
 /// ```
-/// # use wotw_seedgen_parse::{Ast, ParseToken, Parser, Result};
-/// # #[derive(ParseToken)] enum Token {}
+/// # extern crate logos;
+/// # use logos::Logos;
+/// # use wotw_seedgen_parse::{Ast, LogosTokenizer, Parser, Result};
+/// # #[derive(Clone, Copy, Logos)]
+/// # enum Token {}
+/// # type Tokenizer = LogosTokenizer<Token>;
 /// # pub struct Example;
-/// # impl<'source> Ast<'source, Token> for Example {
-/// fn ast(parser: &mut Parser<'source, Token>) -> Result<Self> {
+/// # impl<'source> Ast<'source, Tokenizer> for Example {
+/// fn ast(parser: &mut Parser<'source, Tokenizer>) -> Result<Self> {
 ///     let before = parser.position();
 ///
 ///     let result = {

@@ -6,20 +6,22 @@ use std::{
     str::FromStr,
 };
 
-// TODO ParseToken got deleted, check documentation for that
-
 /// Enables the [`bool`] [`Ast`] implementation for your `Token`
 ///
 /// ```
-/// use wotw_seedgen_parse::{parse_ast, ParseBoolToken, ParseToken};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{LogosTokenizer, parse_ast, ParseBoolToken};
 ///
-/// #[derive(ParseToken)]
+/// #[derive(Clone, Copy, Logos)]
 /// enum Token {
 ///     #[token("true", |_| true)]
 ///     #[token("false", |_| false)]
 ///     Boolean(bool),
 ///     #[regex(r".")]
 ///     Symbol,
+///     Error,
+///     Eof,
 /// }
 ///
 /// impl ParseBoolToken for Token {
@@ -31,9 +33,12 @@ use std::{
 ///     }
 /// }
 ///
-/// assert_eq!(parse_ast::<Token, bool>("true").parsed, Ok(true));
-/// assert_eq!(parse_ast::<Token, bool>("false").parsed, Ok(false));
-/// assert!(parse_ast::<Token, bool>("tralse").parsed.is_err());
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
+/// assert_eq!(parse_ast::<_, bool>("true", tokenizer).into_result(), Ok(true));
+/// assert_eq!(parse_ast::<_, bool>("false", tokenizer).into_result(), Ok(false));
+/// assert!(parse_ast::<_, bool>("tralse", tokenizer).into_result().is_err());
 /// ```
 ///
 /// [`Ast`]: crate::Ast
@@ -54,14 +59,18 @@ pub trait ParseBoolToken {
 /// Alternatively, you could define your own integer Newtypes and implement [`Ast`] on those.
 ///
 /// ```
-/// use wotw_seedgen_parse::{parse_ast, ParseIntToken, ParseToken};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{LogosTokenizer, parse_ast, ParseIntToken};
 ///
-/// #[derive(ParseToken)]
+/// #[derive(Clone, Copy, Logos)]
 /// enum Token {
 ///     #[regex(r"-?\d+")]
 ///     Number,
 ///     #[regex(r".", priority = 0)]
 ///     Symbol,
+///     Error,
+///     Eof,
 /// }
 ///
 /// impl ParseIntToken for Token {
@@ -70,9 +79,12 @@ pub trait ParseBoolToken {
 ///     }
 /// }
 ///
-/// assert_eq!(parse_ast::<Token, i32>("-1000000").parsed, Ok(-1000000));
-/// assert_eq!(parse_ast::<Token, u128>(&u128::MAX.to_string()).parsed, Ok(u128::MAX));
-/// assert!(parse_ast::<Token, u8>("963").parsed.is_err());
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
+/// assert_eq!(parse_ast::<_, i32>("-1000000", tokenizer).into_result(), Ok(-1000000));
+/// assert_eq!(parse_ast::<_, u128>(&u128::MAX.to_string(), tokenizer).into_result(), Ok(u128::MAX));
+/// assert!(parse_ast::<_, u8>("963", tokenizer).into_result().is_err());
 /// ```
 ///
 /// [`Ast`]: crate::Ast
@@ -142,9 +154,11 @@ pub trait ParseIntToken {
 /// Alternatively, you could define your own float Newtypes and implement [`Ast`] on those.
 ///
 /// ```
-/// use wotw_seedgen_parse::{parse_ast, ParseFloatToken, ParseToken};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{LogosTokenizer, parse_ast, ParseFloatToken};
 ///
-/// #[derive(ParseToken)]
+/// #[derive(Clone, Copy, Logos)]
 /// enum Token {
 ///     #[regex(r"-?\d+", priority = 2)]
 ///     Integer,
@@ -152,6 +166,8 @@ pub trait ParseIntToken {
 ///     Float,
 ///     #[regex(r".", priority = 0)]
 ///     Symbol,
+///     Error,
+///     Eof,
 /// }
 ///
 /// impl ParseFloatToken for Token {
@@ -160,9 +176,12 @@ pub trait ParseIntToken {
 ///     }
 /// }
 ///
-/// assert_eq!(parse_ast::<Token, f32>("-3.14").parsed, Ok(-3.14));
-/// assert_eq!(parse_ast::<Token, f64>("2e3").parsed, Ok(2000.));
-/// assert!(parse_ast::<Token, f32>("2,5").trailing.is_err());
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
+/// assert_eq!(parse_ast::<_, f32>("-3.14", tokenizer).into_result(), Ok(-3.14));
+/// assert_eq!(parse_ast::<_, f64>("2e3", tokenizer).into_result(), Ok(2000.));
+/// assert!(parse_ast::<_, f32>("2,5", tokenizer).trailing.is_err());
 /// ```
 ///
 /// [`Ast`]: crate::Ast
@@ -190,14 +209,18 @@ pub trait ParseFloatToken {
 /// Alternatively, you could define your own string Newtypes and implement [`Ast`] on those.
 ///
 /// ```
-/// use wotw_seedgen_parse::{parse_ast, ParseStringToken, ParseToken};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{LogosTokenizer, parse_ast, ParseStringToken};
 ///
-/// #[derive(ParseToken)]
+/// #[derive(Clone, Copy, Logos)]
 /// enum Token {
 ///     #[regex(r#""[^"]*""#)]
 ///     String,
 ///     #[regex(r".", priority = 0)]
 ///     Symbol,
+///     Error,
+///     Eof,
 /// }
 ///
 /// impl ParseStringToken for Token {
@@ -206,9 +229,12 @@ pub trait ParseFloatToken {
 ///     }
 /// }
 ///
-/// assert_eq!(parse_ast::<Token, &str>("\"hi\"").parsed, Ok("hi"));
-/// assert_eq!(parse_ast::<Token, String>("\"oh you.\"").parsed, Ok("oh you.".to_string()));
-/// assert!(parse_ast::<Token, &str>("no").parsed.is_err());
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
+/// assert_eq!(parse_ast::<_, &str>("\"hi\"", tokenizer).into_result(), Ok("hi"));
+/// assert_eq!(parse_ast::<_, String>("\"oh you.\"", tokenizer).into_result(), Ok("oh you.".to_string()));
+/// assert!(parse_ast::<_, &str>("no", tokenizer).into_result().is_err());
 /// ```
 ///
 /// [`Ast`]: crate::Ast
@@ -232,14 +258,18 @@ pub trait ParseStringToken {
 /// Alternatively, you could define your own identifier type and implement [`Ast`] on it.
 ///
 /// ```
-/// use wotw_seedgen_parse::{Identifier, parse_ast, ParseIdentToken, ParseToken};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{Identifier, LogosTokenizer, parse_ast, ParseIdentToken};
 ///
-/// #[derive(ParseToken)]
+/// #[derive(Clone, Copy, Logos)]
 /// enum Token {
 ///     #[regex(r"\w+")]
 ///     Identifier,
 ///     #[regex(r".", priority = 0)]
 ///     Symbol,
+///     Error,
+///     Eof,
 /// }
 ///
 /// impl ParseIdentToken for Token {
@@ -248,8 +278,11 @@ pub trait ParseStringToken {
 ///     }
 /// }
 ///
-/// assert_eq!(parse_ast::<Token, Identifier>("thisisanidentifier").parsed, Ok(Identifier("thisisanidentifier")));
-/// assert!(parse_ast::<Token, Identifier>("\"thisisnoidentifier\"").parsed.is_err());
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
+/// assert_eq!(parse_ast::<_, Identifier>("thisisanidentifier", tokenizer).into_result(), Ok(Identifier("thisisanidentifier")));
+/// assert!(parse_ast::<_, Identifier>("\"thisisnoidentifier\"", tokenizer).into_result().is_err());
 /// ```
 ///
 /// [`Ast`]: crate::Ast
@@ -267,6 +300,7 @@ pub trait ParseIdentToken {
 
 /// The underlying parser you will have access to in [`Ast`] implementations
 ///
+// TODO update documentation
 /// `Token` is a type you should provide. You can implement tokenization however you want by using [`Parser::with_tokens`], although there is a convenience function [`Parser::new`]
 /// if you decide to use the [`ParseToken`] trait.
 ///
@@ -326,6 +360,7 @@ impl<'source, T: Tokenize> Parser<'source, T> {
     }
     /// Checks whether there are `Token`s left to parse
     ///
+    // TODO update documentation
     /// This may differ from `parser.current().is_err()` if the [`ParseToken`] implementation can return [`Error`]s at the tokenization stage.
     #[inline]
     pub fn is_finished(&self) -> bool {
@@ -344,6 +379,7 @@ impl<'source, T: Tokenize> Parser<'source, T> {
     ///
     /// The Token is [`Err`] if either:
     /// - the parser is finished, then an [`Error`] with [`ErrorKind::UnexpectedEnd`] will be returned
+    // TODO update documentation
     /// - the [`ParseToken`] implementation returned an [`Error`] at the tokenization stage
     #[inline]
     pub fn current(&self) -> &(T::Token, Range<usize>) {

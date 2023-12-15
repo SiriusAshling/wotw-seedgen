@@ -2,7 +2,6 @@
 #![allow(clippy::module_name_repetitions)]
 
 mod ast;
-mod parse_token;
 mod span;
 mod token_display;
 
@@ -27,13 +26,6 @@ fn find_attributes<T: Parse>(attrs: &[syn::Attribute], ident: &str) -> Result<Ve
         .map(|attr| attr.parse_args_with(Punctuated::<T, syn::Token![,]>::parse_terminated))
         .flatten_ok()
         .collect()
-}
-
-// TODO ParseToken trait doesn't exist anymore
-#[proc_macro_derive(ParseToken, attributes(logos, extras, error, end, token, regex))]
-pub fn parse_token_derive(input: TokenStream) -> TokenStream {
-    let ast = syn::parse_macro_input!(input as syn::ItemEnum);
-    parse_token::parse_token_impl(ast)
 }
 
 // TODO this is specifically for logos

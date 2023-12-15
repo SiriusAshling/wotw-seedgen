@@ -8,9 +8,11 @@ use std::ops::Range;
 /// You can use `#[derive(Span)]` to expose spans on your higher-level Ast nodes based on their children or implement it manually.
 ///
 /// ```
-/// use wotw_seedgen_parse::{Ast, parse_ast, ParseIntToken, ParseStringToken, ParseToken, Span, Spanned, TokenDisplay};
+/// # extern crate logos;
+/// use logos::Logos;
+/// use wotw_seedgen_parse::{Ast, LogosTokenizer, parse_ast, ParseIntToken, ParseStringToken, Span, Spanned, TokenDisplay};
 ///
-/// #[derive(ParseToken, TokenDisplay)]
+/// #[derive(Clone, Copy, Logos, TokenDisplay)]
 /// #[logos(skip r"\s+")]
 /// enum Token {
 ///     #[token("joke")]
@@ -19,6 +21,8 @@ use std::ops::Range;
 ///     String,
 ///     #[regex(r"\d+")]
 ///     Number,
+///     Error,
+///     Eof,
 /// }
 ///
 /// impl ParseIntToken for Token {
@@ -42,8 +46,11 @@ use std::ops::Range;
 /// #[ast(token = Token::Joke)]
 /// struct JokeKeyword;
 ///
+/// type Tokenizer = LogosTokenizer<Token>;
+/// let tokenizer = Tokenizer::new(Token::Error, Token::Eof);
+///
 /// let source = "joke \"It's been 5 years\" 10";
-/// let joke: Joke = parse_ast(source).parsed.unwrap();
+/// let joke: Joke = parse_ast(source, tokenizer).into_result().unwrap();
 /// assert_eq!(
 ///     joke.keyword.span(),
 ///     0..4,

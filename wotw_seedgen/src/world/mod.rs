@@ -84,41 +84,22 @@ impl<'graph, 'settings> World<'graph, 'settings> {
         }
     }
 
-    pub(crate) fn reached_with(&self, player: &Player) -> Vec<&'graph Node> {
+    pub(crate) fn reached(&mut self) -> Vec<&'graph Node> {
         let mut context = ReachContext::default();
 
-        self.reach_recursion(
-            player,
-            self.spawn,
-            smallvec![self.player.max_orbs()],
-            &mut context,
-        );
-        self.reached_by_teleporter(player, &mut context);
+        self.reach_recursion(self.spawn, smallvec![self.player.max_orbs()], &mut context);
+        self.reached_by_teleporter(&mut context);
 
         context.reached_locations.reached
     }
-    pub(crate) fn reached_and_progressions_with(
-        &self,
-        player: &Player,
-    ) -> ReachedLocations<'graph> {
+    pub(crate) fn reached_and_progressions(&mut self) -> ReachedLocations<'graph> {
         let mut context = ReachContext::default();
         context.progression_check = true;
 
-        self.reach_recursion(
-            player,
-            self.spawn,
-            smallvec![self.player.max_orbs()],
-            &mut context,
-        );
-        self.reached_by_teleporter(player, &mut context);
+        self.reach_recursion(self.spawn, smallvec![self.player.max_orbs()], &mut context);
+        self.reached_by_teleporter(&mut context);
 
         context.reached_locations
-    }
-    pub fn reached(&self) -> Vec<&'graph Node> {
-        self.reached_with(&self.player)
-    }
-    pub fn reached_and_progressions(&self) -> ReachedLocations<'graph> {
-        self.reached_and_progressions_with(&self.player)
     }
 
     #[inline]
@@ -212,6 +193,7 @@ impl<'graph, 'settings> World<'graph, 'settings> {
             output,
         );
     }
+    // TODO these are confusing because they sidestep the inventory update. I really think it would be worth investigating whether dropping the inventory in favour of direct uberState check would be worthwhile
     #[inline]
     pub fn set_spirit_light(&mut self, value: i32, output: &CompilerOutput) {
         self.set_integer(UberIdentifier::SPIRIT_LIGHT, value, output);

@@ -3,7 +3,7 @@ use std::ops::Range;
 // TODO documentation
 
 pub trait Tokenize {
-    type Token: std::fmt::Debug; // TODO remove bound
+    type Token;
 
     fn tokenize(self, source: &str) -> TokenizeOutput<Self::Token>;
 }
@@ -35,7 +35,7 @@ mod logos_tokenizer {
     }
     impl<Token> Tokenize for LogosTokenizer<Token>
     where
-        for<'source> Token: Logos<'source, Source = str> + Clone + std::fmt::Debug, // TODO remove bound
+        for<'source> Token: Logos<'source, Source = str> + Clone,
         for<'source> <Token as Logos<'source>>::Extras: Default,
     {
         type Token = Token;

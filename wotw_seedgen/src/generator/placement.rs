@@ -5,9 +5,12 @@ use crate::{
     constants::{KEYSTONE_DOORS, PREFERRED_SPAWN_SLOTS, SPAWN_SLOTS, UNSHARED_ITEMS},
     filter_redundancies,
     inventory::Inventory,
-    node_condition, node_trigger, ReachedLocations, World,
+    node_condition, node_trigger,
+    orbs::OrbVariants,
+    ReachedLocations, World,
 };
 use decorum::R32;
+use itertools::Itertools;
 use rand::{
     distributions::Uniform,
     prelude::Distribution,
@@ -18,7 +21,7 @@ use rand_pcg::Pcg64Mcg;
 use rustc_hash::FxHashMap;
 use std::{iter, mem, ops::RangeFrom};
 use wotw_seedgen_data::{Equipment, MapIcon, OpherIcon, Resource, Skill, UberIdentifier};
-use wotw_seedgen_logic_language::output::Node;
+use wotw_seedgen_logic_language::output::{Node, Requirement};
 use wotw_seedgen_seed::{Icon, PseudoTrigger};
 use wotw_seedgen_seed_language::output::{
     Action, Command, CommandBoolean, CommandFloat, CommandIcon, CommandInteger, CommandString,
@@ -42,7 +45,7 @@ pub(crate) fn generate_placements(
         context.force_keystones();
         if !context.place_random() {
             let (target_world_index, progression) = context.choose_progression();
-            context.force_place(target_world_index, progression);
+            context.place_forced(target_world_index, progression);
         }
     }
 }
@@ -98,7 +101,6 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                 .filter_map(|(identifier, amount)| {
                     world_context
                         .reached
-                        .reached
                         .iter()
                         .any(|node| node.identifier() == *identifier)
                         .then_some(*amount)
@@ -136,21 +138,38 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
         let mut any_placed = false;
         // TODO placeholders
         for origin_world_index in 0..self.worlds.len() {
-            for node_index in
-                mem::take(&mut self.worlds[origin_world_index].reached_needs_placement)
-            {
+            let reached_needs_placement =
+                mem::take(&mut self.worlds[origin_world_index].reached_needs_placement);
+            for node_index in reached_needs_placement.iter().copied() {
                 any_placed = true;
-                let node = self.worlds[origin_world_index]
-                    .needs_placement
-                    .remove(node_index);
-                let target_world_index = self.choose_target_world(origin_world_index);
-                let action = self.worlds[target_world_index]
-                    .item_pool
-                    .choose_random(&mut self.rng)
-                    .unwrap();
+                let origin_world = &mut self.worlds[origin_world_index];
+                let slots_remaining = origin_world.slots_remaining();
+                let place_spirit_light = self.rng.gen_bool(f64::max(
+                    1. - origin_world.item_pool.len() as f64 / slots_remaining as f64,
+                    0.,
+                ));
+
+                let (target_world_index, action) = if place_spirit_light {
+                    let batch = origin_world.spirit_light_provider.take(slots_remaining);
+                    (origin_world_index, common(CommonItem::SpiritLight(batch)))
+                } else {
+                    let target_world_index = self.choose_target_world(origin_world_index);
+                    (
+                        target_world_index,
+                        self.worlds[target_world_index]
+                            .item_pool
+                            .choose_random(&mut self.rng)
+                            .unwrap(),
+                    )
+                };
+
+                let node = self.worlds[origin_world_index].needs_placement[node_index];
                 let name = self.name(&action, origin_world_index, target_world_index);
                 self.place_action_at(action, name, node, origin_world_index, target_world_index);
             }
+            self.worlds[origin_world_index]
+                .received_placement
+                .extend(reached_needs_placement);
         }
         any_placed
     }
@@ -163,7 +182,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
             .sum::<usize>();
 
         let mut world_indices = (0..self.worlds.len()).collect::<Vec<_>>();
-        world_indices.sort_by_key(|index| self.worlds[*index].needs_placement.len());
+        world_indices.sort_by_key(|index| self.worlds[*index].slots_remaining());
 
         for target_world_index in world_indices {
             if let Some(progression) = self.worlds[target_world_index].choose_progression(slots) {
@@ -174,7 +193,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
         todo!()
     }
 
-    fn force_place(&mut self, target_world_index: usize, progression: Inventory) {
+    fn place_forced(&mut self, target_world_index: usize, progression: Inventory) {
         let Inventory {
             spirit_light,
             resources,
@@ -275,8 +294,8 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
             world_indices.shuffle(&mut self.rng);
             world_indices
                 .into_iter()
-                .find(|index| !self.worlds[*index].item_pool.is_empty())
-                .unwrap() // TODO handle
+                .find_or_last(|index| !self.worlds[*index].item_pool.is_empty())
+                .unwrap()
         }
     }
 
@@ -367,8 +386,10 @@ struct WorldContext<'graph, 'settings> {
     item_pool: ItemPool,
     spirit_light_provider: SpiritLightProvider,
     needs_placement: Vec<&'graph Node>,
-    reached: ReachedLocations<'graph>,
+    reached: Vec<&'graph Node>,
+    progressions: Vec<(&'graph Requirement, OrbVariants)>,
     reached_needs_placement: Vec<usize>,
+    received_placement: Vec<usize>,
     reached_item_locations: usize,
     spawn_slots: usize,
     unshared_items: usize,
@@ -432,7 +453,9 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             spirit_light_provider: SpiritLightProvider::new(20000, rng), // TODO how should !add(spirit_light(100)) behave?
             needs_placement,
             reached: Default::default(),
+            progressions: Default::default(),
             reached_needs_placement: Default::default(),
+            received_placement: Default::default(),
             reached_item_locations: Default::default(),
             spawn_slots: SPAWN_SLOTS,
             unshared_items: UNSHARED_ITEMS,
@@ -457,17 +480,18 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             if nodes.is_empty() {
                 todo!()
             }
-            let node_index = nodes.remove(self.rng.gen_range(0..nodes.len()));
-            let node = self.needs_placement.remove(node_index);
+            // We prefer generating indices over shuffling the nodes because usually there aren't many zone preplacements (relics)
+            let node_index = nodes.swap_remove(self.rng.gen_range(0..nodes.len()));
+            let node = self.needs_placement[node_index];
             self.push_action(node_trigger(node).unwrap(), action);
+            self.received_placement.push(node_index);
         }
-        self.output.preplacements.shrink_to_fit();
     }
 
     fn hi_sigma(&mut self) {
         let node = self
             .needs_placement
-            .remove(self.rng.gen_range(0..self.needs_placement.len())); // TODO handle empty
+            .swap_remove(self.rng.gen_range(0..self.needs_placement.len())); // TODO handle empty
         self.push_action(
             node_trigger(node).unwrap(),
             common(CommonItem::SpiritLight(1)),
@@ -475,26 +499,32 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
     }
 
     fn update_reached(&mut self) {
-        self.reached = self.world.reached_and_progressions();
+        let mut received_placement = mem::take(&mut self.received_placement);
+        received_placement.sort();
+        for node_index in received_placement.into_iter().rev() {
+            self.needs_placement.swap_remove(node_index);
+        }
+
+        let reached_locations = self.world.reached_and_progressions();
+        self.reached = reached_locations.reached;
+        self.progressions = reached_locations.progressions;
         self.reached_needs_placement = self
-            .reached
             .reached
             .iter()
             .enumerate()
             .filter(|(_, node)| self.needs_placement.contains(node))
             .map(|(index, _)| index)
             .collect();
-        self.reached_item_locations = self
-            .reached
-            .reached
-            .iter()
-            .filter(|node| node.can_place())
-            .count();
+        self.reached_item_locations = self.reached.iter().filter(|node| node.can_place()).count();
+    }
+
+    fn slots_remaining(&self) -> usize {
+        self.needs_placement.len() - self.received_placement.len()
     }
 
     fn choose_progression(&mut self, slots: usize) -> Option<Inventory> {
         let world_slots = self.reached_needs_placement.len();
-        let mut progressions = mem::take(&mut self.reached.progressions)
+        let mut progressions = mem::take(&mut self.progressions)
             .into_iter()
             .flat_map(|(requirement, best_orbs)| {
                 self.world.player.solutions(
@@ -514,9 +544,9 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             .iter()
             .enumerate()
             .map(|(index, inventory)| {
-                let mut lookahead_player = self.world.player.clone();
-                lookahead_player.inventory += inventory.clone();
-                let mut lookahead_reachable = self.world.reached_with(&lookahead_player);
+                self.world.player.inventory += inventory.clone();
+                let mut lookahead_reachable = self.world.reached();
+                self.world.player.inventory -= inventory;
                 lookahead_reachable.retain(|&node| node.can_place());
 
                 // Resource tracking can result in reaching less locations with an added teleporter, so prevent any overflows.
@@ -543,12 +573,12 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             .ok()?
             .0; // TODO handle
 
-        Some(progressions.remove(index))
+        Some(progressions.swap_remove(index))
     }
 
     fn place_spirit_light(&mut self, mut amount: i32) {
         while amount > 0 {
-            let batch = self.spirit_light_provider.take(self.needs_placement.len());
+            let batch = self.spirit_light_provider.take(self.slots_remaining());
             amount -= batch;
             let action = common(CommonItem::SpiritLight(batch));
             let node = self.choose_placement_node(&action).unwrap();
@@ -573,9 +603,10 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             _ => (!self.reached_needs_placement.is_empty())
                 .then(|| self.rng.gen_range(0..self.reached_needs_placement.len())),
         }
-        .map(|node_index| {
-            self.needs_placement
-                .remove(self.reached_needs_placement.remove(node_index))
+        .map(|index| {
+            let node_index = self.reached_needs_placement.swap_remove(index);
+            self.received_placement.push(node_index);
+            self.needs_placement[node_index]
         })
     }
 
