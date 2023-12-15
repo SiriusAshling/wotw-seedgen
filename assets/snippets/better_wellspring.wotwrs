@@ -1,0 +1,8 @@
+#name("Better Wellspring")
+#category("World Changes")
+#description("Opens the top door of Wellspring")
+
+!flags("Better Wellspring")
+
+// TODO resolve all leftover ids
+on spawn store(37858|31962, true)

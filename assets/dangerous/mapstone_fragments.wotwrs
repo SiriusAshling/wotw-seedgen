@@ -1,0 +1,73 @@
+!include("shared_states")
+!use("shared_states", critical)
+
+!include("bind_pointer")
+!use("bind_pointer", bind_pointer)
+!use("bind_pointer", mapstone_finish)
+
+!state(mapstone_fragments, Integer)
+!share(mapstone_fragment)
+fun mapstone_fragment() {
+    store(mapstone_fragments, mapstone_fragments + 1)
+    set_string("color", "")
+    if mapstone_fragments >= 33 set_string("color", "$")
+    item_message("<purple>Mapstone Fragment</> " + get_string("color") + "(" + mapstone_fragments + "/33)" + get_string("color"))
+}
+on mapstone_fragments >= 33 {
+    item_message_with_timeout("<purple>Ancient Mapstone</>", 5)
+    store_without_triggers(questUberStateGroup.tradeSequenceQuest, 10)
+}
+
+// TODO wheel entry to recall the mapstone
+on WindtornRuins.HandToHandComplete {
+    read_mapstone()
+    store_without_triggers(MarshSpawn.DamageTree, true)
+    store_without_triggers(MarshPastOpher.LeftEyestone, true)
+    store_without_triggers(InnerWellspring.WaterSwitchEX, true)
+    store_without_triggers(PoolsApproach.MarshPathCurrentEX, true)
+    store_without_triggers(EastPools.BubbleCurrentEX, true)
+    store_without_triggers(EastPools.PurpleWallHC, true)
+    store_without_triggers(EastPools.FightRoomHC, true)
+    store_without_triggers(UpperPools.SwimDashCurrentEX, true)
+    store_without_triggers(UpperPools.WaterfallEC, true)
+    store_without_triggers(LowerReach.WindBottomEX, true)
+    store_without_triggers(raceGroup.baursReachWindTunnelRace, 2)
+    store_without_triggers(MarshSpawn.CrusherSwimEX, true)
+    store_without_triggers(LowerReach.AboveBaurUpperEX, true)
+    store_without_triggers(LowerReach.AboveBaurLowerEX, true)
+    store_without_triggers(baursReachGroup.firePedestal, true)
+    store_without_triggers(UpperReach.UpperKS, true)
+    store_without_triggers(UpperReach.LowerKS, true)
+    store_without_triggers(baursReachGroup.firePedestalBooleanUberState, true)
+    if critical {
+        store_without_triggers(MarshPastOpher.RightEyestone, true)
+        store_without_triggers(HowlsDen.BoneOre, true)
+        store_without_triggers(HowlsDen.CombatShrine, true)
+        store_without_triggers(WestHollow.QuickshotShard, true)
+        store_without_triggers(GladesTown.LowerOre, true)
+        store_without_triggers(UpperReach.SpringSeed, true)
+    }
+    if critical == false {
+        store_without_triggers(raceGroup.inkwaterMarshRace, 2)
+        store_without_triggers(raceGroup.kwolokDropRace, 2)
+        store_without_triggers(raceGroup.wellspringRace, 2)
+        store_without_triggers(raceGroup.lumaPoolsRace, 2)
+        store_without_triggers(raceGroup.silentWoodlandRace, 2)
+        store_without_triggers(raceGroup.mouldwoodDepthsRace, 2)
+    }
+}
+fun read_mapstone() {
+    set_string("critical_clue", "")
+    if critical == false set_string("critical_clue", "(@Critical@ may be required)\n")
+    controlled_message("mapstone",
+        "Reading the writings engraved in the <purple>Mapstone</>, you unveil one of this world's secrets...\n" +
+        "A *Light* is hiding, in search of a sanctuary. It cannot be found, but might it be lured?\n" +
+        get_string("critical_clue") +
+        "[Bind1] Ok"
+    )
+    store(bind_pointer, mapstone_finish)
+}
+on bind1 if bind_pointer == mapstone_finish {
+    destroy_message("mapstone")
+    store(bind_pointer, 0)
+}

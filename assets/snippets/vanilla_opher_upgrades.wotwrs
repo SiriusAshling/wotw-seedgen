@@ -1,0 +1,21 @@
+#category("Placements")
+#name("Vanilla Opher Upgrades")
+#description("Places the five vanilla weapon upgrades on their vanilla locations in Opher's shop")
+
+!flags("Vanilla Opher Upgrades")
+
+// TODO rename the aliases to fit
+on OpherShop.ExplodingSpike weapon_upgrade(WeaponUpgrade::ExplodingSpear)
+on OpherShop.ShockSmash weapon_upgrade(WeaponUpgrade::ShockHammer)
+on OpherShop.StaticStar weapon_upgrade(WeaponUpgrade::StaticShuriken)
+on OpherShop.ChargeBlaze weapon_upgrade(WeaponUpgrade::ChargeBlaze)
+on OpherShop.RapidSentry weapon_upgrade(WeaponUpgrade::RapidSentry)
+
+on reload {
+    // TODO can't write the names
+    store(1|11074, 300)
+    store(1|11098, 300)
+    store(1|11106, 300)
+    store(1|11115, 300)
+    store(1|11116, 300)
+}

@@ -1,0 +1,159 @@
+#hide
+#name("Bonus Item Core")
+#description("Convenience functions for simple bonus items")
+
+fun health_regeneration() {
+    store(randoUpgrades.healthRegeneration, randoUpgrades.healthRegeneration + 1)
+    item_message("#Health Regeneration x" + randoUpgrades.healthRegeneration + "#")
+}
+!item_data(health_regeneration(),
+    "#Health Regeneration#",
+    200,
+    "Passively regenerate health at a slow rate",
+    read_icon("assets/icons/bonus/healthregeneration.png"),
+    MapIcon::BonusItem
+)
+!share(health_regeneration)
+
+fun energy_regeneration() {
+    store(randoUpgrades.energyRegeneration, randoUpgrades.energyRegeneration + 1)
+    item_message("#Energy Regeneration x" + randoUpgrades.energyRegeneration + "#")
+}
+!item_data(energy_regeneration(),
+    "#Energy Regeneration#",
+    200,
+    "Passively regenerate energy at a slow rate",
+    read_icon("assets/icons/bonus/energyregeneration.png"),
+    MapIcon::BonusItem
+)
+!share(energy_regeneration)
+
+fun extra_double_jump() {
+    store(randoUpgrades.extraDoubleJumps, randoUpgrades.extraDoubleJumps + 1)
+    item_message("#Extra Double Jump x" + randoUpgrades.extraDoubleJumps + "#")
+}
+!item_data(extra_double_jump(),
+    "#Extra Double Jump#",
+    200,
+    "If you have *Double Jump*, get an additional jump in the air",
+    read_icon("assets/icons/bonus/extradoublejump.png"),
+    MapIcon::BonusItem
+)
+!share(extra_double_jump)
+
+fun extra_air_dash() {
+    store(randoUpgrades.extraDashes, randoUpgrades.extraDashes + 1)
+    item_message("#Extra Air Dash x" + randoUpgrades.extraDashes + "#")
+}
+!item_data(extra_air_dash(),
+    "#Extra Air Dash#",
+    200,
+    "If you have *Dash*, get an additional dash in the air",
+    read_icon("assets/icons/bonus/extraairdash.png"),
+    MapIcon::BonusItem
+)
+!share(extra_air_dash)
+
+fun blaze_efficiency() {
+    store(randoUpgrades.blazeEfficiency, randoUpgrades.blazeEfficiency + 1)
+    item_message("#Blaze Efficiency x" + randoUpgrades.blazeEfficiency + "#")
+}
+!item_data(blaze_efficiency(),
+    "#Blaze Efficiency#",
+    200,
+    "Halves the cost of using *Blaze*",
+    read_icon("assets/icons/bonus/blazeefficiency.png"),
+    MapIcon::BonusItem
+)
+!share(blaze_efficiency)
+
+fun spear_efficiency() {
+    store(randoUpgrades.spearEfficiency, randoUpgrades.spearEfficiency + 1)
+    item_message("#Spear Efficiency x" + randoUpgrades.spearEfficiency + "#")
+}
+!item_data(spear_efficiency(),
+    "#Spear Efficiency#",
+    200,
+    "Halves the cost of using *Spear*",
+    read_icon("assets/icons/bonus/spearefficiency.png"),
+    MapIcon::BonusItem
+)
+!share(spear_efficiency)
+
+fun shuriken_efficiency() {
+    store(randoUpgrades.shurikenEfficiency, randoUpgrades.shurikenEfficiency + 1)
+    item_message("#Shuriken Efficiency x" + randoUpgrades.shurikenEfficiency + "#")
+}
+!item_data(shuriken_efficiency(),
+    "#Shuriken Efficiency#",
+    200,
+    "Halves the cost of using *Shuriken*",
+    read_icon("assets/icons/bonus/shurikenefficiency.png"),
+    MapIcon::BonusItem
+)
+!share(shuriken_efficiency)
+
+fun sentry_efficiency() {
+    store(randoUpgrades.sentryEfficiency, randoUpgrades.sentryEfficiency + 1)
+    item_message("#Sentry Efficiency x" + randoUpgrades.sentryEfficiency + "#")
+}
+!item_data(sentry_efficiency(),
+    "#Sentry Efficiency#",
+    200,
+    "Halves the cost of using *Sentry*",
+    read_icon("assets/icons/bonus/sentryefficiency.png"),
+    MapIcon::BonusItem
+)
+!share(sentry_efficiency)
+
+fun bow_efficiency() {
+    store(randoUpgrades.bowEfficiency, randoUpgrades.bowEfficiency + 1)
+    item_message("#Bow Efficiency x" + randoUpgrades.bowEfficiency + "#")
+}
+!item_data(bow_efficiency(),
+    "#Bow Efficiency#",
+    200,
+    "Halves the cost of using *Bow*",
+    read_icon("assets/icons/bonus/bowefficiency.png"),
+    MapIcon::BonusItem
+)
+!share(bow_efficiency)
+
+fun regenerate_efficiency() {
+    store(randoUpgrades.regenerateEfficiency, randoUpgrades.regenerateEfficiency + 1)
+    item_message("#Regenerate Efficiency x" + randoUpgrades.regenerateEfficiency + "#")
+}
+!item_data(regenerate_efficiency(),
+    "#Regenerate Efficiency#",
+    200,
+    "Halves the cost of using *Regenerate*",
+    read_icon("assets/icons/bonus/regenerateefficiency.png"),
+    MapIcon::BonusItem
+)
+!share(regenerate_efficiency)
+
+fun flash_efficiency() {
+    store(randoUpgrades.flashEfficiency, randoUpgrades.flashEfficiency + 1)
+    item_message("#Flash Efficiency x" + randoUpgrades.flashEfficiency + "#")
+}
+!item_data(flash_efficiency(),
+    "#Flash Efficiency#",
+    200,
+    "Halves the cost of using *Flash*",
+    read_icon("assets/icons/bonus/flashefficiency.png"),
+    MapIcon::BonusItem
+)
+!share(flash_efficiency)
+
+fun grenade_efficiency() {
+    store(randoUpgrades.grenadeEfficiency, randoUpgrades.grenadeEfficiency + 1)
+    item_message("#Grenade Efficiency x" + randoUpgrades.grenadeEfficiency + "#")
+}
+!item_data(grenade_efficiency(),
+    "#Grenade Efficiency#",
+    200,
+    "Halves the cost of using *Grenade*",
+    read_icon("assets/icons/bonus/grenadeefficiency.png"),
+    MapIcon::BonusItem
+)
+!share(grenade_efficiency)

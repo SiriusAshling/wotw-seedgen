@@ -1,0 +1,18 @@
+on spawn store(swampStateGroup.doorAState, true)
+on skills.sword store(swampStateGroup.doorAState, false)
+
+on MarshPastOpher.LeftEyestone {
+    item_message("Huh?")
+    warp(-88, -4423)
+    // TODO there was a 10 frame delay on this originally
+    save()
+}
+
+on skills.bow store_without_triggers(MarshPastOpher.LeftEyestone, true)
+
+on teleport if skills.sword == false {
+    store(WestHollow.CrusherEX, false)
+    store(WestHollow.AboveDashEX, false)
+    store(WestHollow.DashRightEX, false)
+    store(WestHollow.DashTree, false)
+}

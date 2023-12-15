@@ -1,0 +1,22 @@
+// warplock in a broken seed
+!state(warplock, Boolean)
+on tick if warplock warp(-3537, -5881)
+
+// version
+!state(version, Integer)
+on spawn store(version, 2)
+on reload if version != 2 {
+    if version < 2 {
+        priority_message(
+            "Failed to validate this savefile. Maybe you loaded a different seed into this savefile? Check that you're on the correct savefile or try loading a backup",
+            10,
+        )
+    }
+    if version >= 2 {
+        priority_message(
+            "This savefile was started on version " + version + "of the plandomizer, but currently version 2 is loaded. These versions are incompatible. Please revert to a compatible version",
+            10,
+        )
+    }
+    store(warplock, true)
+}

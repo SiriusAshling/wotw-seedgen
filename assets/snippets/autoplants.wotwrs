@@ -1,0 +1,51 @@
+#category("Quality of Life")
+#name("Autoplants")
+#description(
+"skip the seed planting animations
+seeds will be planted as soon as you collect them and as soon as Tuley is in the Glades")
+
+// TODO depending on the design of triggers, very different patterns are possible here...
+// but if it was only a list of listeners you'd have to check for booleans to be true every time and stuff like that...
+
+// use cases:
+// on <bool state>: trigger on true, not on false
+// on <bool state> == false: trigger on false
+// on <int state>: trigger on any change
+// on <quest state> > 3: trigger only when changing from <= 3 to > 3
+// on <quest state> if <quest state> > 3: trigger on every change > 3
+
+on 42178|33011 > 0
+|| 42178|64583 > 0
+|| 42178|38393 > 0
+|| 42178|47651 > 0
+|| 42178|16254 > 0
+|| 42178|40006 > 0
+|| GladesTown.TuleySpawned {
+    if GladesTown.TuleySpawned {
+        if 42178|33011 == 1 { store(42178|33011, 3) }
+        if 42178|64583 == 1 { store(42178|64583, 3) }
+        if 42178|38393 == 1 { store(42178|38393, 3) }
+        if 42178|47651 == 1 { store(42178|47651, 3) }
+        if 42178|16254 == 1 { store(42178|16254, 3) }
+        if 42178|40006 == 1 { store(42178|40006, 3) }
+        // Fix Regrow Quest triggers
+        if questUberStateGroup.regrowGladesQuest == 0 {
+            if TuleyShop.BlueMoon
+            || TuleyShop.StickyGrass
+            || TuleyShop.SpringPlants
+            || TuleyShop.Lightcatchers
+            || TuleyShop.SelaFlowers
+            || TuleyShop.LastTree {
+                store(questUberStateGroup.regrowGladesQuest, 1)
+            }
+        }
+        if TuleyShop.BlueMoon
+        && TuleyShop.StickyGrass
+        && TuleyShop.SpringPlants
+        && TuleyShop.Lightcatchers
+        && TuleyShop.SelaFlowers 
+        && TuleyShop.LastTree {
+            store(questUberStateGroup.regrowGladesQuest, 2)
+        }
+    }
+}

@@ -13,6 +13,7 @@ mod spawn_region;
 mod step_size;
 mod zone_spirit_light;
 mod zone_unlock;
+// TODO idea: progression_location analyzer for which locations get chosen for progression
 
 use compare::*;
 pub use early_skills::EarlySkillsStats;

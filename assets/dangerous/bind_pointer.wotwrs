@@ -1,0 +1,120 @@
+// The bind pointers are used to store what should happen when pressing a keybind, usually this means which message to show next
+// The counter setup below is used to ensure no duplicates are used
+!state(bind_pointer, Integer)
+!share(bind_pointer)
+
+!let(counter, 1)
+!let(shops_explanation_next, counter)
+!share(shops_explanation_next)
+
+!let(counter, counter + 1)
+!let(shops_explanation_finish, counter)
+!share(shops_explanation_finish)
+
+!let(counter, counter + 1)
+!let(downswing_lift_finish, counter)
+!share(downswing_lift_finish)
+
+!let(counter, counter + 1)
+!let(spring_plant_boost_finish, counter)
+!share(spring_plant_boost_finish)
+
+!let(counter, counter + 1)
+!let(upslash_turnaround_finish, counter)
+!share(upslash_turnaround_finish)
+
+!let(counter, counter + 1)
+!let(slash_acceleration_finish, counter)
+!share(slash_acceleration_finish)
+
+!let(counter, counter + 1)
+!let(projectile_range_finish, counter)
+!share(projectile_range_finish)
+
+!let(counter, counter + 1)
+!let(projectile_pogo_finish, counter)
+!share(projectile_pogo_finish)
+
+!let(counter, counter + 1)
+!let(multi_pogo_finish, counter)
+!share(multi_pogo_finish)
+
+!let(counter, counter + 1)
+!let(shuriken_hop_finish, counter)
+!share(shuriken_hop_finish)
+
+!let(counter, counter + 1)
+!let(shuriken_acceleration_finish, counter)
+!share(shuriken_acceleration_finish)
+
+!let(counter, counter + 1)
+!let(shuriken_slashes_finish, counter)
+!share(shuriken_slashes_finish)
+
+!let(counter, counter + 1)
+!let(shuriken_clip_finish, counter)
+!share(shuriken_clip_finish)
+
+!let(counter, counter + 1)
+!let(shuriken_pogo_finish, counter)
+!share(shuriken_pogo_finish)
+
+!let(counter, counter + 1)
+!let(wall_shuriken_pogo_finish, counter)
+!share(wall_shuriken_pogo_finish)
+
+!let(counter, counter + 1)
+!let(ground_shuriken_pogo_finish, counter)
+!share(ground_shuriken_pogo_finish)
+
+!let(counter, counter + 1)
+!let(air_shuriken_pogo_finish, counter)
+!share(air_shuriken_pogo_finish)
+
+!let(counter, counter + 1)
+!let(shuriken_leak_finish, counter)
+!share(shuriken_leak_finish)
+
+!let(counter, counter + 1)
+!let(double_shuriken_finish, counter)
+!share(double_shuriken_finish)
+
+!let(counter, counter + 1)
+!let(deflector_refresh_finish, counter)
+!share(deflector_refresh_finish)
+
+!let(counter, counter + 1)
+!let(select_difficulty, counter)
+!share(select_difficulty)
+
+!let(counter, counter + 1)
+!let(confirm_balanced, counter)
+!share(confirm_balanced)
+
+!let(counter, counter + 1)
+!let(confirm_critical, counter)
+!share(confirm_critical)
+
+!let(counter, counter + 1)
+!let(lupo_finish, counter)
+!share(lupo_finish)
+
+!let(counter, counter + 1)
+!let(shop_shuriken_efficiency, counter)
+!share(shop_shuriken_efficiency)
+
+!let(counter, counter + 1)
+!let(shop_shuriken_upgrade, counter)
+!share(shop_shuriken_upgrade)
+
+!let(counter, counter + 1)
+!let(shop_ancestral_light, counter)
+!share(shop_ancestral_light)
+
+!let(counter, counter + 1)
+!let(shop_pendant, counter)
+!share(shop_pendant)
+
+!let(counter, counter + 1)
+!let(mapstone_finish, counter)
+!share(mapstone_finish)

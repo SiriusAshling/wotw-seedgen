@@ -1,0 +1,79 @@
+!include("shared_states")
+!use("shared_states", critical)
+
+!include("items")
+!use("items", mapstone_fragment)
+
+on EastHollow.HandToHandMap herb_pouch()
+on LowerReach.HandToHandSoup if critical wanderers_pouch()
+on InnerWellspring.HandToHandHerbs if critical spyglass()
+on GladesTown.HandToHandCanteen if critical mouldwood_silk()
+on EastPools.HandToHandSpyglass if critical old_map()
+on GladesTown.HandToHandPouch if critical lantern()
+on LowerDepths.HandToHandSilk if critical hat()
+on GladesTown.HandToHandLantern canteen()
+on LowerWastes.HandToHandMapstone if critical spicy_soup()
+
+on LowerReach.HandToHandSoup if critical == false lantern() // TODO dont forget the bow
+on LowerDepths.HandToHandSilk if critical == false spyglass()
+on GladesTown.HandToHandCanteen if critical == false wanderers_pouch()
+on InnerWellspring.HandToHandHerbs if critical == false hat()
+// lantern is the same as critical above
+on LowerWastes.HandToHandMapstone if critical == false old_map()
+on GladesTown.HandToHandPouch if critical == false mouldwood_silk()
+on EastPools.HandToHandSpyglass if critical == false spicy_soup()
+
+on LowerReach.HandToHandHat {
+    store(questUberStateGroup.tradeSequenceQuest, -6)
+    item_message("The Moki didn't give you anything...")
+}
+
+fun old_map() {
+    mapstone_fragment()
+    store_without_triggers(questUberStateGroup.tradeSequenceQuest, 1)
+    item_message("Old Map")
+}
+fun wanderers_pouch() {
+    mapstone_fragment()
+    store_without_triggers(questUberStateGroup.tradeSequenceQuest, 2)
+    item_message("Wanderer's Pouch")
+}
+fun herb_pouch() {
+    mapstone_fragment()
+    store_without_triggers(questUberStateGroup.tradeSequenceQuest, 3)
+    item_message("Herb Pouch")
+}
+fun spicy_soup() {
+    mapstone_fragment()
+    store_without_triggers(questUberStateGroup.tradeSequenceQuest, 4)
+    item_message("Spicy Soup")
+}
+fun hat() {
+    mapstone_fragment()
+    store_without_triggers(questUberStateGroup.tradeSequenceQuest, 5)
+    item_message("Hat")
+}
+fun lantern() {
+    mapstone_fragment()
+    store_without_triggers(questUberStateGroup.tradeSequenceQuest, 6)
+    item_message("Lantern")
+    if critical == false {
+        item_message("*Spirit Arc*")
+        store(skills.bow, true)
+    }
+}
+fun mouldwood_silk() {
+    mapstone_fragment()
+    store_without_triggers(questUberStateGroup.tradeSequenceQuest, 7)
+    item_message("Mouldwood Silk")
+}
+fun spyglass() {
+    mapstone_fragment()
+    store_without_triggers(questUberStateGroup.tradeSequenceQuest, 8)
+    item_message("Spyglass")
+}
+fun canteen() {
+    mapstone_fragment()
+    store_without_triggers(questUberStateGroup.tradeSequenceQuest, 9)
+    item_message("Canteen")
+}

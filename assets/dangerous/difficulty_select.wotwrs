@@ -1,0 +1,98 @@
+!include("bind_pointer")
+// TODO maybe accept any amount of identifiers on use?
+!use("bind_pointer", bind_pointer)
+!use("bind_pointer", select_difficulty)
+!use("bind_pointer", confirm_balanced)
+!use("bind_pointer", confirm_critical)
+
+!include("shared_states")
+!use("shared_states", critical)
+
+!share(difficulty_menu)
+fun difficulty_menu() {
+    controlled_message(
+        "select_difficulty",
+        "$Select a difficulty$\n" +
+        "#Balanced#                   @Critical@\n" +
+        "[Bind1]        [Bind2]"
+    )
+    store(bind_pointer, select_difficulty)
+}
+on bind1 if bind_pointer == select_difficulty {
+    controlled_message(
+        "confirm_balanced",
+        "#Balanced#\n" +
+        "There will be a difficulty curve and multiple paths to progress.\n" +
+        "$Confirm$                   @Go back@\n" +
+        "[Bind1]        [Bind2]"
+    )
+    store(bind_pointer, confirm_balanced)
+}
+on bind2 if bind_pointer == select_difficulty {
+    controlled_message(
+        "confirm_critical",
+        "@Critical@\n" +
+        "A challenge with no restraints. Few have survived.\n" +
+        "$Confirm$                   @Go back@\n" +
+        "[Bind1]        [Bind2]"
+    )
+    store(bind_pointer, confirm_critical)
+}
+on bind1 if bind_pointer == confirm_balanced {
+    store(bind_pointer, 0)
+    start()
+}
+on bind2 if bind_pointer == confirm_balanced difficulty_menu()
+on bind1 if bind_pointer == confirm_critical {
+    store(bind_pointer, 0)
+    store(critical, true)
+    start()
+}
+on bind2 if bind_pointer == confirm_critical difficulty_menu()
+
+// TODO convenience command to make a timer?
+!state(message_timer, Float)
+!state(message_timer_active, Boolean)
+on reload define_timer(message_timer_active, message_timer)
+
+fun start() {
+    store(LowerReach.KeystoneDoor, true)
+    store_without_triggers(MarshSpawn.LupoMap, true)
+    store(inkwaterMarshStateGroup.mokiTorchPlayed, false)
+    store(swampStateGroup.torchHolded, false)
+    set_kwolok_statue_enabled(false)
+    store(WestHollow.PurpleDoorOpen, true)
+    store(hubUberStateGroup.builderProjectSpiritWell, 0)
+    // TODO how to make it available, but not completed?
+    store(hubUberStateGroup.builderProjectBeautify, 0)
+    // TODO weird that these aren't used...
+    store(LupoShop.ShardMapIcon, 1)
+    store(LupoShop.ECMapIcon, 1)
+    store(LupoShop.HCMapIcon, 1)
+    store(swampStateGroup.finishedIntroTop, false)
+    warp(-799, -4310)
+    store(message_timer_active, true)
+    priority_message("@It's Dangerous to go Alone@\nby SiriusAshling", 10.33)
+}
+on message_timer > 10.33 {
+    set_string("difficulty_change", "")
+    if critical && gameStateGroup.gameDifficultyMode < 2 {
+        store(gameStateGroup.gameDifficultyMode, 2)
+        set_string("difficulty_change", "Difficulty changed to @Hard@\n")
+    }
+    if critical == false && gameStateGroup.gameDifficultyMode == 2 {
+        store(gameStateGroup.gameDifficultyMode, 1)
+        set_string("difficulty_change", "Difficulty changed to #Normal#\n")
+    }
+    priority_message(
+        "#Rules#\n" +
+        "No Ori Out of Bounds, No Pause Hover\n" +
+        get_string("difficulty_change") +
+        "$Good luck!$",
+        10.33
+    )
+}
+on message_timer > 20.67 {
+    item_message_with_timeout("*Chapter 1* - Lost", 7.67)
+    store(message_timer_active, false)
+}

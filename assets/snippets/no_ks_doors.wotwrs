@@ -1,0 +1,22 @@
+#category("World Changes")
+#name("No KS Doors")
+#description("All keystone doors start open")
+
+// TODO translate to names
+on spawn {
+    store(20120|28786, true)
+    store(21786|42309, true)
+    store(21786|47445, true)
+    store(21786|59990, true)
+    store(18793|10758, true)
+    store(5377|47621, true)
+    store(28895|4290, true)
+    store(28895|49900, true)
+    store(18793|3171, true)
+    store(58674|21500, true)
+    store(18793|41544, true)
+    store(937|1038, 3)
+    store(937|64003, true)
+}
+
+!remove(resource(Resource::Keystone), 34)

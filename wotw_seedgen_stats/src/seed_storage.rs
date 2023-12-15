@@ -10,7 +10,8 @@ use std::{
 };
 
 use wotw_seedgen::{
-    files::FILE_SYSTEM_ACCESS, generator::SeedSpoiler, settings::UniverseSettings, world::Graph,
+    files::FILE_SYSTEM_ACCESS, generator::SeedSpoiler, settings::UniverseSettings,
+    world::graph::Graph,
 };
 
 use itertools::Itertools;

@@ -242,7 +242,7 @@ fn summarize_settings(settings: &UniverseSettings, graph: &Graph) -> String {
         if spawn != DEFAULT_SPAWN
             && all!(|world_settings| matches!(&world_settings.spawn, Spawn::Set(s) if s == spawn))
         {
-            if let Ok(node) = graph.find_spawn(spawn) {
+            if let Ok(node) = graph.find_node(spawn) {
                 if let Some(zone) = node.zone() {
                     write_summary!("{zone} Spawn ");
                 }

@@ -1,0 +1,236 @@
+!include("shared_states")
+!use("shared_states", critical)
+
+!include("items")
+!use("items", energy_fragment)
+!use("items", door_leaf)
+!use("items", eyestone)
+!use("items", gorlek_ore_pre_shuriken)
+!use("items", trial_reward)
+!use("items", ability_cell)
+
+// ~ Area: Cave ~
+
+// TODO point out the torch?
+
+on swampStateGroup.torchHolded store(swampStateGroup.torchHolded, false)
+on MarshSpawn.RockHC || MarshSpawn.LogBroken store(hubUberStateGroup.builderProjectSpiritWell, 3)
+
+on MarshSpawn.RockHC energy_fragment()
+on MarshSpawn.ResilienceShard energy_fragment()
+on MarshSpawn.FightRoomEX energy_fragment()
+on MarshSpawn.CaveKS {
+    energy_fragment()
+    item_message("Tokk's Keystone")
+}
+
+on MarshSpawn.FirstPickupEX spirit_light(40)
+on MarshSpawn.BridgeEX spirit_light(40)
+on MarshSpawn.PreLupoEX spirit_light(40)
+on MarshSpawn.LeftTokkEX spirit_light(40)
+on MarshSpawn.TokkKeystoneQuest {
+    if critical spirit_light(40)
+    if critical == false resource(Resource::Keystone)
+}
+
+// ~ Area: Mill View ~
+
+on MarshPastOpher.BowTree {
+    priority_message(
+        "You are not alone on this journey. Through the light of *Ancestral Trees* we will speak to you.\n" +
+        "I shall lend you a $leaf fallen late$ to open a gate...",
+        10
+    )
+    door_leaf()
+}
+
+on MarshPastOpher.CombatShrine {
+    if critical door_leaf()
+    if critical == false {
+        item_message("@Thorn@")
+        store(shards.thorn, true)
+    }
+}
+
+on MarshPastOpher.BowEC energy_fragment()
+on MarshPastOpher.TrialEC energy_fragment()
+on MarshPastOpher.TrialHC energy_fragment()
+on MarshPastOpher.TrialLeftEX energy_fragment()
+
+on MarshPastOpher.SwingPoleEX spirit_light(40)
+on MarshPastOpher.TrialOre spirit_light(40)
+on MarshPastOpher.SpiritTrial trial_reward()
+on MarshPastOpher.RightEyestone spirit_light(40)
+
+// ~ Area: Den ~
+
+on MarshSpawn.RegenTree {
+    priority_message(
+        "Enter the Depths of the #Den below#, for you will have to #prove your courage#.\n" +
+        "I shall lend you a *piece of my bark* to fend off the dark...",
+        10
+    )
+    item_message("*Spirit Edge*")
+    store(skills.sword, true)
+    store_without_triggers(swampStateGroup.torchHolded, true)
+}
+
+on HowlsDen.CombatShrine {
+    if critical ability_cell()
+    if critical == false gorlek_ore_pre_shuriken()
+}
+
+on HowlsDen.LaserKS eyestone()
+on HowlsDen.LeftHC eyestone()
+
+on HowlsDen.MagnetShard door_leaf()
+on HowlsDen.DoubleJumpTree {
+    priority_message(
+        "Here deep below the ground you will find the way ahead.\n" +
+        "Now #climb back to the surface#, for you will have to @prove your strength@\n" +
+        "I shall lend you a $leaf fallen late$ to open a gate...",
+        10
+    )
+    door_leaf()
+}
+
+on MarshSpawn.RecklessShard energy_fragment()
+on HowlsDen.UpperEX energy_fragment()
+on HowlsDen.RightHC energy_fragment()
+on HowlsDen.AboveDoorKS energy_fragment()
+on HowlsDen.DoubleJumpEX energy_fragment()
+on HowlsDen.StickyShard energy_fragment()
+
+on HowlsDen.AboveTPEX spirit_light(40)
+
+on HowlsDen.SwordTree {
+    priority_message(
+        "Long years have passed since the *Light Ceremony* last filled these hollows.\n" +
+        "Step carefully, for you will have to *prove your wisdom*\n" +
+        "I shall #lift the haze# that darkened this place...",
+        10
+    )
+    store(MarshSpawn.LupoMap, false)
+}
+
+// ~ Area: Daylight Marsh ~
+
+on MarshSpawn.BashEC gorlek_ore_pre_shuriken()
+on MarshSpawn.LeverEC gorlek_ore_pre_shuriken()
+on MarshSpawn.LifepactShard {
+    if critical gorlek_ore_pre_shuriken()
+    if critical == false {
+        if skills.glide item_message("Broken Hammer")
+        if skills.glide == false {
+            item_message("#Hammer#")
+            store(skills.hammer, true)
+        }
+    }
+}
+
+on MarshSpawn.CaveOre energy_fragment()
+
+on MarshSpawn.FangQI {
+    spirit_light(40)
+    item_message("Howl Fang")
+}
+on MarshSpawn.MokkFangQuest spirit_light(40)
+on MarshPastOpher.TrialRightEX spirit_light(40)
+
+// ~ Area: West Hollow ~
+
+on WestHollow.CrusherHC energy_fragment()
+
+on WestHollow.BelowLupoEX gorlek_ore_pre_shuriken()
+on WestHollow.AboveDashEX {
+    if skills.sword gorlek_ore_pre_shuriken()
+    if skills.sword == false item_message(". . .")
+}
+
+on WestHollow.FarLeftEX spirit_light(60)
+on WestHollow.RockPuzzleEX spirit_light(60)
+on WestHollow.HiddenEC spirit_light(60)
+on WestHollow.TrialHC spirit_light(60)
+on WestHollow.CrusherEX {
+    if skills.sword spirit_light(60)
+    if skills.sword == false item_message(". . .")
+}
+on WestHollow.QuickshotShard spirit_light(60)
+
+on WestHollow.SpiritTrial trial_reward()
+
+on WestHollow.DashRightEX {
+    if skills.sword {
+        if critical && skills.shuriken item_message("<purple>Withered Seed</>")
+        if critical == false || skills.shuriken == false {
+            item_message("$Mysterious Seed$")
+            store_without_triggers(hubUberStateGroup.gardenerProjectGrapplePlants, 1)
+        }
+    }
+    if skills.sword == false item_message(". . .")
+}
+
+on WestHollow.DashTree {
+    if skills.sword {
+        if critical priority_message(
+            "The way ahead may not always be clear, but never despair.\n" +
+            "Whatever I may have been able to give you, I have since lost...",
+            10
+        )
+        if critical == false {
+            priority_message(
+                "The way ahead may not always be clear, but never despair.\n" +
+                "I shall lend you this #shard shaped within my roots# to aid your path through the woods...",
+                10
+            )
+            item_message("*Deflector*")
+            store(shards.deflector, true)
+        }
+    }
+    if skills.sword == false priority_message(
+        "3131113231\nThis code may be helpful... #in time#.",
+        10
+    )
+}
+
+// ~ Area: East Hollow ~
+
+on EastHollow.BashHC {
+    if critical shuriken()
+    if critical == false gorlek_ore_pre_shuriken()
+}
+
+on EastHollow.BashTree {
+    if critical {
+        priority_message(
+            "Each step and stone will reveal another piece - of the power that #lies in you#.\n" +
+            "I shall lend you this #shard shaped within my roots# to aid your path through the woods...",
+            10
+        )
+        item_message("*Energy Harvest*")
+        store(shards.energyHarvest, true)
+    }
+    if critical == false {
+        priority_message(
+            "Each step and stone will reveal another piece - of the power that #lies in you#.\n" +
+            "I shall #drain the poison# that fills this Hollow to ease the task you have to follow...",
+            10
+        )
+        store(kwolokGroupDescriptor.recedingWaterSetup, 2)
+    }
+}
+
+on EastHollow.SecretRoofEX gorlek_ore_pre_shuriken()
+on EastHollow.MortarEX gorlek_ore_pre_shuriken()
+
+on EastHollow.SplinterShard {
+    if critical spirit_light(60)
+    if critical == false shuriken()
+}
+
+fun shuriken() {
+    // TODO this doesn't work like it used to
+    item_message_with_timeout("*Chapter 2* - Strength", 7.5)
+    item_message_with_timeout("*Shuriken*", 5)
+    store(skills.shuriken, true)
+}

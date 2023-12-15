@@ -1,6 +1,6 @@
 use std::fs;
 
-const SETTINGS_PATH: &str = "../wotw_seedgen/src/settings/mod.rs";
+const SETTINGS_PATH: &str = "../wotw_seedgen_data/src/lib.rs";
 const CLI_PATH: &str = "src/cli.rs";
 
 // very hacky yes

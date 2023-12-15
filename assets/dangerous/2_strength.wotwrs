@@ -1,0 +1,80 @@
+!include("bonus_item_core")
+!use("bonus_item_core", spear_efficiency)
+!include("shared_states")
+!use("shared_states", critical)
+!include("items")
+!use("items", door_leaf)
+!use("items", gorlek_ore_pre_water)
+
+// ~ Area: East Hollow ~
+
+on EastHollow.RightKwolokEX gorlek_ore_pre_water()
+
+on EastHollow.GladesApproachOre spirit_light(60)
+on EastHollow.HornBeetleFightEX spirit_light(60)
+on EastHollow.SpikeLanternEX spirit_light(60)
+on EastHollow.BashEC spirit_light(60)
+on EastHollow.BashEX spirit_light(60)
+
+on EastHollow.DepthsExteriorEX {
+    if critical && skills.doubleJump item_message("<purple>Withered Seed</>")
+    if critical == false || skills.doubleJump == false {
+        item_message("$Mysterious Seed$")
+        store_without_triggers(hubUberStateGroup.gardenerProjectTree, 1)
+    }
+}
+
+// ~ Area: Midnight Burrows ~
+
+on MidnightBurrows.RightKS {
+    item_message("Howl of Night, Devour of Light")
+    door_leaf()
+}
+on MidnightBurrows.UpperKS {
+    item_message("Engraved the past, set here to last")
+    door_leaf()
+}
+on MidnightBurrows.LowerKS {
+    item_message("Set in stone, in wood and bone")
+    door_leaf()
+}
+on MidnightBurrows.LeftKS {
+    item_message("Silenced Cry, decay's grey sigh")
+    door_leaf()
+}
+
+on MidnightBurrows.DeflectorShard {
+    if critical spirit_light(80) // TODO I could do the yellow *and* the random names right
+    if critical == false {
+        skill(Skill::Spear)
+        spear_efficiency()
+    }
+}
+on MidnightBurrows.TabletQI {
+    spirit_light(80)
+    item_message("Curious Tablet")
+}
+
+// ~ Area: Inkwater Marsh ~
+
+on MarshSpawn.TokkTabletQuest {
+    if critical {
+        item_message("*Deflector*")
+        store(shards.deflector, true)
+    }
+    if critical == false gorlek_ore_pre_water()
+}
+on MarshPastOpher.PoolsPathEC {
+    if critical {
+        item_message("@Reckless@")
+        store(shards.reckless, true)
+    }
+    if critical == false spirit_light(120)
+}
+
+on MarshSpawn.BurrowsApproachLedgeEX gorlek_ore_pre_water()
+on MarshPastOpher.CeilingEX gorlek_ore_pre_water()
+
+on MarshSpawn.FangEC spirit_light(60)
+
+// TODO next: Sela Flower

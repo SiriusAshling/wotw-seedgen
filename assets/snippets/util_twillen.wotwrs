@@ -1,0 +1,24 @@
+#category("Placements")
+#name("Util Twillen")
+#description("
+Places six guaranteed items at Twillen's shop:
+Sticky, Magnet, Water Breath, Catalyst, Overflow, Reckless")
+
+!flags("Utility Twillen")
+
+on TwillenShop.Vitality shard(Shard::Sticky)
+on TwillenShop.Finesse shard(Shard::Magnet)
+on TwillenShop.Energy shard(Shard::Reckless)
+on TwillenShop.Overcharge shard(Shard::Overflow)
+on TwillenShop.LightHarvest skill(Skill::WaterBreath)
+on TwillenShop.Swap shard(Shard::Catalyst)
+
+on reload {
+    // TODO can't write out the names
+    store(2|122, 100)
+    store(2|140, 200)
+    store(2|126, 300)
+    store(2|101, 300)
+    store(2|119, 375)
+    store(2|105, 400)
+}

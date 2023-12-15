@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::fmt;
+use std::fmt::{self, Display};
 use std::num::NonZeroUsize;
 use std::ops::Deref;
 use std::path::PathBuf;

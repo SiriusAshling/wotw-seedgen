@@ -1,0 +1,128 @@
+!include("bonus_item_core")
+!use("bonus_item_core", shuriken_efficiency)
+!include("bind_pointer")
+!use("bind_pointer", bind_pointer)
+!use("bind_pointer", shop_shuriken_efficiency)
+!use("bind_pointer", shop_shuriken_upgrade)
+!use("bind_pointer", shop_ancestral_light)
+!use("bind_pointer", shop_pendant)
+
+!state(owned, Integer)
+!state(selected, Integer)
+!state(shuriken_efficiency_purchased, Boolean)
+!state(shuriken_upgrade_purchased, Boolean)
+!state(ancestral_light_purchased, Boolean)
+!state(pendant_purchased, Boolean)
+
+// TODO wheel menu for ability cells
+
+!state(explained, Boolean)
+!share(ability_cell)
+fun ability_cell() {
+    if explained set_string("explanation", "")
+    if explained == false {
+        set_string("explanation", "\n[Bind4] to spend")
+        store(explained, true)
+    }
+    item_message("<icon>X</> Ability Cell <icon>X</>" + get_string("explanation"))
+    store(owned, owned + 1)
+}
+
+on bind4 show_shop()
+on change selected show_shop()
+fun show_shop() {
+    if selected == 0 shuriken_efficiency()
+    if selected == 1 shuriken_upgrade()
+    if selected == 2 ancestral_light()
+    if selected == 3 pendant()
+}
+
+fun shuriken_efficiency() {
+    set_string("name", "*Shuriken Efficiency*")
+    set_boolean("purchased", shuriken_efficiency_purchased)
+    shop_message()
+    store(bind_pointer, shop_shuriken_efficiency)
+}
+fun shuriken_upgrade() {
+    set_string("name", "*Shuriken Upgrade*")
+    set_boolean("purchased", shuriken_upgrade_purchased)
+    shop_message()
+    store(bind_pointer, shop_shuriken_upgrade)
+}
+fun ancestral_light() {
+    set_string("name", "*Ancestral Light*")
+    set_boolean("purchased", ancestral_light_purchased)
+    shop_message()
+    store(bind_pointer, shop_ancestral_light)
+}
+fun pendant() {
+    set_string("name", "Pendant")
+    set_boolean("purchased", pendant_purchased)
+    shop_message()
+    store(bind_pointer, shop_pendant)
+}
+
+fun shop_message() {
+    if owned == 0 set_string("color", "@")
+    if owned > 0 set_string("color", "$")
+    if owned != 1 set_string("plural", "s")
+    if get_boolean("purchased") {
+        set_string("actions",
+            "Cost: #1 Ability Cell#                     Have: " + get_string("color") + owned + " Ability Cell" + get_string("plural") + get_string("color") + "\n" +
+            "Next item         " + get_string("color") + "Purchase" + get_string("color") + "         Close\n" +
+            "[Bind1]         [Bind2]         [Bind3]"
+        )
+    }
+    if get_boolean("purchased") == false set_string("actions",
+        "$Purchased$\n" +
+        "Next item                  Close\n" +
+        "[Bind1]                  [Bind3]"
+    )
+
+    controlled_message(
+        "shop",
+        get_string("name") + "\n" +
+        get_string("actions")
+    )
+}
+
+on bind1 if bind_pointer == shop_shuriken_efficiency
+    || bind_pointer == shop_shuriken_upgrade
+    || bind_pointer == shop_ancestral_light
+    || bind_pointer == shop_pendant
+{
+    store(selected, selected + 1)
+    set_integer("collected", owned)
+    if shuriken_efficiency_purchased set_integer("collected", get_integer("collected") + 1)
+    if shuriken_upgrade_purchased set_integer("collected", get_integer("collected") + 1)
+    if ancestral_light_purchased set_integer("collected", get_integer("collected") + 1)
+    if pendant_purchased set_integer("collected", get_integer("collected") + 1)
+    if selected == 4 || (selected == 3 && (get_integer("collected") < 4)) store(selected, 0)
+}
+on bind2 if (bind_pointer == shop_shuriken_efficiency
+    || bind_pointer == shop_shuriken_upgrade
+    || bind_pointer == shop_ancestral_light
+    || bind_pointer == shop_pendant)
+    && owned > 0
+{
+    store(owned, owned - 1)
+    if bind_pointer == shop_shuriken_efficiency store(shuriken_efficiency_purchased, true)
+    if bind_pointer == shop_shuriken_upgrade store(shuriken_upgrade_purchased, true)
+    if bind_pointer == shop_ancestral_light store(ancestral_light_purchased, true)
+    if bind_pointer == shop_pendant store(pendant_purchased, true)
+}
+on bind3 if bind_pointer == shop_shuriken_efficiency
+    || bind_pointer == shop_shuriken_upgrade
+    || bind_pointer == shop_ancestral_light
+    || bind_pointer == shop_pendant
+{
+    destroy_message("shop")
+    store(bind_pointer, 0)
+}
+
+on shuriken_efficiency_purchased shuriken_efficiency()
+on shuriken_upgrade_purchased {
+    weapon_upgrade(WeaponUpgrade::StaticShuriken)
+    item_message_with_timeout("[Bind5] to toggle", 5)
+}
+on ancestral_light_purchased skill(Skill::GladesAncestralLight)

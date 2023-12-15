@@ -1,0 +1,13 @@
+#category("World Changes")
+#name("No Rain")
+#description("Marsh starts sunny as it usually is after getting the sword tree. Also Howl is dead")
+
+!flags("No Rain")
+
+on spawn {
+    // TODO what dis
+    store(6|401, true)
+    store(swampStateGroup.nightCrawlerChaseStarted, true)
+    store(swampStateGroup.nightCrawlerDefeated, true)
+    store(MarshSpawn.HowlBurnt, true)
+}

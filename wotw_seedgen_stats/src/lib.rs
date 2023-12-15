@@ -9,7 +9,7 @@ use analyzers::Analyzer;
 use files::FileAccess;
 use itertools::Itertools;
 use rustc_hash::FxHashMap;
-use wotw_seedgen::{settings::UniverseSettings, world::Graph};
+use wotw_seedgen::{settings::UniverseSettings, world::graph::Graph};
 
 type Result<T> = std::result::Result<T, String>;
 

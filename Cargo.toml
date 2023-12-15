@@ -1,14 +1,16 @@
 [workspace]
 members = [
     "wotw_seedgen",
-    "wotw_seedgen_cli",
+    "wotw_seedgen_assets",
+    # TODO "wotw_seedgen_cli",
+    # TODO maybe not all crates need all derives?
     "wotw_seedgen_derive",
-    "wotw_seedgen_stats",
+    "wotw_seedgen_data",
+    "wotw_seedgen_logic_language",
+    "wotw_seedgen_parse",
+    "wotw_seedgen_seed",
+    "wotw_seedgen_seed_language",
+    "wotw_seedgen_settings",
+    "wotw_seedgen_static_assets", # TODO move into a feature module of assets?
+    # TODO "wotw_seedgen_stats",
 ]
-
-# TODO remove this after a while if there are no issues
-[profile.release]
-debug-assertions = true
-
-[profile.bench]
-debug-assertions = false

@@ -8,28 +8,20 @@
 #![allow(clippy::too_many_lines)]
 #![allow(clippy::struct_excessive_bools)]
 
-pub mod files;
-pub mod generator;
-pub mod inventory;
-pub mod item;
-pub mod languages;
-pub mod preset;
-mod reach_check;
-pub mod settings;
-pub mod uber_state;
-pub mod util;
-pub mod world;
+mod constants;
+mod generator;
+mod inventory;
+mod logical_difficulty;
+mod orbs;
+mod world;
 
-pub use generator::generate_seed;
-pub use inventory::Inventory;
-pub use item::{Item, VItem};
-pub use languages::{
-    header::{self, Header},
-    logic,
-};
-pub use reach_check::reach_check;
-pub use world::World;
+// TODO update imports
+// maybe since this is the top crate it should reexport everything?
+pub use generator::*;
+pub use world::*;
+// pub use reach_check::reach_check;
 
+// TODO use this and also set the other metadata: current world, format version, settings
 pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "-", env!("VERGEN_GIT_SHA"));
 
 mod log {
@@ -58,32 +50,66 @@ mod log {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        files::FILE_SYSTEM_ACCESS,
-        preset::{UniversePreset, WorldPreset},
-        settings::{Difficulty, UniverseSettings},
+    use super::*;
+    use lazy_static::lazy_static;
+    use std::io;
+    use wotw_seedgen_logic_language::{
+        ast::{parse, Areas},
+        output::Graph,
+    };
+    use wotw_seedgen_settings::{
+        Difficulty, PresetAccess, UniversePreset, UniverseSettings, WorldPreset,
+    };
+    use wotw_seedgen_static_assets::{
+        LOC_DATA, PRESET_ACCESS, SNIPPET_ACCESS, STATE_DATA, UBER_STATE_DATA,
     };
 
-    use super::*;
+    lazy_static! {
+        pub static ref AREAS: Areas<'static> =
+            parse(include_str!("../areas.wotw")).into_result().unwrap();
+    }
 
     #[test]
     fn some_seeds() {
-        let mut universe_settings = UniverseSettings::default();
-        let areas = files::read_file("areas", "wotw", "logic").unwrap();
-        let locations = files::read_file("loc_data", "csv", "logic").unwrap();
-        let states = files::read_file("state_data", "csv", "logic").unwrap();
-        let mut graph =
-            logic::parse_logic(&areas, &locations, &states, &universe_settings, false).unwrap();
-
+        let mut universe_settings = UniverseSettings::new(String::default());
+        let mut graph = Graph::compile(
+            AREAS.clone(),
+            LOC_DATA.clone(),
+            STATE_DATA.clone(),
+            &universe_settings.world_settings,
+        )
+        .into_result()
+        .unwrap();
         eprintln!("Default settings ({})", universe_settings.seed);
-        generate_seed(&graph, &FILE_SYSTEM_ACCESS, &universe_settings).unwrap();
+        generate_seed(
+            &graph,
+            &*SNIPPET_ACCESS,
+            &*UBER_STATE_DATA,
+            &mut io::stderr(),
+            &universe_settings,
+        )
+        .unwrap();
 
         universe_settings.world_settings[0].difficulty = Difficulty::Unsafe;
-        graph = logic::parse_logic(&areas, &locations, &states, &universe_settings, false).unwrap();
+        graph = Graph::compile(
+            AREAS.clone(),
+            LOC_DATA.clone(),
+            STATE_DATA.clone(),
+            &universe_settings.world_settings,
+        )
+        .into_result()
+        .unwrap();
         eprintln!("Unsafe ({})", universe_settings.seed);
-        generate_seed(&graph, &FILE_SYSTEM_ACCESS, &universe_settings).unwrap();
+        generate_seed(
+            &graph,
+            &*SNIPPET_ACCESS,
+            &*UBER_STATE_DATA,
+            &mut io::stderr(),
+            &universe_settings,
+        )
+        .unwrap();
 
-        universe_settings.world_settings[0].headers = [
+        universe_settings.world_settings[0].headers.extend([
             "bingo".to_string(),
             "bonus+".to_string(),
             "glades_done".to_string(),
@@ -98,14 +124,12 @@ mod tests {
             "util_twillen".to_string(),
             "vanilla_opher_upgrades".to_string(),
             "bonus_opher_upgrades".to_string(),
-        ]
-        .into_iter()
-        .collect();
+        ]);
 
         for preset in ["gorlek", "rspawn"] {
-            let preset = WorldPreset::read_file(preset, &FILE_SYSTEM_ACCESS).unwrap();
+            let preset = PRESET_ACCESS.world_preset(preset).unwrap();
             universe_settings.world_settings[0]
-                .apply_world_preset(preset, &FILE_SYSTEM_ACCESS)
+                .apply_world_preset(preset, &*PRESET_ACCESS)
                 .unwrap();
         }
 
@@ -114,10 +138,17 @@ mod tests {
             ..UniversePreset::default()
         };
         universe_settings
-            .apply_preset(preset, &FILE_SYSTEM_ACCESS)
+            .apply_preset(preset, &*PRESET_ACCESS)
             .unwrap();
 
         eprintln!("Gorlek with headers ({})", universe_settings.seed);
-        generate_seed(&graph, &FILE_SYSTEM_ACCESS, &universe_settings).unwrap();
+        generate_seed(
+            &graph,
+            &*SNIPPET_ACCESS,
+            &*UBER_STATE_DATA,
+            &mut io::stderr(),
+            &universe_settings,
+        )
+        .unwrap();
     }
 }

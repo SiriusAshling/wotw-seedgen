@@ -1,0 +1,6 @@
+on hubUberStateGroup.gardenerProjectGrapplePlants == 1 store(hubUberStateGroup.gardenerProjectGrapplePlants, 0)
+on hubUberStateGroup.gardenerProjectTree == 1 store(hubUberStateGroup.gardenerProjectTree, 0)
+on hubUberStateGroup.gardenerProjectBashPlants == 1 store(hubUberStateGroup.gardenerProjectBashPlants, 0)
+on hubUberStateGroup.gardenerProjectFlowers == 1 store(hubUberStateGroup.gardenerProjectFlowers, 0)
+on hubUberStateGroup.gardenerProjectSpringPlants == 1 store(hubUberStateGroup.gardenerProjectSpringPlants, 0)
+on hubUberStateGroup.gardenerProjectGrass == 1 store(hubUberStateGroup.gardenerProjectGrass, 0)

@@ -1,12 +1,10 @@
-use std::fmt::{self, Display, Write};
-
+use crate::inventory::Inventory;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-
-use crate::{
-    util::{Position, Zone},
-    Inventory, Item,
-};
+use std::fmt::{self, Display, Write};
+use wotw_seedgen_data::{Position, Zone};
+use wotw_seedgen_logic_language::output::Node;
+use wotw_seedgen_seed::{Action, SeedLiteralTypes};
 
 /// Complete data to create a logic spoiler for the seed
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -39,9 +37,9 @@ pub struct SpoilerPlacement {
     pub target_world_index: usize,
     /// The placement location
     pub location: NodeSummary,
-    /// The placed [`Item`]
-    pub item: Item,
-    /// The name of the [`Item`], which may vary from the [`Item`]s [`Display`] implementation if a custom name for item was provided by headers
+    /// The placed [`Action`]
+    pub item: Action<SeedLiteralTypes>,
+    /// The name of the [`Action`], which may vary from the [`Action`]s [`Display`] implementation if a custom name for item was provided by headers
     pub item_name: String,
 }
 /// Select data from a [`Node`](crate::world::graph::Node)
@@ -53,6 +51,15 @@ pub struct NodeSummary {
     pub position: Option<Position>,
     /// The [`Zone`], if applicable
     pub zone: Option<Zone>,
+}
+impl NodeSummary {
+    pub(crate) fn new(node: &Node) -> Self {
+        Self {
+            identifier: node.identifier().to_string(),
+            position: node.position().copied(),
+            zone: node.zone(),
+        }
+    }
 }
 
 impl SeedSpoiler {
@@ -142,7 +149,7 @@ impl Display for SeedSpoiler {
                         let locations = world_reachable
                             .iter()
                             .map(|node| &node.identifier)
-                            .join(", ");
+                            .format(", ");
                         let count = world_reachable.len();
                         write!(f, "{count} new reachable")?;
                         if count > 1 {
@@ -153,7 +160,7 @@ impl Display for SeedSpoiler {
                 }
             }
 
-            if !forced_items.items.is_empty() {
+            if !forced_items.is_empty() {
                 writeln!(f, "  Force placed: {forced_items}")?;
             }
             writeln!(f)?;

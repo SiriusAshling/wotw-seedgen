@@ -1,0 +1,90 @@
+!include("shared_states")
+!use("shared_states", critical)
+
+!include("ability_cells")
+!use("ability_cells", ability_cell)
+!share(ability_cell)
+
+!include("mapstone_fragments")
+!use("mapstone_fragments", mapstone_fragment)
+!share(mapstone_fragment)
+
+!share(energy_fragment)
+fun energy_fragment() {
+    item_message("*Energy Fragment*")
+    store(player.maxEnergy, fetch(player.maxEnergy) + 0.5)
+}
+!share(health_fragment)
+fun health_fragment() {
+    item_message("$Health Fragment$")
+    store(player.maxHealth, fetch(player.maxHealth) + 5)
+}
+
+!state(door_leaf_explained, Boolean)
+!share(door_leaf)
+fun door_leaf() {
+    if door_leaf_explained set_string("door_leaf_explanation", "")
+    if door_leaf_explained == false {
+        set_string("door_leaf_explanation", "\n(Keystone)")
+        store(door_leaf_explained, true)
+    }
+    item_message("$Door Leaf$" + get_string("door_leaf_explanation"))
+    store(player.keystones, fetch(player.keystones) + 1)
+}
+
+!state(eyestone_collected, Boolean)
+!share(eyestone)
+fun eyestone() {
+    if eyestone_collected {
+        item_message("*Eyestone* $(2/2)$")
+        store(player.keystones, fetch(player.keystones) + 2)
+        set_kwolok_statue_enabled(true)
+    }
+    if eyestone_collected == false {
+        item_message("*Eyestone* (1/2)")
+        store(eyestone_collected, true)
+    }
+}
+
+// TODO remove notes
+// 58: torch
+// 61: sword
+// 64: shuriken
+// 67: water
+// 70: djump
+!state(shiny_ore_collected, Integer)
+fun gorlek_ore() {
+    if get_boolean("shiny") store(shiny_ore_collected, shiny_ore_collected + 1)
+    set_string("ore", "@Gorlek Ore@")
+    if get_boolean("shiny") set_string("ore", get_string("ore") + "#°#")
+    set_string("color", "")
+    if randoStats.oreCollected >= 39 set_string("color", "$")
+    set_string("ore", get_string("ore") + " " + get_string("color") + "(" + randoStats.oreCollected + "/39)" + get_string("color"))
+    if get_boolean("shiny") set_string("ore", get_string("ore") + " #(" + shiny_ore_collected + ")#")
+    item_message(get_string("ore"))
+    store(player.gorlekOre, fetch(player.gorlekOre) + 1)
+}
+!share(gorlek_ore_pre_shuriken)
+fun gorlek_ore_pre_shuriken() {
+    set_boolean("shiny", critical && skills.shuriken == false)
+    gorlek_ore()
+}
+!share(gorlek_ore_pre_water)
+fun gorlek_ore_pre_water() {
+    set_boolean("shiny", critical && randoState.cleanWater == false)
+    gorlek_ore()
+}
+!share(gorlek_ore_pre_double_jump)
+fun gorlek_ore_pre_double_jump() {
+    set_boolean("shiny", critical && skills.doubleJump == false)
+    gorlek_ore()
+}
+
+!share(trial_reward)
+fun trial_reward() {
+    spirit_light(500)
+    if critical == false {
+        health_fragment()
+        health_fragment()
+    }
+}

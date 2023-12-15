@@ -1,0 +1,209 @@
+// It's Dangerous to Go Alone
+// A Will of the Wisps Plandomizer
+// Created by SiriusAshling
+// v4.0
+
+!include("shared_states")
+!use("shared_states", critical)
+!include("wisps")
+!include("no_cutscenes")
+!include("better_stomp")
+!include("fragment_overflow")
+!include("knowledge_hints")
+!include("spawn_tuley")
+!include("tp_refill")
+!include("corruption_check")
+!include("custom_seeds")
+!include("hand_to_hand")
+!include("hints")
+!include("lupo_secrets")
+!include("easter_eyestone")
+!include("difficulty_select")
+!use("difficulty_select", difficulty_menu)
+!include("1_lost")
+!include("2_strength")
+
+// TODO !spawn(-3537, -5881)
+on spawn difficulty_menu()
+
+on kwolokGroupDescriptor.areaText priority_message(
+    "Looking through the room, you notice the #door at the end of the room is open#...",
+    5,
+)
+
+// ~~ Difficulty Switches ~~
+
+// Wellspring Escape
+on waterMillStateGroupDescriptor.waterMillBossRoomWheelFelt
+    if critical store(gameStateGroup.gameDifficultyMode, 1)
+on InnerWellspring.WaterEscape
+    if critical store(gameStateGroup.gameDifficultyMode, 2)
+
+// Kwolok Escape
+!state(was_on_easy, Boolean)
+on lagoonStateGroup.kwolokBossState == 1 {
+    if gameStateGroup.gameDifficultyMode == 0 store(was_on_easy, true)
+    store(gameStateGroup.gameDifficultyMode, 0)
+}
+on lagoonStateGroup.kwolokBossState == 3 {
+    if critical store(gameStateGroup.gameDifficultyMode, 2)
+    if critical == false && was_on_easy == false
+        store(gameStateGroup.gameDifficultyMode, 1)
+}
+
+// ~~ Disable Reach Trial ~~
+
+on LowerReach.TrialActivation {
+    priority_message("You try to activate the Trial Pedestal, but it #seems to be broken#.", 3)
+    store(raceGroup.baursReachWindTunnelRace, 0)
+    store(raceGroup.baursReachWindTunnelRaceIcon, true)
+}
+
+// TODO easter egg for doing the seeds on balanced
+// TODO make hand to hand clearer, people always just look at the mapstone fragment in purple
+// TODO something about Shuriken at the end of basically every trick
+// TODO no one really cares about the upslash turnaround
+// TODO Opher hints in general don't memorize well
+// TODO maybe something about downslash to buffer a walljump
+// TODO maybe something about microledges to refresh upslash
+// TODO pogo on the side of things for height
+// TODO swordwalljumps
+// TODO 2 forward slashes before pogo
+// TODO don't really like the health fragment rhyme... maybe "ward"?
+// TODO restructure chapters
+// TODO wtf does stone sand darkness mean? (it was about the health fragmennts! that should be clearer...)
+// TODO maybe hint at the glitch where the wastest gorleks projectiles deactivate because of Deflector (test if that happens on patch 3!)
+// TODO improve double shuriken description
+// TODO ban upslash refresh
+// TODO gravestones for player who tried critical and failed
+// TODO left knocking spikes
+// TODO autoaim toggle hint
+// TODO pendant tease in balanced
+// TODO underwater pogo refresh hint
+// TODO build quests qol or explanations
+// TODO explain shuriken clipping, especially when it happens unintentionally
+// TODO explain pogo vs. upslash refreshes
+// TODO for the memory leak hint, add an idea that you might want to restart before boss fights in critical
+// TODO properly explain double shuriken
+// TODO give some indication when a player correctly solves the trial moki riddle
+// TODO some meme with the door open message in hollow
+// TODO swap the gorlek ore at depths entrance to the keystone hc
+// TODO maybe the depths tree ore in balanced is not worth the humor?
+// TODO I think the low vertical momentum hint is not true
+// TODO more ambitious hints in balanced maybe
+// TODO would sticky help with Mora in Balanced?
+
+// Hand to Hand order Critical:
+// 0 - 3
+// 3 - 2
+// 2 - 8
+// 8 - 7
+// 7 - 1
+// 1 - 6
+// 6 - 5
+// 5 - 9
+// 9 - 4
+// 4 - -1
+
+// Hand to Hand order Balanced:
+// 0 - 3
+// 3 - 6
+// 6 - 8
+// 8 - 2
+// 2 - 5
+// 5 - 9
+// 9 - 1
+// 1 - 7
+// 7 - 4
+// 4 - -1
+
+// Balanced progression line:
+// Sword on RegenTree                                         \
+// |-- Poison Drain on EastHollow.BashTree                    | Chapter 1 - Lost
+// |---L-- Deflector on DashTree                              /                           Hint 1
+// L-------L-- Shuriken on SplinterShard                      \
+// _,----------|                                              |
+// |-- Hammer on MarshSpawn.LifepactShard                     |
+// |-- Spear on MidnightBurrows.DeflectorShard                | Chapter 2 - Strength
+// |-- Feather on WestGlades.LeftOre                          |
+// |   Resilience on DepthsMap                                /                           Hint 2
+// |---L-- West Woods TP on MarshSpawn.BurrowsPathEX          \                           Hint 3
+// |       Wellspring TP on LowerWastes.LastStandShard        | Chapter 3 - Wisdom
+// |       |---L-- DoubleJump on LowerWastes.BurrowTree       /                           Hint 4
+// L-------L-------|-- Water on InnerWellspring.WaterEscape   \                           Hint 5
+// _,--------------|                                          |
+// Flap on WestPools.ForestsStrength                          |                           Hint 6
+// |-- Triple Jump on UpperReach.GrenadeTree                  | Chapter 4 - Courage
+// L-- L-- Grenade on UpperDepths.ForestsEyes                 |                           Hint 7
+// Burrow on LowerReach.ForestsMemory                         /                           Hint 8
+// Seir on WindtornRuins.Seir                                 ] Chapter 5 - Return
+
+// Critical progression line:
+// Sword on RegenTree                             ] Chapter 1 - Lost
+// Shuriken on EastHollow.BashHC                  \                           Hint 1
+// Deflector on MarshSpawn.TokkTabletQuest        / Chapter 2 - Strength      Hint 2
+// Water on InnerWellspring.WaterEscape           \                           Hint 3
+// |-- Depths Entry on WestPools.ForestsStrength  |                           Hint 4
+// |   HC on LowerDepths.FlashTree                | Chapter 3 - Courage       Hint 5
+// |-- HC on WoodsMain.OverflowShard              |                           Hint 5
+// |-- HC on LowerWastes.LastStandShard           /                           Hint 5
+// Double Jump on LowerWastes.BurrowTree          \                           Hint 6
+// Flap on UpperDepths.ForestsEyes                | Chapter 4 - Wisdom        Hint 7
+// Burrow on LowerReach.ForestsMemory             /                           Hint 8
+// Seir on WindtornRuins.Seir                     ] Chapter 5 - Return
+
+// Shard locations
+// Overcharge       GladesTown.BraveMokiHutEX
+// Magnet           Pools Map [B]
+// Reckless         Marsh Map [B] / MarshPastOpher.PoolsPathEC [C]
+// Resilience       Depths Map [B]
+// Life Harvest     UpperPools.FishPoolOre
+// Energy Harvest   Hollow Map [B] / Bash Tree [C]
+// Energy           GladesTown.HoleHutEC
+// Life Pact        Reach Map [B]
+// Overflow         Grapple Tree [B] / LowerWastes.SunsetViewEX [C]
+// Thorn            Marsh Shrine [B]
+// Catalyst         Burrows Map [B] / InnerWellspring.RotateRoomOre [C]
+// Turmoil          Wellspring Map [B]
+// Lifeforce        Wastes Map [B]
+// Deflector        Dash Tree [B] / Tablet Quest
+
+// Ore locations
+// 3 in Daylight Marsh          \
+// 2 in West Hollow             | Chapter 1
+// 1 in East Hollow [B]         | 7
+// 2 in East Hollow             /
+// 1 in East Hollow             \
+// 1 in Inkwater Marsh [B]      |
+// 2 in Inkwater Marsh          | Chapter 2
+// 2 in Wellspring Glades [C]   | 12
+// 4 in Wellspring Glades       |
+// 3 in Wellspring              /
+// 1 in Woods [C]               \
+// 1 in Woods                   |
+// 4 in Pools                   | Chapter 3
+// 1 in Depths [B]              | 13
+// 6 in Depths                  |
+// 1 in Wastes                  /
+// 1 in Glades                  \
+// 3 in Reach                   | Chapter 4
+// 1 in Pools                   | 7
+// 2 in Wastes                  /
+
+// Trivia
+// spawn: take opher notes
+// spawn: spirit trials
+// first buildings: decoration moki
+// first buildings: eyestone oddity
+// third buildings: critical lupo [B]
+// third buildings: golden ore [C]
+// water: kwolok back entry
+// water: unknown resource type 5
+// djump: tricking mora
+// djump: ability cells
+// djump: secret early route [B]
+// djump: golden ore npc [C]
+// burrow: patch 2 pressure plate (add 4 ability cell hint at lupo again)
+// burrow: steal the heart
+// seir: secret trials
+// seir: true ending

@@ -10,9 +10,9 @@
 # Combat=x: An enemy has to be defeated. For a list of enemies visit https://docs.google.com/spreadsheets/d/1AE_ctym6WAwltGK-r6w58ARq0ym2MU4MzFiwg328kjM/view?usp=sharing
 # Gorlek and above:
 # ShurikenBreak=x: A wall with x Health is broken from behind using Shuriken
-# SentryJump=x: Extends to Sentry=1, Sword OR Hammer
-# SwordSJump=x: Extends to Sentry=1, Sword
-# HammerSJump=x: Extends to Sentry=1, Hammer
+# SentryJump=x: Extends to Sentry=x, Sword OR Hammer
+# SwordSJump=x: Extends to Sentry=x, Sword
+# HammerSJump=x: Extends to Sentry=x, Hammer
 # SentryBurn=x: Use x Sentries to melt ice or light lanterns
 # RemoveKillPlane: Remove the kill plane at feeding grounds
 # Unsafe:
@@ -1977,7 +1977,8 @@ anchor WestHollow.HollowDrainMiddle at -197, -4275:  # At the crystal below the 
       Bash, Grenade=1
     gorlek, WestHollow.UpperDrainLeverPulled OR WestHollow.FullyDrained:
       Sword OR Hammer  # Hammer is a bit particular; you can use upslash and horizontal slashes instead
-    kii, WestHollow.UpperDrainLeverPulled OR WestHollow.FullyDrained: Shuriken=1 OR Blaze=2 OR Flash=1 OR Sentry=1
+    kii, WestHollow.UpperDrainLeverPulled OR WestHollow.FullyDrained:
+      Shuriken=1 OR Blaze=2 OR Flash=1 OR Sentry=1
     unsafe:
       WestHollow.UpperDrainLeverPulled, BlazeSwap=1 OR GrenadeJump OR PauseHover
       WestHollow.FullyDrained, BlazeSwap=1 OR GrenadeJump OR PauseHover
@@ -8204,7 +8205,7 @@ anchor UpperReach.KeystoneRoom at -256, -3914:  # At the furnace in the four key
   #     Paths to this anchor have to use the thawed furnace state! Outgoing connections cannot use the frozen furnace state.
   #     Outgoing anchor connections may only connect to thawed variants
   # This would however create countless redundancies, which is why additionally there's a counterpart for each variant:
-  # These counterparts may not connect to any other anchors that have variants dependant on the same furnace, unless explicitely to connect into another furnace state.
+  # These counterparts may not connect to any other anchors that have variants dependent on the same furnace, unless explicitely to connect into another furnace state.
   # - Main Paths ("UpperReach.[name]Paths"):
   #     All three variants connect to this anchor. Outgoing connections have to work with both furnace states.
   # - Frozen Paths ("UpperReach.[name]FrozenPaths"):
