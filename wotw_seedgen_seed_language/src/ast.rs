@@ -4,12 +4,11 @@ use crate::{
 };
 use decorum::R32;
 use parse_display::Display;
-use std::str::FromStr;
+use serde::{Deserialize, Serialize};
 use wotw_seedgen_parse::{
-    Ast, ErrorKind, Identifier, Once, ParseIdentToken, Parser, Recover, Recoverable, Result,
-    SeparatedNonEmpty, Span, Spanned, Symbol,
+    Ast, Identifier, Once, Parser, Recover, Recoverable, Result, SeparatedNonEmpty, Span, Spanned,
+    Symbol,
 };
-use wotw_seedgen_seed::PseudoTrigger;
 
 pub type Delimited<const OPEN: char, Content, const CLOSE: char> =
     wotw_seedgen_parse::Delimited<Spanned<Symbol<OPEN>>, Content, Spanned<Symbol<CLOSE>>>;
@@ -57,26 +56,77 @@ pub struct Event<'source> {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
 pub enum Trigger<'source> {
-    Pseudo(Spanned<PseudoTriggerAst>),
+    Pseudo(Spanned<PseudoTrigger>),
     Binding(Spanned<Change>, TriggerBinding<'source>),
     Condition(Expression<'source>),
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PseudoTriggerAst(pub PseudoTrigger);
-impl<'source> Ast<'source, Tokenizer> for PseudoTriggerAst {
-    fn ast(parser: &mut Parser<'source, Tokenizer>) -> Result<Self> {
-        let (token, span) = parser.current();
-        if token.is_ident() {
-            let slice = parser.slice(span.clone());
-            let pseudo_trigger = PseudoTrigger::from_str(slice)
-                // TODO if we have a good from_str error message, drop this
-                .map_err(|_| parser.custom_error("Unknown pseudotrigger".to_string()))?;
-            parser.step();
-            Ok(Self(pseudo_trigger))
-        } else {
-            Err(parser.error(ErrorKind::ExpectedToken("identifier".to_string())))
-        }
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ast, Display, Serialize, Deserialize)]
+#[ast(case = "snake")]
+#[display(style = "snake_case")]
+pub enum PseudoTrigger {
+    /// Trigger when starting a new file
+    Spawn,
+    /// Trigger when starting a new file or loading the seed into an active file
+    Reload,
+    /// Trigger when respawning after death, void etc.
+    Respawn,
+    /// Trigger on keybind
+    Bind1,
+    /// Trigger on keybind
+    Bind2,
+    /// Trigger on keybind
+    Bind3,
+    /// Trigger on keybind
+    Bind4,
+    /// Trigger on keybind
+    Bind5,
+    /// Trigger on Teleport
+    Teleport,
+    /// Trigger on Jump
+    Jump,
+    /// Trigger on Double Jump
+    DoubleJump,
+    /// Trigger on Dash
+    Dash,
+    /// Trigger on Bash
+    Bash,
+    /// Trigger on Glide
+    Glide,
+    /// Trigger on Sword
+    Sword,
+    /// Trigger on Hammer
+    Hammer,
+    // TODO update names
+    /// Trigger on Spike
+    Spike,
+    /// Trigger on Spirit Star
+    SpiritStar,
+    /// Trigger on Light Burst
+    LightBurst,
+    /// Trigger on Bow
+    Bow,
+    /// Trigger on Blaze
+    Blaze,
+    /// Trigger on Sentry
+    Sentry,
+    /// Trigger on Flash
+    Flash,
+    /// Trigger on Launch
+    Launch,
+    /// Trigger on Wall Jump
+    WallJump,
+    /// Trigger on Burrow
+    Burrow,
+    /// Trigger on Water Dash
+    WaterDash,
+    /// Trigger on Flap
+    Flap,
+    /// Trigger on Regenerate
+    Regenerate,
+    /// Trigger on the Show Progress keybind
+    ProgressMessage,
+    /// Trigger every frame
+    Tick,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
 pub enum TriggerBinding<'source> {

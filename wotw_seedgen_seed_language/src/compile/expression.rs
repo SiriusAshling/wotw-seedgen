@@ -3,9 +3,9 @@ use crate::{
     ast::{self, Operator, UberStateType},
     output::{
         intermediate::{Constant, Literal},
-        Action, ArithmeticOperator, Command, CommandBoolean, CommandFloat, CommandIcon,
-        CommandInteger, CommandString, CommandZone, Comparator, EqualityComparator, Icon,
-        LogicOperator, Operation, StringOrPlaceholder,
+        Action, ArithmeticOperator, Command, CommandBoolean, CommandFloat, CommandInteger,
+        CommandString, CommandZone, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
+        StringOrPlaceholder,
     },
     types::{common_type, InferType, Type},
 };
@@ -673,67 +673,6 @@ impl CompileInto for CommandZone {
         None
     }
 }
-impl CompileInto for CommandIcon {
-    fn coerce_literal(
-        literal: Literal,
-        span: Range<usize>,
-        compiler: &mut SnippetCompiler,
-    ) -> Option<Self> {
-        let command = match literal {
-            Literal::Constant(Constant::Shard(value)) => CommandIcon::Constant {
-                value: Icon::Shard(value),
-            },
-            Literal::Constant(Constant::Equipment(value)) => CommandIcon::Constant {
-                value: Icon::Equipment(value),
-            },
-            Literal::Constant(Constant::OpherIcon(value)) => CommandIcon::Constant {
-                value: Icon::Opher(value),
-            },
-            Literal::Constant(Constant::LupoIcon(value)) => CommandIcon::Constant {
-                value: Icon::Lupo(value),
-            },
-            Literal::Constant(Constant::GromIcon(value)) => CommandIcon::Constant {
-                value: Icon::Grom(value),
-            },
-            Literal::Constant(Constant::TuleyIcon(value)) => CommandIcon::Constant {
-                value: Icon::Tuley(value),
-            },
-            other => {
-                compiler
-                    .errors
-                    .push(type_error(other.literal_type(), Type::Icon, span));
-                return None;
-            }
-        };
-        Some(command)
-    }
-    fn compile_action<'source>(
-        action: ast::Action<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
-    ) -> Option<Self> {
-        let result = match action {
-            ast::Action::Function(function) => {
-                let span = function.span();
-                match function.compile(compiler)? {
-                    Action::Command(Command::Icon(function)) => Ok(function),
-                    _ => Err(return_type_error(Type::Icon, span)),
-                }
-            }
-            _ => Err(return_type_error(Type::Icon, action.span())),
-        };
-        compiler.consume_result(result)
-    }
-    fn compile_operation<'source>(
-        operation: ast::Operation<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
-    ) -> Option<Self> {
-        let found = operation.infer_type(compiler)?;
-        compiler
-            .errors
-            .push(type_error(found, Type::Icon, operation.span()));
-        None
-    }
-}
 impl CompileInto for Command {
     fn coerce_literal(
         literal: Literal,
@@ -816,9 +755,6 @@ impl CompileInto for Command {
                     }
                     Type::Zone => {
                         CommandZone::compile_operation(operation, compiler).map(Self::Zone)
-                    }
-                    Type::Icon => {
-                        CommandIcon::compile_operation(operation, compiler).map(Self::Icon)
                     }
                     _ => {
                         compiler.errors.push(Error::custom(

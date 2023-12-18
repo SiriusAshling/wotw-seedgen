@@ -9,6 +9,7 @@ pub struct Operation<Item, Operator> {
     pub right: Item,
 }
 /// Arithmetic Operations performed on numbers
+// TODO why does this have a duplicate in the ast module?
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ArithmeticOperator {
     /// `+`

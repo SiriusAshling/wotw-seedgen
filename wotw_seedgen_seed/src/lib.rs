@@ -1,49 +1,28 @@
-mod command;
-mod display;
-mod operation;
-mod perfect_derive;
+mod compile;
 
-pub use {command::*, operation::*};
-
-use parse_display::{Display, FromStr};
-use perfect_derive::perfect_derive;
-use serde::{Deserialize, Serialize};
-use wotw_seedgen_data::{
-    Equipment, GromIcon, LupoIcon, OpherIcon, Position, Shard, TuleyIcon, UberIdentifier,
+use wotw_seedgen_seed_language::output::{ArithmeticOperator, Icon};
+pub use wotw_seedgen_seed_language::output::{
+    Comparator, EqualityComparator, LogicOperator, Operation, PseudoTrigger,
 };
 
-pub trait LiteralTypes {
-    type CustomCommand;
-    type UberIdentifier;
-    type String;
-
-    fn uber_identifier_literal(value: UberIdentifier) -> Self::UberIdentifier;
-    fn string_literal(value: String) -> Self::String;
-}
-pub struct SeedLiteralTypes;
-impl LiteralTypes for SeedLiteralTypes {
-    type CustomCommand = ();
-    type UberIdentifier = UberIdentifier;
-    type String = String;
-
-    fn uber_identifier_literal(value: UberIdentifier) -> Self::UberIdentifier {
-        value
-    }
-    fn string_literal(value: String) -> Self::String {
-        value
-    }
-}
+use serde::{Deserialize, Serialize};
+use wotw_seedgen_data::{
+    EquipSlot, Equipment, MapIcon, Position, UberIdentifier, WheelBind, WheelItemPosition,
+};
 
 /// Seed data for one World
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SeedWorld {
     /// Starting location
     pub spawn: Spawn,
     /// Events from generation and snippets
-    pub events: Vec<Event<SeedLiteralTypes>>,
-    /// [`Action`]s that may be referenced from elsewhere by index
-    pub action_lookup: Vec<Action<SeedLiteralTypes>>,
+    pub events: Vec<Event>,
+    /// [`Command`]s that may be referenced from elsewhere by index
+    ///
+    /// Each index may store multiple [`Command`]s to execute
+    pub command_lookup: Vec<Vec<Command>>,
 }
+
 /// Spawn location for a [`SeedWorld`]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct Spawn {
@@ -53,124 +32,193 @@ pub struct Spawn {
     pub identifier: String,
 }
 
-perfect_derive! {
-    /// The main event (:badumtsss:)
-    pub struct Event<T: LiteralTypes> {
-        /// The Trigger defines when to give the Action
-        pub trigger: Trigger<T>,
-        /// The Action defines what to do when the Trigger happens
-        pub action: Action<T>,
-    }
+/// The main event (:badumtsss:)
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Event {
+    /// `trigger` defines when to execute `command`
+    pub trigger: Trigger,
+    /// Index into `command_lookup`
+    pub command: usize,
 }
 
-perfect_derive! {
-    /// Trigger for an [`Event`]
-    pub enum Trigger<T: LiteralTypes> {
-        /// Pseudo triggers are tied to specific events
-        Pseudo(PseudoTrigger),
-        /// Trigger on every change to an UberIdentifier
-        Binding(T::UberIdentifier),
-        /// Trigger when the condition changes from `false` to `true`
-        Condition(CommandBoolean<T>),
-    }
+/// Trigger for an [`Event`]
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Trigger {
+    /// Pseudo triggers are tied to specific events
+    Pseudo(PseudoTrigger),
+    /// Trigger on every change to an UberIdentifier
+    Binding(UberIdentifier),
+    /// Index into `command_lookup`
+    ///
+    /// After executing the command, BRA determines whether the condition is met.
+    /// The last result of executing the command should be saved, with an initial value of `false`.
+    /// The trigger should only fire if the last result was `false` and the current result is `true`
+    Condition(usize),
 }
 
-perfect_derive! {
-    /// Action performed in an [`Event`]
-    pub enum Action<T: LiteralTypes> {
-        /// Execute the Command
-        Command(Command<T>),
-        /// Check a Condition
-        Condition(Box<ActionCondition<T>>),
-        /// Perform all the contained Actions
-        Multi(Vec<Action<T>>),
-    }
-}
-
-perfect_derive! {
-    /// A conditional [`Action`]
-    pub struct ActionCondition<T: LiteralTypes> {
-        /// If the expression fails to evaluate, the action should not be performed
-        pub condition: CommandBoolean<T>,
-        /// Action to perform if the condition evaluated to `true`
-        pub action: Action<T>,
-    }
-}
-
-/// Descriptor for an icon
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Icon {
-    Shard(Shard),
-    Equipment(Equipment),
-    Opher(OpherIcon),
-    Lupo(LupoIcon),
-    Grom(GromIcon),
-    Tuley(TuleyIcon),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, FromStr, Display)]
-#[display(style = "snake_case")]
-pub enum PseudoTrigger {
-    /// Trigger when starting a new file
-    Spawn,
-    /// Trigger when starting a new file or loading the seed into an active file
-    Reload,
-    /// Trigger when respawning after death, void etc.
-    Respawn,
-    /// Trigger on keybind
-    Bind1,
-    /// Trigger on keybind
-    Bind2,
-    /// Trigger on keybind
-    Bind3,
-    /// Trigger on keybind
-    Bind4,
-    /// Trigger on keybind
-    Bind5,
-    /// Trigger on Teleport
-    Teleport,
-    /// Trigger on Jump
-    Jump,
-    /// Trigger on Double Jump
-    DoubleJump,
-    /// Trigger on Dash
-    Dash,
-    /// Trigger on Bash
-    Bash,
-    /// Trigger on Glide
-    Glide,
-    /// Trigger on Sword
-    Sword,
-    /// Trigger on Hammer
-    Hammer,
-    /// Trigger on Spike
-    Spike,
-    /// Trigger on Spirit Star
-    SpiritStar,
-    /// Trigger on Light Burst
-    LightBurst,
-    /// Trigger on Bow
-    Bow,
-    /// Trigger on Blaze
-    Blaze,
-    /// Trigger on Sentry
-    Sentry,
-    /// Trigger on Flash
-    Flash,
-    /// Trigger on Launch
-    Launch,
-    /// Trigger on Wall Jump
-    WallJump,
-    /// Trigger on Burrow
-    Burrow,
-    /// Trigger on Water Dash
-    WaterDash,
-    /// Trigger on Flap
-    Flap,
-    /// Trigger on Regenerate
-    Regenerate,
-    /// Trigger on the Show Progress keybind
-    ProgressMessage,
-    /// Trigger every frame
-    Tick,
+/// A Command, which may be used to affect the world, player or client state
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Command {
+    /// Execute the commands at `index` in command_lookup
+    Execute { index: usize },
+    /// Execute the commands at `index` in command_lookup if Boolean Memory 0 is `true`
+    ExecuteIf { index: usize },
+    /// Load `value` into Boolean Memory 0
+    LoadBoolean { value: bool },
+    /// Load `value` into Integer Memory 0
+    LoadInteger { value: i32 },
+    /// Load `value` into Float Memory 0
+    LoadFloat { value: f32 },
+    /// Load `value` into String Memory 0
+    LoadString { value: String },
+    /// Copy address `from` into address `to` in Boolean Memory
+    CopyBoolean { from: usize, to: usize },
+    /// Copy address `from` into address `to` in Integer Memory
+    CopyInteger { from: usize, to: usize },
+    /// Copy address `from` into address `to` in Float Memory
+    CopyFloat { from: usize, to: usize },
+    /// Copy address `from` into address `to` in String Memory
+    CopyString { from: usize, to: usize },
+    /// Copy the value of `uber_identifier` into Boolean Memory 0
+    FetchBoolean { uber_identifier: UberIdentifier },
+    /// Copy the value of `uber_identifier` into Integer Memory 0
+    FetchInteger { uber_identifier: UberIdentifier },
+    /// Copy the value of `uber_identifier` into Float Memory 0
+    FetchFloat { uber_identifier: UberIdentifier },
+    /// Copy the value of Boolean Memory 0 into `uber_identifier`
+    StoreBoolean {
+        uber_identifier: UberIdentifier,
+        check_triggers: bool,
+    },
+    /// Copy the value of Integer Memory 0 into `uber_identifier`
+    StoreInteger {
+        uber_identifier: UberIdentifier,
+        check_triggers: bool,
+    },
+    /// Copy the value of Float Memory 0 into `uber_identifier`
+    StoreFloat {
+        uber_identifier: UberIdentifier,
+        check_triggers: bool,
+    },
+    /// Perform `operator` on Boolean Memory 1 and Boolean Memory 0 and store the result in Boolean Memory 0
+    CompareBoolean { operator: EqualityComparator },
+    /// Perform `operator` on Integer Memory 1 and Integer Memory 0 and store the result in Integer Memory 0
+    CompareInteger { operator: Comparator },
+    /// Perform `operator` on Float Memory 1 and Float Memory 0 and store the result in Float Memory 0
+    CompareFloat { operator: Comparator },
+    /// Perform `operator` on String Memory 1 and String Memory 0 and store the result in String Memory 0
+    CompareString { operator: EqualityComparator },
+    /// Perform `operator` on Boolean Memory 1 and Boolean Memory 0 and store the result in Boolean Memory 0
+    LogicOperation { operator: LogicOperator },
+    /// Perform `operator` on Integer Memory 1 and Integer Memory 0 and store the result in Integer Memory 0
+    ArithmeticInteger { operator: ArithmeticOperator },
+    /// Perform `operator` on Float Memory 1 and Float Memory 0 and store the result in Float Memory 0
+    ArithmeticFloat { operator: ArithmeticOperator },
+    /// Concatenate String Memory 1 and String Memory 0 and store the result in String Memory 0
+    Concatenate,
+    /// Convert Integer Memory 0 to a float and store it in Float Memory 0
+    ToFloat,
+    /// Check if Ori is in the hitbox defined by (Float Memory 1, Float Memory 2) and (Float Memory 3, Float Memory 0) and store the result in Boolean Memory 0
+    IsInHitbox,
+    /// Store whether the user wants to see random spirit light names in Boolean Memory 0
+    RandomSpiritLightNames,
+    /// Store the name of world number `index` in String Memory 0
+    WorldName { index: usize },
+    /// Store Ori's current zone in Integer Memory 0
+    CurrentZone,
+    /// Queue String Memory 0 as item message with a default timeout
+    ItemMessage,
+    /// Queue String Memory 0 as item message with Float Memory 0 as timeout
+    ItemMessageWithTimeout,
+    /// Show String Memory 0 as priority message with Float Memory 0 as timeout
+    PriorityMessage,
+    /// Show String Memory 0 as priority message and keep `id` as a reference to it
+    ControlledMessage { id: usize },
+    /// If `id` refers to an existing controlled message, set its text to String Memory 0
+    SetMessageText { id: usize },
+    /// If `id` refers to an existing controlled message, set its timeout to Float Memory 0
+    SetMessageTimeout { id: usize },
+    /// If `id` refers to an existing controlled message, DESTROY, OBLITERATE and ANNIHILATE it
+    DestroyMessage { id: usize },
+    /// Perform a "hard" save like an autosave
+    Save,
+    /// Perform a "soft" checkpoint like a boss fight checkpoint
+    Checkpoint,
+    /// Warp the player to (Float Memory 1, Float Memory 0)
+    Warp,
+    /// Equip `equipment` into `slot`
+    Equip {
+        slot: EquipSlot,
+        equipment: Equipment,
+    },
+    /// Unequip `equipment` from any slot it may be equipped in
+    Unequip { equipment: Equipment },
+    /// Act as though the user would have pressed `bind`
+    TriggerKeybind { bind: String },
+    /// Start syncing `uber_identifier` in co-op
+    EnableServerSync { uber_identifier: UberIdentifier },
+    /// Stop syncing `uber_identifier` in co-op
+    DisableServerSync { uber_identifier: UberIdentifier },
+    /// Set whether the Kwolok statue can be interacted with based on Boolean Memory 0
+    SetKwolokStatueEnabled,
+    /// Set the map icon associated with the `location` identifier from loc_data to `icon` and the label to String Memory 0
+    SetSpoilerMapIcon { location: String, icon: MapIcon },
+    /// Create a spirit well icon that you can warp to on the map at (Float Memory 1, Float Memory 0)
+    CreateWarpIcon { id: usize },
+    /// If `id` refers to an existing spirit well icon, set its label to String Memory 0
+    SetWarpIconLabel { id: usize },
+    /// If `id` refers to an existing spirit well icon, DESTROY, OBLITERATE and ANNIHILATE it
+    DestroyWarpIcon { id: usize },
+    /// Set the price of the shop item at `uber_identifier` to Integer Memory 0
+    SetShopItemPrice { uber_identifier: UberIdentifier },
+    /// Set the display name of the shop item at `uber_identifier` to String Memory 0
+    SetShopItemName { uber_identifier: UberIdentifier },
+    /// Set the description of the shop item at `uber_identifier` to String Memory 0
+    SetShopItemDescription { uber_identifier: UberIdentifier },
+    /// Set the icon of the shop item at `uber_identifier` to `icon`
+    SetShopItemIcon {
+        uber_identifier: UberIdentifier,
+        icon: Icon,
+    },
+    /// Set whether the shop item at `uber_identifier` is hidden based on Boolean Memory 0
+    SetShopItemHidden { uber_identifier: UberIdentifier },
+    /// Set the display name of the wheel item in `wheel` at `position` to String Memory 0
+    SetWheelItemName {
+        wheel: usize,
+        position: WheelItemPosition,
+    },
+    /// Set the description of the wheel item in `wheel` at `position` to String Memory 0
+    SetWheelItemDescription {
+        wheel: usize,
+        position: WheelItemPosition,
+    },
+    /// Set the icon of the wheel item in `wheel` at `position` to `icon`
+    SetWheelItemIcon {
+        wheel: usize,
+        position: WheelItemPosition,
+        icon: Icon,
+    },
+    /// Set the rgba color of the wheel item in `wheel` at `position` to Integer Memory 1, Integer Memory 2, Integer Memory 3, Integer Memory 0
+    SetWheelItemColor {
+        wheel: usize,
+        position: WheelItemPosition,
+    },
+    /// When pressing `bind` with the wheel item in `wheel` at `position` selected, execute `command`
+    SetWheelItemCommand {
+        wheel: usize,
+        position: WheelItemPosition,
+        bind: WheelBind,
+        command: usize,
+    },
+    /// Remove the wheel item in `wheel` at `position`
+    DestroyWheelItem {
+        wheel: usize,
+        position: WheelItemPosition,
+    },
+    /// Switch the active wheel to `wheel`
+    SwitchWheel { wheel: usize },
+    /// Sets whether `wheel` is pinned based on Boolean Memory 0
+    SetWheelPinned { wheel: usize },
+    /// Remove all wheel items
+    ClearAllWheels,
 }

@@ -3,7 +3,7 @@ use decorum::R32;
 use wotw_seedgen_assets::UberStateAlias;
 
 // TODO is this still used for anything other than variables?
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Literal {
     UberIdentifier(UberStateAlias),
     Boolean(bool),
@@ -12,7 +12,7 @@ pub enum Literal {
     String(StringOrPlaceholder),
     Constant(Constant),
 }
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Constant {
     Resource(wotw_seedgen_data::Resource),
     Skill(wotw_seedgen_data::Skill),

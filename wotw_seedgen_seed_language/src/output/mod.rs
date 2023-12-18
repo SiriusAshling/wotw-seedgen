@@ -1,34 +1,26 @@
+mod command;
 mod common_item;
-pub use common_item::*;
+mod display;
+mod event;
 pub(crate) mod intermediate;
+mod operation;
+
+pub use command::*;
+pub use common_item::*;
+pub use event::*;
+pub use operation::*;
 
 use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
     hash::Hash,
 };
-use wotw_seedgen_data::{MapIcon, UberIdentifier};
-use wotw_seedgen_seed::LiteralTypes;
-
-pub type Event = wotw_seedgen_seed::Event<SnippetLiteralTypes>;
-pub type Trigger = wotw_seedgen_seed::Trigger<SnippetLiteralTypes>;
-pub type Action = wotw_seedgen_seed::Action<SnippetLiteralTypes>;
-pub type Command = wotw_seedgen_seed::Command<SnippetLiteralTypes>;
-pub type CommandBoolean = wotw_seedgen_seed::CommandBoolean<SnippetLiteralTypes>;
-pub type CommandInteger = wotw_seedgen_seed::CommandInteger<SnippetLiteralTypes>;
-pub type CommandFloat = wotw_seedgen_seed::CommandFloat<SnippetLiteralTypes>;
-pub type CommandString = wotw_seedgen_seed::CommandString<SnippetLiteralTypes>;
-pub type CommandIcon = wotw_seedgen_seed::CommandIcon<SnippetLiteralTypes>;
-pub type CommandVoid = wotw_seedgen_seed::CommandVoid<SnippetLiteralTypes>;
-pub type ActionCondition = wotw_seedgen_seed::ActionCondition<SnippetLiteralTypes>;
-pub use wotw_seedgen_seed::{
-    ArithmeticOperator, CommandZone, Comparator, EqualityComparator, Icon, LogicOperator,
-    Operation, PseudoTrigger, Spawn,
-};
+use wotw_seedgen_data::{Equipment, GromIcon, LupoIcon, MapIcon, OpherIcon, Shard, TuleyIcon};
 
 // TODO check all the public derives
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CompilerOutput {
     pub spawn: Option<String>,
     pub events: Vec<Event>,
@@ -40,7 +32,8 @@ pub struct CompilerOutput {
     pub preplacements: Vec<(Action, wotw_seedgen_data::Zone)>,
     pub success: bool,
 }
-#[derive(Debug, Clone, Default)]
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ItemMetadata {
     /// Generic name used when sending the item to another world and in the spoiler
     pub name: Option<String>,
@@ -49,23 +42,11 @@ pub struct ItemMetadata {
     /// Description used when placed in a shop
     pub description: Option<CommandString>,
     /// Icon used when placed in a shop
-    pub icon: Option<CommandIcon>,
+    pub icon: Option<Icon>,
     /// Map Icon used in the spoiler map
     pub map_icon: Option<MapIcon>,
 }
-pub struct SnippetLiteralTypes;
-impl LiteralTypes for SnippetLiteralTypes {
-    type CustomCommand = CommonItem;
-    type UberIdentifier = UberIdentifier;
-    type String = StringOrPlaceholder;
 
-    fn uber_identifier_literal(value: UberIdentifier) -> Self::UberIdentifier {
-        value
-    }
-    fn string_literal(value: String) -> Self::String {
-        StringOrPlaceholder::Value(value)
-    }
-}
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum StringOrPlaceholder {
     Value(String),
@@ -88,4 +69,16 @@ impl Display for StringOrPlaceholder {
             }
         }
     }
+}
+
+/// Descriptor for an icon
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Icon {
+    Shard(Shard),
+    Equipment(Equipment),
+    Opher(OpherIcon),
+    Lupo(LupoIcon),
+    Grom(GromIcon),
+    Tuley(TuleyIcon),
+    Path(String),
 }

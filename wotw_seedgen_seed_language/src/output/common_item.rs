@@ -53,7 +53,7 @@ fn write_remove<D: Display>(f: &mut fmt::Formatter<'_>, value: D) -> fmt::Result
 
 // TODO
 // pub fn common_item<T: LiteralTypes<UberIdentifier = UberIdentifier>>(
-//     action: &Action<T>,
+//     action: &Action,
 //     action_lookup: &ActionLookup,
 // ) -> Option<CommonItem> {
 //     fn is(index: usize, default_action: DefaultAction, action_lookup: &ActionLookup) -> bool {
@@ -212,14 +212,14 @@ fn write_remove<D: Display>(f: &mut fmt::Formatter<'_>, value: D) -> fmt::Result
 //     amount: i32,
 //     rng: &mut R,
 //     action_lookup: &mut ActionLookup,
-// ) -> Action<T> {
+// ) -> Action {
 //     either_spirit_light(amount, rng, action_lookup, DefaultAction::SpiritLight)
 // }
 // pub fn remove_spirit_light<T: LiteralTypes, R: Rng>(
 //     amount: i32,
 //     rng: &mut R,
 //     action_lookup: &mut ActionLookup,
-// ) -> Action<T> {
+// ) -> Action {
 //     either_spirit_light(amount, rng, action_lookup, DefaultAction::RemoveSpiritLight)
 // }
 // fn either_spirit_light<T: LiteralTypes, R: Rng>(
@@ -227,7 +227,7 @@ fn write_remove<D: Display>(f: &mut fmt::Formatter<'_>, value: D) -> fmt::Result
 //     rng: &mut R,
 //     action_lookup: &mut ActionLookup,
 //     default_action: DefaultAction,
-// ) -> Action<T> {
+// ) -> Action {
 //     let random_name = SPIRIT_LIGHT_NAMES.choose(rng).unwrap();
 //     Action::Multi(vec![
 //         Action::Command(Command::Void(CommandVoid::SetInteger {
@@ -245,10 +245,10 @@ fn write_remove<D: Display>(f: &mut fmt::Formatter<'_>, value: D) -> fmt::Result
 //         })),
 //     ])
 // }
-// pub fn resource<T: LiteralTypes>(
+// pub fn resource(
 //     resource: Resource,
 //     action_lookup: &mut ActionLookup,
-// ) -> Action<T> {
+// ) -> Action {
 //     Action::Command(Command::Void(CommandVoid::Lookup {
 //         index: action_lookup.default_action(match resource {
 //             Resource::HealthFragment => DefaultAction::HealthFragment,
@@ -259,10 +259,10 @@ fn write_remove<D: Display>(f: &mut fmt::Formatter<'_>, value: D) -> fmt::Result
 //         }),
 //     }))
 // }
-// pub fn remove_resource<T: LiteralTypes>(
+// pub fn remove_resource(
 //     resource: Resource,
 //     action_lookup: &mut ActionLookup,
-// ) -> Action<T> {
+// ) -> Action {
 //     Action::Command(Command::Void(CommandVoid::Lookup {
 //         index: action_lookup.default_action(match resource {
 //             Resource::HealthFragment => DefaultAction::RemoveHealthFragment,
@@ -273,76 +273,76 @@ fn write_remove<D: Display>(f: &mut fmt::Formatter<'_>, value: D) -> fmt::Result
 //         }),
 //     }))
 // }
-// pub fn skill<T: LiteralTypes>(skill: Skill) -> Action<T> {
+// pub fn skill(skill: Skill) -> Action {
 //     Action::Multi(vec![
 //         skill_message(skill),
 //         store_boolean(skill.uber_state(), true),
 //     ])
 // }
-// pub fn remove_skill<T: LiteralTypes>(skill: Skill) -> Action<T> {
+// pub fn remove_skill(skill: Skill) -> Action {
 //     Action::Multi(vec![
 //         remove_skill_message(skill),
 //         store_boolean(skill.uber_state(), false),
 //     ])
 // }
-// pub fn shard<T: LiteralTypes>(shard: Shard) -> Action<T> {
+// pub fn shard(shard: Shard) -> Action {
 //     Action::Multi(vec![
 //         shard_message(shard),
 //         store_boolean(shard.uber_state(), true),
 //     ])
 // }
-// pub fn remove_shard<T: LiteralTypes>(shard: Shard) -> Action<T> {
+// pub fn remove_shard(shard: Shard) -> Action {
 //     Action::Multi(vec![
 //         remove_shard_message(shard),
 //         store_boolean(shard.uber_state(), false),
 //     ])
 // }
-// pub fn teleporter<T: LiteralTypes>(teleporter: Teleporter) -> Action<T> {
+// pub fn teleporter(teleporter: Teleporter) -> Action {
 //     Action::Multi(vec![
 //         teleporter_message(teleporter),
 //         store_boolean(teleporter.uber_state(), true),
 //     ])
 // }
-// pub fn remove_teleporter<T: LiteralTypes>(teleporter: Teleporter) -> Action<T> {
+// pub fn remove_teleporter(teleporter: Teleporter) -> Action {
 //     Action::Multi(vec![
 //         remove_teleporter_message(teleporter),
 //         store_boolean(teleporter.uber_state(), false),
 //     ])
 // }
-// pub fn clean_water<T: LiteralTypes>() -> Action<T> {
+// pub fn clean_water() -> Action {
 //     Action::Multi(vec![
 //         clean_water_message(),
 //         store_boolean(CLEAN_WATER_UBER_STATE, true),
 //     ])
 // }
-// pub fn remove_clean_water<T: LiteralTypes>() -> Action<T> {
+// pub fn remove_clean_water() -> Action {
 //     Action::Multi(vec![
 //         remove_clean_water_message(),
 //         store_boolean(CLEAN_WATER_UBER_STATE, false),
 //     ])
 // }
-// pub fn weapon_upgrade<T: LiteralTypes>(weapon_upgrade: WeaponUpgrade) -> Action<T> {
+// pub fn weapon_upgrade(weapon_upgrade: WeaponUpgrade) -> Action {
 //     Action::Multi(vec![
 //         weapon_upgrade_message(weapon_upgrade),
 //         store_boolean(weapon_upgrade.uber_state(), true),
 //     ])
 // }
-// pub fn remove_weapon_upgrade<T: LiteralTypes>(weapon_upgrade: WeaponUpgrade) -> Action<T> {
+// pub fn remove_weapon_upgrade(weapon_upgrade: WeaponUpgrade) -> Action {
 //     Action::Multi(vec![
 //         remove_weapon_upgrade_message(weapon_upgrade),
 //         store_boolean(weapon_upgrade.uber_state(), false),
 //     ])
 // }
 //
-// pub(crate) fn message_with<T: LiteralTypes>(command: CommandString<T>) -> Action<T> {
+// pub(crate) fn message_with(command: CommandString<T>) -> Action {
 //     Action::Command(Command::Void(CommandVoid::ItemMessage { message: command }))
 // }
-// pub(crate) fn message<T: LiteralTypes>(value: String) -> Action<T> {
+// pub(crate) fn message(value: String) -> Action {
 //     message_with(CommandString::Constant {
 //         value: T::string_literal(value),
 //     })
 // }
-// pub(crate) fn remove_message_with<T: LiteralTypes>(command: CommandString<T>) -> Action<T> {
+// pub(crate) fn remove_message_with(command: CommandString<T>) -> Action {
 //     Action::Command(Command::Void(CommandVoid::ItemMessage {
 //         message: CommandString::Concatenate {
 //             left: Box::new(CommandString::Constant {
@@ -358,52 +358,52 @@ fn write_remove<D: Display>(f: &mut fmt::Formatter<'_>, value: D) -> fmt::Result
 //     }))
 // }
 // // TODO reuse display from above
-// pub(crate) fn remove_message<T: LiteralTypes, D: Display>(value: D) -> Action<T> {
+// pub(crate) fn remove_message<T: LiteralTypes, D: Display>(value: D) -> Action {
 //     message(format!("@Removed {value}@"))
 // }
 //
-// pub(crate) fn resource_message<T: LiteralTypes>(resource: Resource) -> Action<T> {
+// pub(crate) fn resource_message(resource: Resource) -> Action {
 //     message(resource.to_string())
 // }
-// pub(crate) fn skill_message<T: LiteralTypes>(skill: Skill) -> Action<T> {
+// pub(crate) fn skill_message(skill: Skill) -> Action {
 //     message(match skill {
 //         Skill::GladesAncestralLight | Skill::InkwaterAncestralLight => format!("#{skill}#"),
 //         _ => format!("*{skill}*"),
 //     })
 // }
-// pub(crate) fn remove_skill_message<T: LiteralTypes>(skill: Skill) -> Action<T> {
+// pub(crate) fn remove_skill_message(skill: Skill) -> Action {
 //     remove_message(skill)
 // }
-// pub(crate) fn shard_message<T: LiteralTypes>(shard: Shard) -> Action<T> {
+// pub(crate) fn shard_message(shard: Shard) -> Action {
 //     message(format!("${shard}$"))
 // }
-// pub(crate) fn remove_shard_message<T: LiteralTypes>(shard: Shard) -> Action<T> {
+// pub(crate) fn remove_shard_message(shard: Shard) -> Action {
 //     remove_message(shard)
 // }
-// pub(crate) fn teleporter_message<T: LiteralTypes>(teleporter: Teleporter) -> Action<T> {
+// pub(crate) fn teleporter_message(teleporter: Teleporter) -> Action {
 //     message(format!("#{teleporter} Teleporter#"))
 // }
-// pub(crate) fn remove_teleporter_message<T: LiteralTypes>(teleporter: Teleporter) -> Action<T> {
+// pub(crate) fn remove_teleporter_message(teleporter: Teleporter) -> Action {
 //     remove_message(format!("{teleporter} Teleporter"))
 // }
-// pub(crate) fn clean_water_message<T: LiteralTypes>() -> Action<T> {
+// pub(crate) fn clean_water_message() -> Action {
 //     message("*Clean Water*".to_string())
 // }
-// pub(crate) fn remove_clean_water_message<T: LiteralTypes>() -> Action<T> {
+// pub(crate) fn remove_clean_water_message() -> Action {
 //     remove_message("Clean Water")
 // }
-// pub(crate) fn weapon_upgrade_message<T: LiteralTypes>(weapon_upgrade: WeaponUpgrade) -> Action<T> {
+// pub(crate) fn weapon_upgrade_message(weapon_upgrade: WeaponUpgrade) -> Action {
 //     message(format!("#{weapon_upgrade}#"))
 // }
-// pub(crate) fn remove_weapon_upgrade_message<T: LiteralTypes>(
+// pub(crate) fn remove_weapon_upgrade_message(
 //     weapon_upgrade: WeaponUpgrade,
-// ) -> Action<T> {
+// ) -> Action {
 //     remove_message(weapon_upgrade)
 // }
-// pub(crate) fn store_boolean<T: LiteralTypes>(
+// pub(crate) fn store_boolean(
 //     uber_identifier: UberIdentifier,
 //     value: bool,
-// ) -> Action<T> {
+// ) -> Action {
 //     Action::Command(Command::Void(CommandVoid::StoreBoolean {
 //         uber_identifier: T::uber_identifier_literal(uber_identifier),
 //         value: CommandBoolean::Constant { value },

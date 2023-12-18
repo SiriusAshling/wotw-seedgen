@@ -3,13 +3,12 @@ use crate::{
     ast,
     output::{
         intermediate::{Constant, Literal},
-        Command, CommandBoolean, CommandFloat, CommandIcon, CommandInteger, CommandString,
+        Command, CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandZone,
     },
 };
 use decorum::R32;
 use wotw_seedgen_data::Zone;
 use wotw_seedgen_parse::{Error, Span};
-use wotw_seedgen_seed::CommandZone;
 
 pub(crate) trait EvaluateFrom: Sized {
     type From: CompileInto;
@@ -85,9 +84,6 @@ impl EvaluateFrom for Literal {
             Command::String(CommandString::Constant { value }) => Some(Literal::String(value)),
             Command::Zone(CommandZone::Constant { value }) => {
                 Some(Literal::Constant(Constant::Zone(value)))
-            }
-            Command::Icon(CommandIcon::Constant { value: _ }) => {
-                todo!() // how do icons get compiled again?
             }
             _ => None,
         }

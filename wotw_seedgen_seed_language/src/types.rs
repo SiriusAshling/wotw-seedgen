@@ -151,7 +151,6 @@ impl InferType for FunctionCall<'_> {
             | FunctionIdentifier::CleanWaterName
             | FunctionIdentifier::WeaponUpgradeName => Type::String,
             FunctionIdentifier::CurrentZone => Type::Zone,
-            FunctionIdentifier::ReadIcon => Type::Icon,
             FunctionIdentifier::SpiritLight
             | FunctionIdentifier::RemoveSpiritLight
             | FunctionIdentifier::Resource

@@ -2,8 +2,8 @@ use super::{expression::CompileInto, Compile, SnippetCompiler};
 use crate::{
     ast::{self, UberStateType},
     output::{
-        Action, Command, CommandBoolean, CommandFloat, CommandIcon, CommandInteger, CommandString,
-        CommandVoid, CommandZone, CommonItem, StringOrPlaceholder,
+        Action, Command, CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandVoid,
+        CommandZone, CommonItem, StringOrPlaceholder,
     },
 };
 use parse_display::FromStr;
@@ -95,7 +95,6 @@ pub(crate) enum FunctionIdentifier {
     CleanWaterName,
     WeaponUpgradeName,
     CurrentZone,
-    ReadIcon,
     SpiritLight,
     RemoveSpiritLight,
     Resource,
@@ -281,49 +280,46 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
             FunctionIdentifier::CurrentZone => {
                 Action::Command(Command::Zone(CommandZone::CurrentZone {}))
             }
-            FunctionIdentifier::ReadIcon => Action::Command(Command::Icon(CommandIcon::ReadIcon {
-                path: boxed_arg(&mut context)?,
-            })),
             FunctionIdentifier::SpiritLight => {
-                Action::Command(Command::Custom(CommonItem::SpiritLight(arg(&mut context)?)))
+                Action::Command(Command::Common(CommonItem::SpiritLight(arg(&mut context)?)))
             }
-            FunctionIdentifier::RemoveSpiritLight => Action::Command(Command::Custom(
+            FunctionIdentifier::RemoveSpiritLight => Action::Command(Command::Common(
                 CommonItem::RemoveSpiritLight(arg(&mut context)?),
             )),
             FunctionIdentifier::Resource => {
-                Action::Command(Command::Custom(CommonItem::Resource(arg(&mut context)?)))
+                Action::Command(Command::Common(CommonItem::Resource(arg(&mut context)?)))
             }
-            FunctionIdentifier::RemoveResource => Action::Command(Command::Custom(
+            FunctionIdentifier::RemoveResource => Action::Command(Command::Common(
                 CommonItem::RemoveResource(arg(&mut context)?),
             )),
             FunctionIdentifier::Skill => {
-                Action::Command(Command::Custom(CommonItem::Skill(arg(&mut context)?)))
+                Action::Command(Command::Common(CommonItem::Skill(arg(&mut context)?)))
             }
             FunctionIdentifier::RemoveSkill => {
-                Action::Command(Command::Custom(CommonItem::RemoveSkill(arg(&mut context)?)))
+                Action::Command(Command::Common(CommonItem::RemoveSkill(arg(&mut context)?)))
             }
             FunctionIdentifier::Shard => {
-                Action::Command(Command::Custom(CommonItem::Shard(arg(&mut context)?)))
+                Action::Command(Command::Common(CommonItem::Shard(arg(&mut context)?)))
             }
             FunctionIdentifier::RemoveShard => {
-                Action::Command(Command::Custom(CommonItem::RemoveShard(arg(&mut context)?)))
+                Action::Command(Command::Common(CommonItem::RemoveShard(arg(&mut context)?)))
             }
             FunctionIdentifier::Teleporter => {
-                Action::Command(Command::Custom(CommonItem::Teleporter(arg(&mut context)?)))
+                Action::Command(Command::Common(CommonItem::Teleporter(arg(&mut context)?)))
             }
-            FunctionIdentifier::RemoveTeleporter => Action::Command(Command::Custom(
+            FunctionIdentifier::RemoveTeleporter => Action::Command(Command::Common(
                 CommonItem::RemoveTeleporter(arg(&mut context)?),
             )),
             FunctionIdentifier::CleanWater => {
-                Action::Command(Command::Custom(CommonItem::CleanWater))
+                Action::Command(Command::Common(CommonItem::CleanWater))
             }
             FunctionIdentifier::RemoveCleanWater => {
-                Action::Command(Command::Custom(CommonItem::RemoveCleanWater))
+                Action::Command(Command::Common(CommonItem::RemoveCleanWater))
             }
-            FunctionIdentifier::WeaponUpgrade => Action::Command(Command::Custom(
+            FunctionIdentifier::WeaponUpgrade => Action::Command(Command::Common(
                 CommonItem::WeaponUpgrade(arg(&mut context)?),
             )),
-            FunctionIdentifier::RemoveWeaponUpgrade => Action::Command(Command::Custom(
+            FunctionIdentifier::RemoveWeaponUpgrade => Action::Command(Command::Common(
                 CommonItem::RemoveWeaponUpgrade(arg(&mut context)?),
             )),
             FunctionIdentifier::ItemMessage => {

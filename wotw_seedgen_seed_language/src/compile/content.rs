@@ -1,10 +1,9 @@
-use wotw_seedgen_parse::{Error, Span};
-
 use super::{Compile, SnippetCompiler};
 use crate::{
     ast::{self, TriggerBinding},
     output::{intermediate::Literal, Action, ActionCondition, Event, Trigger},
 };
+use wotw_seedgen_parse::{Error, Span};
 
 impl<'source> Compile<'source> for ast::Content<'source> {
     type Output = ();
@@ -46,7 +45,7 @@ impl<'source> Compile<'source> for ast::Trigger<'source> {
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
         match self {
-            ast::Trigger::Pseudo(pseudo) => Some(Trigger::Pseudo(pseudo.data.0)),
+            ast::Trigger::Pseudo(pseudo) => Some(Trigger::Pseudo(pseudo.data)),
             ast::Trigger::Binding(_, binding) => {
                 let span = binding.span();
 

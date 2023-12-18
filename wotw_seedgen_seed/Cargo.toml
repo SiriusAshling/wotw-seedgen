@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 # TODO really just check through all the dependencies after this tbh
 wotw_seedgen_data = { path = "../wotw_seedgen_data", features = ["serde", "parse_display"] }
+wotw_seedgen_seed_language = { path = "../wotw_seedgen_seed_language" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 itertools = "0.11"

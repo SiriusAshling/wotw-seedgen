@@ -1,9 +1,8 @@
-use itertools::Itertools;
-
-use crate::{
-    Action, ActionCondition, Command, CommandBoolean, CommandFloat, CommandIcon, CommandInteger,
-    CommandString, CommandVoid, CommandZone, Event, Icon, LiteralTypes, Operation, Trigger,
+use super::{
+    Action, ActionCondition, Command, CommandBoolean, CommandFloat, CommandInteger, CommandString,
+    CommandVoid, CommandZone, Event, Icon, Operation, Trigger,
 };
+use itertools::Itertools;
 use std::fmt::{self, Display};
 
 impl Display for Icon {
@@ -15,27 +14,18 @@ impl Display for Icon {
             Icon::Lupo(lupo_icon) => write!(f, "{lupo_icon} icon"),
             Icon::Grom(grom_icon) => write!(f, "{grom_icon} icon"),
             Icon::Tuley(tuley_icon) => write!(f, "{tuley_icon} icon"),
+            Icon::Path(path) => write!(f, "custom icon at \"{path}\""),
         }
     }
 }
 
-impl<T: LiteralTypes> Display for Event<T>
-where
-    T::CustomCommand: Display,
-    T::UberIdentifier: Display,
-    T::String: Display,
-{
+impl Display for Event {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "on {} {}", self.trigger, self.action)
     }
 }
 
-impl<T: LiteralTypes> Display for Trigger<T>
-where
-    T::CustomCommand: Display,
-    T::UberIdentifier: Display,
-    T::String: Display,
-{
+impl Display for Trigger {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Trigger::Pseudo(pseudo) => pseudo.fmt(f),
@@ -46,12 +36,7 @@ where
     }
 }
 
-impl<T: LiteralTypes> Display for Action<T>
-where
-    T::CustomCommand: Display,
-    T::UberIdentifier: Display,
-    T::String: Display,
-{
+impl Display for Action {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Action::Command(action) => action.fmt(f),
@@ -61,12 +46,7 @@ where
     }
 }
 
-impl<T: LiteralTypes> Display for ActionCondition<T>
-where
-    T::CustomCommand: Display,
-    T::UberIdentifier: Display,
-    T::String: Display,
-{
+impl Display for ActionCondition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "if ({}) {{ {} }}", self.condition, self.action)
     }
@@ -78,12 +58,7 @@ impl<Item: Display, Operator: Display> Display for Operation<Item, Operator> {
     }
 }
 
-impl<T: LiteralTypes> Display for Command<T>
-where
-    T::CustomCommand: Display,
-    T::UberIdentifier: Display,
-    T::String: Display,
-{
+impl Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Command::Boolean(command) => command.fmt(f),
@@ -91,19 +66,13 @@ where
             Command::Float(command) => command.fmt(f),
             Command::String(command) => command.fmt(f),
             Command::Zone(command) => command.fmt(f),
-            Command::Icon(command) => command.fmt(f),
             Command::Void(command) => command.fmt(f),
-            Command::Custom(command) => command.fmt(f),
+            Command::Common(command) => command.fmt(f),
         }
     }
 }
 
-impl<T: LiteralTypes> Display for CommandBoolean<T>
-where
-    T::CustomCommand: Display,
-    T::UberIdentifier: Display,
-    T::String: Display,
-{
+impl Display for CommandBoolean {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CommandBoolean::Constant { value } => value.fmt(f),
@@ -125,10 +94,7 @@ where
     }
 }
 
-impl<T: LiteralTypes> Display for CommandInteger<T>
-where
-    T::UberIdentifier: Display,
-{
+impl Display for CommandInteger {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CommandInteger::Constant { value } => value.fmt(f),
@@ -141,10 +107,7 @@ where
     }
 }
 
-impl<T: LiteralTypes> Display for CommandFloat<T>
-where
-    T::UberIdentifier: Display,
-{
+impl Display for CommandFloat {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CommandFloat::Constant { value } => value.fmt(f),
@@ -156,12 +119,7 @@ where
     }
 }
 
-impl<T: LiteralTypes> Display for CommandString<T>
-where
-    T::CustomCommand: Display,
-    T::UberIdentifier: Display,
-    T::String: Display,
-{
+impl Display for CommandString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CommandString::Constant { value } => write!(f, "\"{value}\""),
@@ -182,26 +140,7 @@ impl Display for CommandZone {
     }
 }
 
-impl<T: LiteralTypes> Display for CommandIcon<T>
-where
-    T::CustomCommand: Display,
-    T::UberIdentifier: Display,
-    T::String: Display,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            CommandIcon::Constant { value } => value.fmt(f),
-            CommandIcon::ReadIcon { path } => write!(f, "read_icon({path})"),
-        }
-    }
-}
-
-impl<T: LiteralTypes> Display for CommandVoid<T>
-where
-    T::CustomCommand: Display,
-    T::UberIdentifier: Display,
-    T::String: Display,
-{
+impl Display for CommandVoid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CommandVoid::ItemMessage { message } => write!(f, "item_message({message})"),
