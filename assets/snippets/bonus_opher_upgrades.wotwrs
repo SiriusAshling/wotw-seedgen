@@ -2,7 +2,7 @@
 #name("Bonus Opher Upgrades")
 #description("Opher sells five weapon upgrades unique to the randomizer")
 
-!flags("Bonus Opher Upgrades")
+!flag("Bonus Opher Upgrades")
 
 !include("bonus_item_core")
 !use("bonus_item_core", spear_efficiency)

@@ -6,7 +6,13 @@
 !config(relic_chance, "Chance for each individual area of the game to have a relic", Float, 0.6)
 !config(relic_count, "If not zero, overrides relic chance. How many relics to place", Integer, 0)
 
-!flags("Relic Search")
+!if relic_count == 0 {
+    !flag("Relics (" + to_integer(relic_chance * 100) + "%)")
+}
+!if relic_count != 0 {
+    !flag("Relics (" + relic_count + ")")
+}
+
 !include("progress_helper")
 !include("goal_mode_core")
 

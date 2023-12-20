@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SeedWorld<Metadata = ()> {
     /// String to display when loading the seed; usually a summary of the settings
-    pub flags: String,
+    pub flags: Vec<String>,
     /// Starting location
     pub spawn: Spawn,
     /// Events from generation and snippets
@@ -134,6 +134,8 @@ pub enum Command {
     ArithmeticFloat(/*operator*/ ArithmeticOperator),
     /// Concatenate String Memory 1 and String Memory 0 and store the result in String Memory 0
     Concatenate,
+    /// Convert Float Memory 0 to an integer by rounding and store it in Integer Memory 0
+    FloatToInteger,
     /// Convert Integer Memory 0 to a float and store it in Float Memory 0
     IntegerToFloat,
     /// Convert Boolean Memory 0 to a string and store it in String Memory 0

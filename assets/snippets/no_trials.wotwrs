@@ -2,7 +2,7 @@
 #name("No Trials")
 #description("Trials will give no rewards")
 
-!flags("No Trials")
+!flag("No Trials")
 
 on spawn {
     store(raceGroup.inkwaterMarshRace, 2)

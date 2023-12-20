@@ -92,6 +92,7 @@ impl Display for CommandInteger {
                 write!(f, "fetch({uber_identifier})")
             }
             CommandInteger::GetInteger { id } => write!(f, "get_integer({id})"),
+            CommandInteger::FromFloat { float } => write!(f, "to_integer({float})"),
         }
     }
 }

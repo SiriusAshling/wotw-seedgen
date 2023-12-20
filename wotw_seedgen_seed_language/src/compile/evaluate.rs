@@ -4,6 +4,7 @@ use crate::{
     output::{
         intermediate::{Constant, Literal},
         Command, CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandZone,
+        StringOrPlaceholder,
     },
 };
 use ordered_float::OrderedFloat;
@@ -55,6 +56,16 @@ impl EvaluateFrom for i32 {
 }
 impl EvaluateFrom for OrderedFloat<f32> {
     type From = CommandFloat;
+
+    fn evaluate(from: Self::From) -> Option<Self> {
+        match from {
+            Self::From::Constant { value } => Some(value),
+            _ => None,
+        }
+    }
+}
+impl EvaluateFrom for StringOrPlaceholder {
+    type From = CommandString;
 
     fn evaluate(from: Self::From) -> Option<Self> {
         match from {

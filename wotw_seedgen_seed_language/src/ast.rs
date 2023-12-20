@@ -321,10 +321,10 @@ pub enum Command<'source> {
     OnCallback(Spanned<OnCallback>, CommandArgs<OnCallbackArgs<'source>>),
     Share(Spanned<Share>, CommandArgs<ShareArgs<'source>>),
     Use(Spanned<Use>, CommandArgs<UseArgs<'source>>),
-    Spawn(Spanned<Spawn>, CommandArgs<SpawnArgs>),
-    Flags(
-        Spanned<Flags>,
-        CommandArgsCollection<SeparatedNonEmpty<FlagsArg<'source>, Symbol<','>>>,
+    Spawn(Spanned<Spawn>, CommandArgs<SpawnArgs<'source>>),
+    Flag(
+        Spanned<Flag>,
+        CommandArgsCollection<SeparatedNonEmpty<FlagArg<'source>, Symbol<','>>>,
     ),
     Config(Spanned<Config>, CommandArgs<ConfigArgs<'source>>),
     State(Spanned<State>, CommandArgs<StateArgs<'source>>),
@@ -410,16 +410,16 @@ pub struct UseArgs<'source> {
 #[ast(case = "snake")]
 pub struct Spawn;
 #[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
-pub struct SpawnArgs {
-    pub x: Spanned<OrderedFloat<f32>>,
+pub struct SpawnArgs<'source> {
+    pub x: Expression<'source>,
     pub comma: Symbol<','>,
-    pub y: Spanned<OrderedFloat<f32>>,
+    pub y: Expression<'source>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Ast)]
 #[ast(case = "snake")]
-pub struct Flags;
+pub struct Flag;
 #[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
-pub struct FlagsArg<'source>(pub Spanned<&'source str>);
+pub struct FlagArg<'source>(pub Expression<'source>);
 #[derive(Debug, Clone, PartialEq, Eq, Ast)]
 #[ast(case = "snake")]
 pub struct Config;
@@ -427,11 +427,11 @@ pub struct Config;
 pub struct ConfigArgs<'source> {
     pub identifier: Spanned<Identifier<'source>>,
     pub comma: Symbol<','>,
-    pub description: Spanned<&'source str>,
+    pub description: Expression<'source>,
     pub comma_2: Symbol<','>,
     pub ty: Spanned<UberStateType>,
     pub comma_3: Symbol<','>,
-    pub default: Spanned<Literal<'source>>,
+    pub default: Expression<'source>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ast, Display)]
 pub enum UberStateType {
@@ -493,7 +493,7 @@ pub struct ItemData;
 pub struct ItemDataArgs<'source> {
     pub item: Action<'source>,
     pub comma: Symbol<','>,
-    pub name: Spanned<&'source str>,
+    pub name: Expression<'source>,
     pub comma_2: Symbol<','>,
     pub price: Expression<'source>,
     pub comma_3: Symbol<','>,
@@ -510,7 +510,7 @@ pub struct ItemDataName;
 pub struct ItemDataNameArgs<'source> {
     pub item: Action<'source>,
     pub comma: Symbol<','>,
-    pub name: Spanned<&'source str>,
+    pub name: Expression<'source>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Ast)]
 #[ast(case = "snake")]

@@ -1,13 +1,13 @@
 use clap::Parser;
-use itertools::Itertools;
 use std::{
+    fmt::{self, Debug},
     fs::{self, File},
     io::{self, ErrorKind, Write},
     path::{Path, PathBuf},
 };
 use wotw_seedgen_assets::{SnippetAccess, Source};
 use wotw_seedgen_seed::{Compile, SeedWorld, Spawn};
-use wotw_seedgen_seed_language::compile::Compiler;
+use wotw_seedgen_seed_language::{compile::Compiler, output::StringOrPlaceholder};
 use wotw_seedgen_static_assets::UBER_STATE_DATA;
 
 struct Files {
@@ -61,22 +61,40 @@ fn try_read(path: &Path) -> Option<Result<Source, String>> {
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
-    /// The plando folder, which should contains "main.wotwrs" as entry point
+    /// The plando folder, which should contain "main.wotwrs" as entry point
     folder: PathBuf,
 }
 
-fn main() -> Result<(), String> {
+struct Error(String);
+impl Debug for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+impl<T: ToString> From<T> for Error {
+    fn from(value: T) -> Self {
+        Self(value.to_string())
+    }
+}
+
+fn main() -> Result<(), Error> {
     let folder = Cli::parse().folder;
     let mut rng = rand::thread_rng();
     let files = Files { folder };
     let mut compiler: Compiler<'_, '_, Files> =
         Compiler::new(&mut rng, &files, &UBER_STATE_DATA, Default::default());
     compiler.compile_snippet("main")?;
-    let output = compiler
-        .finish(&mut io::stderr())
-        .map_err(|err| err.to_string())?;
+    let output = compiler.finish(&mut io::stderr())?;
 
-    let flags = output.flags.into_iter().join(", ");
+    let mut flags = output
+        .flags
+        .into_iter()
+        .map(|string| match string {
+            StringOrPlaceholder::Value(value) => value,
+            _ => panic!("Unresolved string placeholder in flags"),
+        })
+        .collect::<Vec<_>>();
+    flags.sort();
     let spawn = output
         .spawn
         .map(|position| Spawn {
@@ -104,11 +122,10 @@ fn main() -> Result<(), String> {
         metadata: (),
     };
 
-    fs::create_dir_all("seeds").map_err(|err| err.to_string())?;
-    let mut file = File::create("seeds/out.wotwr").map_err(|err| err.to_string())?;
-    file.write_all(b"wotwr,0.0.1,\n")
-        .map_err(|err| err.to_string())?;
-    serde_json::to_writer(file, &seed).map_err(|err| err.to_string())?;
+    fs::create_dir_all("seeds")?;
+    let mut file = File::create("seeds/out.wotwr")?;
+    file.write_all(b"wotwr,0.0.1,p\n")?;
+    serde_json::to_writer_pretty(file, &seed)?;
 
     Ok(())
 }

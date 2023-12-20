@@ -2,7 +2,7 @@
 #name("Vanilla Opher Upgrades")
 #description("Places the five vanilla weapon upgrades on their vanilla locations in Opher's shop")
 
-!flags("Vanilla Opher Upgrades")
+!flag("Vanilla Opher Upgrades")
 
 // TODO rename the aliases to fit
 on OpherShop.ExplodingSpike weapon_upgrade(WeaponUpgrade::ExplodingSpear)

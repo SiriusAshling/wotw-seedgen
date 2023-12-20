@@ -2,7 +2,7 @@
 #name("Glades Done")
 #description("Start with glades rebuilt and regrown")
 
-!flags("Glades Done")
+!flag("Glades Done")
 !include("spawn_tuley")
 
 on spawn {

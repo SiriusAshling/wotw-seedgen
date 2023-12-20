@@ -613,15 +613,30 @@ impl CompileInto for CommandString {
             ast::Action::Function(function) => {
                 let span = function.span();
                 match function.compile(compiler)? {
-                    Command::Boolean(command) => Ok(CommandString::FromBoolean {
-                        boolean: Box::new(command),
-                    }),
-                    Command::Integer(command) => Ok(CommandString::FromInteger {
-                        integer: Box::new(command),
-                    }),
-                    Command::Float(command) => Ok(CommandString::FromFloat {
-                        float: Box::new(command),
-                    }),
+                    Command::Boolean(command) => match command {
+                        CommandBoolean::Constant { value } => Ok(CommandString::Constant {
+                            value: value.to_string().into(),
+                        }),
+                        _ => Ok(CommandString::FromBoolean {
+                            boolean: Box::new(command),
+                        }),
+                    },
+                    Command::Integer(command) => match command {
+                        CommandInteger::Constant { value } => Ok(CommandString::Constant {
+                            value: value.to_string().into(),
+                        }),
+                        _ => Ok(CommandString::FromInteger {
+                            integer: Box::new(command),
+                        }),
+                    },
+                    Command::Float(command) => match command {
+                        CommandFloat::Constant { value } => Ok(CommandString::Constant {
+                            value: value.to_string().into(),
+                        }),
+                        _ => Ok(CommandString::FromFloat {
+                            float: Box::new(command),
+                        }),
+                    },
                     Command::String(command) => Ok(command),
                     _ => Err(return_type_error(Type::String, span)),
                 }

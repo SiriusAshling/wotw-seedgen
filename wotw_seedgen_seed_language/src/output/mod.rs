@@ -25,7 +25,7 @@ pub struct CompilerOutput {
     pub spawn: Option<Position>,
     pub events: Vec<Event>,
     pub command_lookup: Vec<Command>,
-    pub flags: FxHashSet<String>,
+    pub flags: FxHashSet<StringOrPlaceholder>,
     pub item_pool_changes: FxHashMap<Command, i32>,
     pub item_metadata: FxHashMap<Command, ItemMetadata>,
     pub logical_state_sets: FxHashSet<String>,
@@ -36,7 +36,7 @@ pub struct CompilerOutput {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ItemMetadata {
     /// Generic name used when sending the item to another world and in the spoiler
-    pub name: Option<String>,
+    pub name: Option<StringOrPlaceholder>,
     /// Base price used when placed in a shop
     pub price: Option<CommandInteger>,
     /// Description used when placed in a shop

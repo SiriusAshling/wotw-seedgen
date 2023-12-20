@@ -4,7 +4,7 @@
 Skip all combat heavy parts. Shrine have their pickup floating above them before the fight
 all the arenas start as completed and all boss' combat phases are skipped")
 
-!flags("No Combat")
+!flag("No Combat")
 !config(skipArenas, "Skip Combat Shrines and Fight Rooms", Boolean, true)
 !config(skipBosses, "Skip Bosses (Howl, Hornbug, Mora, Kwolok, Flying Rock, Shriek)", Boolean, true)
 

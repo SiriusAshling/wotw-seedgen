@@ -94,6 +94,8 @@ pub enum CommandInteger {
     FetchInteger { uber_identifier: UberIdentifier },
     /// Get the value stored under `id`
     GetInteger { id: usize },
+    /// Convert `float` to `f32`
+    FromFloat { float: Box<CommandFloat> },
 }
 
 /// Command which returns [`f32`]

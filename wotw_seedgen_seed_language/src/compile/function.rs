@@ -89,8 +89,9 @@ pub(crate) enum FunctionIdentifier {
     IsInHitbox,
     GetBoolean,
     GetInteger,
+    ToInteger,
     GetFloat,
-    FromInteger,
+    ToFloat,
     GetString,
     ToString,
     SpiritLightString,
@@ -223,27 +224,62 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
             FunctionIdentifier::GetInteger => Command::Integer(CommandInteger::GetInteger {
                 id: integer_id(&mut context)?,
             }),
+            FunctionIdentifier::ToInteger => {
+                let float = arg(&mut context)?;
+                let command = match float {
+                    CommandFloat::Constant { value } => CommandInteger::Constant {
+                        value: value.round() as i32,
+                    },
+                    _ => CommandInteger::FromFloat {
+                        float: Box::new(float),
+                    },
+                };
+                Command::Integer(command)
+            }
             FunctionIdentifier::GetFloat => Command::Float(CommandFloat::GetFloat {
                 id: float_id(&mut context)?,
             }),
-            FunctionIdentifier::FromInteger => Command::Float(CommandFloat::FromInteger {
-                integer: boxed_arg(&mut context)?,
-            }),
+            FunctionIdentifier::ToFloat => {
+                let integer = arg(&mut context)?;
+                let command = match integer {
+                    CommandInteger::Constant { value } => CommandFloat::Constant {
+                        value: (value as f32).into(),
+                    },
+                    _ => CommandFloat::FromInteger {
+                        integer: Box::new(integer),
+                    },
+                };
+                Command::Float(command)
+            }
             FunctionIdentifier::GetString => Command::String(CommandString::GetString {
                 id: string_id(&mut context)?,
             }),
             FunctionIdentifier::ToString => {
-                // TODO sometimes we can evaluate this already
                 let (arg, span) = spanned_arg(&mut context)?;
-                let command: CommandString = match arg {
-                    Command::Boolean(command) => CommandString::FromBoolean {
-                        boolean: Box::new(command),
+                let command = match arg {
+                    Command::Boolean(command) => match command {
+                        CommandBoolean::Constant { value } => CommandString::Constant {
+                            value: value.to_string().into(),
+                        },
+                        other => CommandString::FromBoolean {
+                            boolean: Box::new(other),
+                        },
                     },
-                    Command::Integer(command) => CommandString::FromInteger {
-                        integer: Box::new(command),
+                    Command::Integer(command) => match command {
+                        CommandInteger::Constant { value } => CommandString::Constant {
+                            value: value.to_string().into(),
+                        },
+                        other => CommandString::FromInteger {
+                            integer: Box::new(other),
+                        },
                     },
-                    Command::Float(command) => CommandString::FromFloat {
-                        float: Box::new(command),
+                    Command::Float(command) => match command {
+                        CommandFloat::Constant { value } => CommandString::Constant {
+                            value: value.to_string().into(),
+                        },
+                        other => CommandString::FromFloat {
+                            float: Box::new(other),
+                        },
                     },
                     Command::String(command) => command,
                     _ => {

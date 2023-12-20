@@ -31,7 +31,7 @@ impl<'source> Compile<'source> for ast::Command<'source> {
             ast::Command::Spawn(_, command) => {
                 command.compile(compiler);
             }
-            ast::Command::Flags(_, command) => {
+            ast::Command::Flag(_, command) => {
                 command.compile(compiler);
             }
             ast::Command::Config(_, command) => {
@@ -239,7 +239,7 @@ impl<'source> Compile<'source> for ast::UseArgs<'source> {
         }
     }
 }
-impl<'source> Compile<'source> for ast::SpawnArgs {
+impl<'source> Compile<'source> for ast::SpawnArgs<'source> {
     type Output = ();
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
@@ -249,18 +249,21 @@ impl<'source> Compile<'source> for ast::SpawnArgs {
                 self.span(),
             ));
         } else {
-            compiler.global.output.spawn = Some(Position {
-                x: self.x.data,
-                y: self.y.data,
-            });
+            let x = self.x.evaluate(compiler);
+            let y = self.y.evaluate(compiler);
+            if let (Some(x), Some(y)) = (x, y) {
+                compiler.global.output.spawn = Some(Position { x, y });
+            }
         }
     }
 }
-impl<'source> Compile<'source> for ast::FlagsArg<'source> {
+impl<'source> Compile<'source> for ast::FlagArg<'source> {
     type Output = ();
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
-        compiler.global.output.flags.insert(self.0.data.to_string());
+        if let Some(flag) = self.0.evaluate(compiler) {
+            compiler.global.output.flags.insert(flag);
+        }
     }
 }
 impl<'source> Compile<'source> for ast::ConfigArgs<'source> {
@@ -273,7 +276,7 @@ impl<'source> Compile<'source> for ast::ConfigArgs<'source> {
             .get(&compiler.identifier)
             .and_then(|config| config.get(self.identifier.data.0));
         let value = match config {
-            None => self.default.compile(compiler),
+            None => self.default.evaluate(compiler),
             Some(value) => {
                 let parsed = match self.ty.data {
                     ast::UberStateType::Boolean => value.parse().ok().map(Literal::Boolean),
@@ -432,6 +435,7 @@ impl<'source> Compile<'source> for ast::ItemDataArgs<'source> {
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
         let span = self.item.span();
         let item = self.item.compile(compiler);
+        let name = self.name.evaluate(compiler);
         let price = self.price.compile_into(compiler);
         let description = self.description.compile_into(compiler);
         let icon = self.icon.compile_into(compiler);
@@ -445,7 +449,7 @@ impl<'source> Compile<'source> for ast::ItemDataArgs<'source> {
                 .insert(
                     item,
                     ItemMetadata {
-                        name: Some(self.name.data.to_string()),
+                        name,
                         price,
                         description,
                         icon,
@@ -467,15 +471,10 @@ impl<'source> Compile<'source> for ast::ItemDataNameArgs<'source> {
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
         let span = self.item.span();
-        if let Some(item) = self.item.compile(compiler) {
-            insert_item_data(
-                compiler,
-                item,
-                span,
-                self.name.data.to_string(),
-                "name",
-                |data| &mut data.name,
-            );
+        let item = self.item.compile(compiler);
+        let name = self.name.evaluate(compiler);
+        if let (Some(item), Some(name)) = (item, name) {
+            insert_item_data(compiler, item, span, name, "name", |data| &mut data.name);
         }
     }
 }

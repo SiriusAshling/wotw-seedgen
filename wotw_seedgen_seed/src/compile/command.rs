@@ -91,6 +91,9 @@ impl Compile for input::CommandInteger {
                 vec![Command::FetchInteger(uber_identifier)]
             }
             Self::GetInteger { id } => vec![Command::CopyInteger(id, 0)],
+            Self::FromFloat { float } => Args::new(1, command_lookup)
+                .float(*float)
+                .call(Command::FloatToInteger),
         }
     }
 }
