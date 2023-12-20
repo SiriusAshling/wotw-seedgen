@@ -221,9 +221,6 @@ impl Display for CommandVoid {
             CommandVoid::DisableServerSync { uber_identifier } => {
                 write!(f, "disable_server_sync({uber_identifier})")
             }
-            CommandVoid::SetKwolokStatueEnabled { enabled } => {
-                write!(f, "set_kwolok_statue_enabled({enabled})")
-            }
             CommandVoid::SetSpoilerMapIcon {
                 location,
                 icon,

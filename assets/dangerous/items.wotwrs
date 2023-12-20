@@ -38,7 +38,7 @@ fun eyestone() {
     if eyestone_collected {
         item_message("*Eyestone* $(2/2)$")
         store(player.keystones, fetch(player.keystones) + 2)
-        set_kwolok_statue_enabled(true)
+        store(randoConfig.allowOpeningEyestoneDoor, true)
     }
     if eyestone_collected == false {
         item_message("*Eyestone* (1/2)")

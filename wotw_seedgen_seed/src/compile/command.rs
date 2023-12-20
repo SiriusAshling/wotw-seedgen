@@ -1,5 +1,6 @@
 use super::{args::Args, compile_into_lookup, Compile};
 use crate::Command;
+use wotw_seedgen_data::UberIdentifier;
 use wotw_seedgen_seed_language::output::{
     self as input, CommandVoid, Comparator, EqualityComparator, StringOrPlaceholder,
 };
@@ -31,7 +32,7 @@ impl Compile for input::CommandBoolean {
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
-            Self::Constant { value } => vec![Command::LoadBoolean { value }],
+            Self::Constant { value } => vec![Command::SetBoolean { value }],
             Self::Multi { commands, last } => multi(commands, *last, command_lookup),
             Self::CompareBoolean { operation } => Args::new(2, command_lookup)
                 .bool(operation.left)
@@ -92,7 +93,7 @@ impl Compile for input::CommandInteger {
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
-            Self::Constant { value } => vec![Command::LoadInteger { value }],
+            Self::Constant { value } => vec![Command::SetInteger { value }],
             Self::Multi { commands, last } => multi(commands, *last, command_lookup),
             Self::Arithmetic { operation } => Args::new(2, command_lookup)
                 .int(operation.left)
@@ -113,7 +114,7 @@ impl Compile for input::CommandFloat {
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
-            Self::Constant { value } => vec![Command::LoadFloat {
+            Self::Constant { value } => vec![Command::SetFloat {
                 value: value.into(),
             }],
             Self::Multi { commands, last } => multi(commands, *last, command_lookup),
@@ -139,7 +140,7 @@ impl Compile for input::CommandString {
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
-            Self::Constant { value } => vec![Command::LoadString {
+            Self::Constant { value } => vec![Command::SetString {
                 value: unwrap_string_placeholder(value),
             }],
             Self::Multi { commands, last } => multi(commands, *last, command_lookup),
@@ -167,11 +168,16 @@ impl Compile for input::CommandZone {
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
-            Self::Constant { value } => vec![Command::LoadInteger {
+            Self::Constant { value } => vec![Command::SetInteger {
                 value: value as i32,
             }],
             Self::Multi { commands, last } => multi(commands, *last, command_lookup),
-            Self::CurrentZone {} => vec![Command::CurrentZone],
+            Self::CurrentZone {} => vec![Command::FetchInteger {
+                uber_identifier: UberIdentifier {
+                    group: 5,
+                    member: 50,
+                },
+            }],
         }
     }
 }
@@ -273,9 +279,6 @@ impl Compile for input::CommandVoid {
             Self::DisableServerSync { uber_identifier } => {
                 vec![Command::DisableServerSync { uber_identifier }]
             }
-            Self::SetKwolokStatueEnabled { enabled } => Args::new(1, command_lookup)
-                .bool(enabled)
-                .call(Command::SetKwolokStatueEnabled),
             Self::SetSpoilerMapIcon {
                 location,
                 icon,

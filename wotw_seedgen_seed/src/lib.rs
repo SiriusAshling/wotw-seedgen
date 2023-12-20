@@ -64,14 +64,14 @@ pub enum Command {
     Execute { index: usize },
     /// Execute the commands at `index` in command_lookup if Boolean Memory 0 is `true`
     ExecuteIf { index: usize },
-    /// Load `value` into Boolean Memory 0
-    LoadBoolean { value: bool },
-    /// Load `value` into Integer Memory 0
-    LoadInteger { value: i32 },
-    /// Load `value` into Float Memory 0
-    LoadFloat { value: f32 },
-    /// Load `value` into String Memory 0
-    LoadString { value: String },
+    /// Set Boolean Memory 0 to `value`
+    SetBoolean { value: bool },
+    /// Set Integer Memory 0 to `value`
+    SetInteger { value: i32 },
+    /// Set Float Memory 0 to `value`
+    SetFloat { value: f32 },
+    /// Set String Memory 0 to `value`
+    SetString { value: String },
     /// Copy address `from` into address `to` in Boolean Memory
     CopyBoolean { from: usize, to: usize },
     /// Copy address `from` into address `to` in Integer Memory
@@ -125,6 +125,7 @@ pub enum Command {
     IntegerToString,
     /// Convert Float Memory 0 to a string and store it in String Memory 0
     FloatToString,
+    /// Until the next reload, on every tick where `toggle` is true, increment `timer` by the amount of seconds passed
     DefineTimer {
         toggle: UberIdentifier,
         timer: UberIdentifier,
@@ -135,14 +136,13 @@ pub enum Command {
     RandomSpiritLightNames,
     /// Store the name of world number `index` in String Memory 0
     WorldName { index: usize },
-    /// Store Ori's current zone in Integer Memory 0
-    CurrentZone,
     /// Queue String Memory 0 as item message with a default timeout
     ItemMessage,
     /// Queue String Memory 0 as item message with Float Memory 0 as timeout
     ItemMessageWithTimeout,
     /// Show String Memory 0 as priority message with Float Memory 0 as timeout
     PriorityMessage,
+    // TODO this is a controlled priority message, not a controlled unqueued message
     /// Show String Memory 0 as priority message and keep `id` as a reference to it
     ControlledMessage { id: usize },
     /// If `id` refers to an existing controlled message, set its text to String Memory 0
@@ -170,8 +170,6 @@ pub enum Command {
     EnableServerSync { uber_identifier: UberIdentifier },
     /// Stop syncing `uber_identifier` in co-op
     DisableServerSync { uber_identifier: UberIdentifier },
-    /// Set whether the Kwolok statue can be interacted with based on Boolean Memory 0
-    SetKwolokStatueEnabled,
     /// Set the map icon associated with the `location` identifier from loc_data to `icon` and the label to String Memory 0
     SetSpoilerMapIcon { location: String, icon: MapIcon },
     /// Create a spirit well icon that you can warp to on the map at (Float Memory 1, Float Memory 0)

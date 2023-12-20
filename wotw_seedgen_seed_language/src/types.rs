@@ -195,7 +195,6 @@ impl InferType for FunctionCall<'_> {
             | FunctionIdentifier::TriggerKeybind
             | FunctionIdentifier::EnableServerSync
             | FunctionIdentifier::DisableServerSync
-            | FunctionIdentifier::SetKwolokStatueEnabled
             | FunctionIdentifier::CreateWarpIcon
             | FunctionIdentifier::SetWarpIconLabel
             | FunctionIdentifier::DestroyWarpIcon

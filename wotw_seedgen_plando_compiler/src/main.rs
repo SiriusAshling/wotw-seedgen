@@ -97,10 +97,6 @@ fn main() -> Result<(), String> {
     };
 
     fs::write("out.json", serde_json::to_vec(&seed).unwrap()).unwrap();
-    fs::write("out.postcard", postcard::to_allocvec(&seed).unwrap()).unwrap();
-    fs::write("out.msgpack", rmp_serde::to_vec(&seed).unwrap()).unwrap();
-    ciborium::into_writer(&seed, File::create("out.cbor").unwrap()).unwrap();
-    fs::write("out.bson", bson::to_vec(&seed).unwrap()).unwrap();
 
     Ok(())
 }

@@ -241,8 +241,6 @@ pub enum CommandVoid {
     EnableServerSync { uber_identifier: UberIdentifier },
     /// Stop syncing `uber_identifier` in co-op
     DisableServerSync { uber_identifier: UberIdentifier },
-    /// If the Kwolok Eyestone statue is not `enabled`, the player should be unable to interact with it
-    SetKwolokStatueEnabled { enabled: CommandBoolean },
     /// Set the map icon associated with the `location` identifier from loc_data to `icon`
     SetSpoilerMapIcon {
         location: String,

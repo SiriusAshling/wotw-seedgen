@@ -60,7 +60,7 @@ fun start() {
     store_without_triggers(MarshSpawn.LupoMap, true)
     store(inkwaterMarshStateGroup.mokiTorchPlayed, false)
     store(swampStateGroup.torchHolded, false)
-    set_kwolok_statue_enabled(false)
+    store(randoConfig.allowOpeningEyestoneDoor, false)
     store(WestHollow.PurpleDoorOpen, true)
     store(hubUberStateGroup.builderProjectSpiritWell, 0)
     // TODO how to make it available, but not completed?

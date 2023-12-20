@@ -144,7 +144,6 @@ pub(crate) enum FunctionIdentifier {
     TriggerKeybind,
     EnableServerSync,
     DisableServerSync,
-    SetKwolokStatueEnabled,
     CreateWarpIcon,
     SetWarpIconLabel,
     DestroyWarpIcon,
@@ -525,11 +524,6 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
             FunctionIdentifier::DisableServerSync => {
                 Command::Void(CommandVoid::DisableServerSync {
                     uber_identifier: arg(&mut context)?,
-                })
-            }
-            FunctionIdentifier::SetKwolokStatueEnabled => {
-                Command::Void(CommandVoid::SetKwolokStatueEnabled {
-                    enabled: arg(&mut context)?,
                 })
             }
             FunctionIdentifier::CreateWarpIcon => Command::Void(CommandVoid::CreateWarpIcon {
