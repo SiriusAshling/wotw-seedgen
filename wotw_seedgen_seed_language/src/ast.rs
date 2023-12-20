@@ -317,11 +317,13 @@ pub struct Variant;
 #[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
 pub enum Command<'source> {
     Include(Spanned<Include>, CommandArgs<IncludeArgs<'source>>),
+    UseIcon(Spanned<UseIcon>, CommandArgs<UseIconArgs<'source>>),
     Callback(Spanned<Callback>, CommandArgs<CallbackArgs<'source>>),
     OnCallback(Spanned<OnCallback>, CommandArgs<OnCallbackArgs<'source>>),
     Share(Spanned<Share>, CommandArgs<ShareArgs<'source>>),
     Use(Spanned<Use>, CommandArgs<UseArgs<'source>>),
     Spawn(Spanned<Spawn>, CommandArgs<SpawnArgs<'source>>),
+    // TODO actually this might be plural since it takes multiple, should check if that works
     Flag(
         Spanned<Flag>,
         CommandArgsCollection<SeparatedNonEmpty<FlagArg<'source>, Symbol<','>>>,
@@ -376,6 +378,15 @@ pub type CommandArgs<Args> = CommandArgsCollection<Once<Args>>;
 pub struct Include;
 #[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
 pub struct IncludeArgs<'source>(pub Spanned<&'source str>);
+#[derive(Debug, Clone, PartialEq, Eq, Ast)]
+#[ast(case = "snake")]
+pub struct UseIcon;
+#[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
+pub struct UseIconArgs<'source> {
+    pub identifier: Spanned<Identifier<'source>>,
+    pub comma: Symbol<','>,
+    pub path: Spanned<&'source str>,
+}
 #[derive(Debug, Clone, PartialEq, Eq, Ast)]
 #[ast(case = "snake")]
 pub struct Callback;

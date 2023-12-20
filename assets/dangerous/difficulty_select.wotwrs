@@ -19,6 +19,7 @@ fun difficulty_menu() {
     store(bind_pointer, select_difficulty)
 }
 on bind_1 if bind_pointer == select_difficulty {
+    destroy_message("select_difficulty")
     controlled_message(
         "confirm_balanced",
         "#Balanced#\n" +
@@ -29,6 +30,7 @@ on bind_1 if bind_pointer == select_difficulty {
     store(bind_pointer, confirm_balanced)
 }
 on bind_2 if bind_pointer == select_difficulty {
+    destroy_message("select_difficulty")
     controlled_message(
         "confirm_critical",
         "@Critical@\n" +
@@ -39,16 +41,24 @@ on bind_2 if bind_pointer == select_difficulty {
     store(bind_pointer, confirm_critical)
 }
 on bind_1 if bind_pointer == confirm_balanced {
+    destroy_message("confirm_balanced")
     store(bind_pointer, 0)
     start()
 }
-on bind_2 if bind_pointer == confirm_balanced difficulty_menu()
+on bind_2 if bind_pointer == confirm_balanced {
+    destroy_message("confirm_balanced")
+    difficulty_menu()
+}
 on bind_1 if bind_pointer == confirm_critical {
+    destroy_message("confirm_critical")
     store(bind_pointer, 0)
     store(critical, true)
     start()
 }
-on bind_2 if bind_pointer == confirm_critical difficulty_menu()
+on bind_2 if bind_pointer == confirm_critical {
+    destroy_message("confirm_critical")
+    difficulty_menu()
+}
 
 // TODO convenience command to make a timer?
 !state(message_timer, Float)
@@ -80,7 +90,7 @@ on message_timer > 10.33 {
         store(gameStateGroup.gameDifficultyMode, 2)
         set_string("difficulty_change", "Difficulty changed to @Hard@\n")
     }
-    if critical == false && gameStateGroup.gameDifficultyMode == 2 {
+    if critical == false && gameStateGroup.gameDifficultyMode > 1 {
         store(gameStateGroup.gameDifficultyMode, 1)
         set_string("difficulty_change", "Difficulty changed to #Normal#\n")
     }

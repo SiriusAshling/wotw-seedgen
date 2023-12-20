@@ -16,6 +16,9 @@ impl<'source> Compile<'source> for ast::Command<'source> {
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
         match self {
             ast::Command::Include(..) => { /* all preprocessed ;) */ }
+            ast::Command::UseIcon(_, command) => {
+                command.compile(compiler);
+            }
             ast::Command::Callback(_, command) => {
                 command.compile(compiler);
             }
@@ -94,6 +97,16 @@ impl<'source> Compile<'source> for ast::Command<'source> {
                 command.compile(compiler);
             }
         }
+    }
+}
+impl<'source> Compile<'source> for ast::UseIconArgs<'source> {
+    type Output = ();
+
+    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
+        compiler.variables.insert(
+            self.identifier.data,
+            Literal::PathIcon(self.path.data.to_string()),
+        );
     }
 }
 impl<'source> Compile<'source> for ast::CallbackArgs<'source> {

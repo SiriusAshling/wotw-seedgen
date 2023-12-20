@@ -599,9 +599,7 @@ impl CompileInto for CommandString {
                 value: value.to_string().into(),
             }),
             Literal::String(value) => Ok(CommandString::Constant { value }),
-            Literal::Constant(_) => {
-                Err(Error::custom("cannot convert to String".to_string(), span))
-            }
+            _ => Err(Error::custom("cannot convert to String".to_string(), span)),
         };
         compiler.consume_result(result)
     }
@@ -753,7 +751,7 @@ impl CompileInto for Command {
             Literal::Integer(value) => Command::Integer(CommandInteger::Constant { value }),
             Literal::Float(value) => Command::Float(CommandFloat::Constant { value }),
             Literal::String(value) => Command::String(CommandString::Constant { value }),
-            Literal::Constant(_) => todo!(),
+            _ => todo!(),
         };
         Some(command)
     }
@@ -842,7 +840,6 @@ impl CompileInto for usize {
 }
 
 trait CompileIntoLiteral: Sized {
-    const LITERAL_TYPE: Type;
     fn coerce_literal(
         literal: Literal,
         span: Range<usize>,
@@ -854,20 +851,19 @@ impl<T: CompileIntoLiteral> CompileInto for T {
         action: ast::Action<'source>,
         compiler: &mut SnippetCompiler<'_, 'source, '_>,
     ) -> Option<Self> {
-        let found = action.infer_type(compiler)?;
         compiler
             .errors
-            .push(type_error(found, T::LITERAL_TYPE, action.span()));
+            .push(Error::custom("expected literal".to_string(), action.span()));
         None
     }
     fn compile_operation<'source>(
         operation: ast::Operation<'source>,
         compiler: &mut SnippetCompiler<'_, 'source, '_>,
     ) -> Option<Self> {
-        let found = operation.infer_type(compiler)?;
-        compiler
-            .errors
-            .push(type_error(found, T::LITERAL_TYPE, operation.span()));
+        compiler.errors.push(Error::custom(
+            "expected literal".to_string(),
+            operation.span(),
+        ));
         None
     }
     fn coerce_literal(
@@ -880,7 +876,6 @@ impl<T: CompileIntoLiteral> CompileInto for T {
 }
 
 impl CompileIntoLiteral for bool {
-    const LITERAL_TYPE: Type = Type::Boolean;
     fn coerce_literal(
         literal: Literal,
         span: Range<usize>,
@@ -898,7 +893,6 @@ impl CompileIntoLiteral for bool {
     }
 }
 impl CompileIntoLiteral for i32 {
-    const LITERAL_TYPE: Type = Type::Integer;
     fn coerce_literal(
         literal: Literal,
         span: Range<usize>,
@@ -916,7 +910,6 @@ impl CompileIntoLiteral for i32 {
     }
 }
 impl CompileIntoLiteral for OrderedFloat<f32> {
-    const LITERAL_TYPE: Type = Type::Float;
     fn coerce_literal(
         literal: Literal,
         span: Range<usize>,
@@ -935,7 +928,6 @@ impl CompileIntoLiteral for OrderedFloat<f32> {
     }
 }
 impl CompileIntoLiteral for Icon {
-    const LITERAL_TYPE: Type = Type::Icon;
     fn coerce_literal(
         literal: Literal,
         span: Range<usize>,
@@ -948,6 +940,7 @@ impl CompileIntoLiteral for Icon {
             Literal::Constant(Constant::LupoIcon(value)) => Icon::Lupo(value),
             Literal::Constant(Constant::GromIcon(value)) => Icon::Grom(value),
             Literal::Constant(Constant::TuleyIcon(value)) => Icon::Tuley(value),
+            Literal::PathIcon(path) => Icon::Path(path),
             other => {
                 compiler
                     .errors
@@ -961,7 +954,6 @@ impl CompileIntoLiteral for Icon {
 macro_rules! impl_constants_coerce_from {
     ($ident: ident) => {
         impl CompileIntoLiteral for wotw_seedgen_data::$ident {
-            const LITERAL_TYPE: Type = Type::$ident;
             fn coerce_literal(literal: Literal, span: Range<usize>, compiler: &mut SnippetCompiler) -> Option<Self> {
                 match literal {
                     Literal::Constant(Constant::$ident(value)) => Some(value),
@@ -996,7 +988,6 @@ impl_constants_coerce_from!(
     MapIcon,
 );
 impl CompileIntoLiteral for StringOrPlaceholder {
-    const LITERAL_TYPE: Type = Type::String;
     fn coerce_literal(
         literal: Literal,
         span: Range<usize>,
@@ -1014,7 +1005,6 @@ impl CompileIntoLiteral for StringOrPlaceholder {
     }
 }
 impl CompileIntoLiteral for UberIdentifier {
-    const LITERAL_TYPE: Type = Type::UberIdentifier;
     fn coerce_literal(
         literal: Literal,
         span: Range<usize>,

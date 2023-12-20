@@ -3,9 +3,11 @@
 // Created by SiriusAshling
 // v4.0
 
+// TODO include seed core
+
 !include("shared_states")
 !use("shared_states", critical)
-!include("wisps")
+!include("wisps") // TODO this adds in the goal mode helpers which sucks
 !include("no_cutscenes")
 !include("better_stomp")
 !include("fragment_overflow")

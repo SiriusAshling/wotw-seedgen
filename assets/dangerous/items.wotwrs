@@ -9,6 +9,36 @@
 !use("mapstone_fragments", mapstone_fragment)
 !share(mapstone_fragment)
 
+// TODO great use case for function arguments
+fun spirit_light() {
+    item_message("#" + spirit_light_string(get_integer("amount")) + "#")
+    store(player.spiritLight, fetch(player.spiritLight) + get_integer("amount"))
+}
+!share(spirit_light_40)
+fun spirit_light_40() {
+    set_integer("amount", 40)
+    spirit_light()
+}
+!share(spirit_light_60)
+fun spirit_light_60() {
+    set_integer("amount", 60)
+    spirit_light()
+}
+!share(spirit_light_80)
+fun spirit_light_80() {
+    set_integer("amount", 80)
+    spirit_light()
+}
+!share(spirit_light_120)
+fun spirit_light_120() {
+    set_integer("amount", 120)
+    spirit_light()
+}
+!share(spirit_light_500)
+fun spirit_light_500() {
+    set_integer("amount", 500)
+    spirit_light()
+}
 !share(energy_fragment)
 fun energy_fragment() {
     item_message("*Energy Fragment*")
@@ -82,7 +112,7 @@ fun gorlek_ore_pre_double_jump() {
 
 !share(trial_reward)
 fun trial_reward() {
-    spirit_light(500)
+    spirit_light_500()
     if critical == false {
         health_fragment()
         health_fragment()

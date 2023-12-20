@@ -11,6 +11,7 @@ pub enum Literal {
     Float(OrderedFloat<f32>),
     String(StringOrPlaceholder),
     Constant(Constant),
+    PathIcon(String),
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Constant {

@@ -2,6 +2,9 @@
 #name("Bonus Core")
 #description("A menu bonus headers can subscribe to for an interface to toggle something on or off")
 
+!use_icon(on_icon, "assets/icons/wheel/bonus_upgrades_on.blue.png")
+!use_icon(off_icon, "assets/icons/wheel/bonus_upgrades_off.blue.png")
+
 // TODO put documentation comments on each use of callback
 // TODO rename to event
 !callback(any_collected)
@@ -24,9 +27,9 @@ fun update_bonus_wheel() {
     if get_boolean("any_collected") == false set_wheel_item_description("root", WheelItemPosition::LeftTop, "No Bonus Upgrades collected")
     set_boolean("any_enabled", false)
     any_enabled()
-    if get_boolean("any_enabled") set_wheel_item_icon("root", WheelItemPosition::LeftTop, read_icon("assets/icons/wheel/bonus_upgrades_on.blue.png"))
+    if get_boolean("any_enabled") set_wheel_item_icon("root", WheelItemPosition::LeftTop, on_icon)
     if get_boolean("any_enabled") == false {
-        set_wheel_item_icon("root", WheelItemPosition::LeftTop, read_icon("assets/icons/wheel/bonus_upgrades_off.blue.png"))
+        set_wheel_item_icon("root", WheelItemPosition::LeftTop, off_icon)
         set_wheel_item_color("root", WheelItemPosition::LeftTop, 128, 128, 128, 196)
     }
 }

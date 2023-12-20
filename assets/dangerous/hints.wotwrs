@@ -1,3 +1,5 @@
+!use_icon(message_icon, "assets/icons/game/message.png")
+
 !include("bind_pointer")
 !use("bind_pointer", bind_pointer)
 !use("bind_pointer", shops_explanation_next)
@@ -42,7 +44,7 @@ on reload {
         1,
         "Shops Explanation",
         "",
-        read_icon("assets\icons\game\message.png"),
+        message_icon,
     )
     set_shop_item_data(
         OpherShop.SpiritSmash,
@@ -79,7 +81,7 @@ on reload {
             WheelItemPosition::Top,
             "Opher Dialogue",
             "Recall unlocked Opher Dialogues\n[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             switch_wheel("opher_dialogues"),
         )
     }
@@ -89,7 +91,7 @@ on reload {
             WheelItemPosition::Top,
             "Shops Explanation",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             shops_explanation(),
         )
     }
@@ -107,7 +109,7 @@ on reload {
             WheelItemPosition::Top,
             "Downswing Lift",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             downswing_lift(),
         )
     }
@@ -117,7 +119,7 @@ on reload {
             WheelItemPosition::TopRight,
             "Spring Plant Boost",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             spring_plant_boost(),
         )
     }
@@ -127,7 +129,7 @@ on reload {
             WheelItemPosition::RightTop,
             "Upslash Turnaround",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             upslash_turnaround(),
         )
     }
@@ -137,7 +139,7 @@ on reload {
             WheelItemPosition::Right,
             "Slash Acceleration",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             slash_acceleration(),
         )
     }
@@ -155,7 +157,7 @@ on reload {
             WheelItemPosition::Top,
             "Projectile Range",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             projectile_range(),
         )
     }
@@ -165,7 +167,7 @@ on reload {
             WheelItemPosition::TopRight,
             "Projectile Pogo",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             projectile_pogo(),
         )
     }
@@ -175,7 +177,7 @@ on reload {
             WheelItemPosition::RightTop,
             "Multi Pogo",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             multi_pogo(),
         )
     }
@@ -194,7 +196,7 @@ on reload {
             WheelItemPosition::Top,
             "Shuriken Hop",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             shuriken_hop(),
         )
     }
@@ -204,7 +206,7 @@ on reload {
             WheelItemPosition::TopRight,
             "Shuriken Acceleration",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             shuriken_acceleration(),
         )
     }
@@ -214,7 +216,7 @@ on reload {
             WheelItemPosition::RightTop,
             "Shuriken Slashes",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             shuriken_slashes(),
         )
     }
@@ -224,7 +226,7 @@ on reload {
             WheelItemPosition::Right,
             "Shuriken Clip",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             shuriken_clip(),
         )
     }
@@ -234,7 +236,7 @@ on reload {
             WheelItemPosition::RightBottom,
             "Shuriken Pogo",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             shuriken_pogo(),
         )
     }
@@ -244,7 +246,7 @@ on reload {
             WheelItemPosition::BottomRight,
             "Wall Shuriken Pogo",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             wall_shuriken_pogo(),
         )
     }
@@ -254,7 +256,7 @@ on reload {
             WheelItemPosition::Bottom,
             "Ground Shuriken Pogo",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             ground_shuriken_pogo(),
         )
     }
@@ -264,7 +266,7 @@ on reload {
             WheelItemPosition::BottomLeft,
             "Air Shuriken Pogo",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             air_shuriken_pogo(),
         )
     }
@@ -274,7 +276,7 @@ on reload {
             WheelItemPosition::LeftBottom,
             "Shuriken Leak",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             shuriken_leak(),
         )
     }
@@ -284,7 +286,7 @@ on reload {
             WheelItemPosition::Left,
             "Double Shuriken",
             "[Ability1] Recall",
-            read_icon("assets/game/message.png"),
+            message_icon,
             double_shuriken(),
         )
     }

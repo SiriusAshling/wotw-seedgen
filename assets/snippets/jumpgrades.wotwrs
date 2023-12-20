@@ -10,6 +10,8 @@
 !include("bonus_core")
 !use("bonus_core", update_bonus_wheel)
 
+!use_icon(jumpgrade_icon, "assets/icons/bonus/jumpgrade.png")
+
 !on_callback("bonus_core", any_collected, if collected > 0 set_boolean("any_collected", true))
 !on_callback("bonus_core", any_enabled, if enabled set_boolean("any_enabled", true))
 !on_callback("bonus_core", enable_all, if enabled == false enable())
@@ -25,7 +27,7 @@ fun jumpgrade() {
     "#Jumpgrade#",
     200,
     "Jump higher",
-    read_icon("assets/icons/bonus/jumpgrade.png"),
+    jumpgrade_icon,
     MapIcon::BonusItem
 )
 
@@ -56,7 +58,7 @@ on collected == 1 create_wheel_item()
 
 fun create_wheel_item() {
     set_wheel_item_name("bonus_upgrade", WheelItemPosition::TopRight, "Toggle Jumpgrades")
-    set_wheel_item_icon("bonus_upgrade", WheelItemPosition::TopRight, read_icon("assets/icons/bonus/jumpgrade.png"))
+    set_wheel_item_icon("bonus_upgrade", WheelItemPosition::TopRight, jumpgrade_icon)
     if enabled {
         set_wheel_item_disable()
     }

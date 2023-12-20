@@ -299,6 +299,7 @@ impl intermediate::Literal {
             intermediate::Literal::Float(_) => Type::Float,
             intermediate::Literal::String(_) => Type::String,
             intermediate::Literal::Constant(constant) => constant.literal_type(),
+            intermediate::Literal::PathIcon(_) => Type::Icon,
         }
     }
 }

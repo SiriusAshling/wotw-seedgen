@@ -188,9 +188,18 @@ impl Compile for input::CommandVoid {
                 .string(message)
                 .float(timeout)
                 .call(Command::PriorityMessage),
-            Self::ControlledMessage { id, message } => Args::new(1, command_lookup)
-                .string(message)
-                .call(Command::ControlledMessage(id)),
+            Self::ControlledMessage { id, message } => {
+                let mut commands = Vec::with_capacity(5);
+                commands.push(Command::ControlledMessage(id));
+                commands.extend(
+                    Args::new(1, command_lookup)
+                        .string(message)
+                        .call(Command::SetMessageText(id)),
+                );
+                commands.push(Command::SetBoolean(true));
+                commands.push(Command::ShowMessage(id));
+                commands
+            }
             Self::SetMessageText { id, message } => Args::new(1, command_lookup)
                 .string(message)
                 .call(Command::SetMessageText(id)),

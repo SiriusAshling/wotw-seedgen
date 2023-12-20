@@ -31,6 +31,7 @@ fun ability_cell() {
 on bind_4 show_shop()
 on change selected show_shop()
 fun show_shop() {
+    // TODO but what if the player hasn't found any ability cells?
     if selected == 0 shuriken_efficiency()
     if selected == 1 shuriken_upgrade()
     if selected == 2 ancestral_light()

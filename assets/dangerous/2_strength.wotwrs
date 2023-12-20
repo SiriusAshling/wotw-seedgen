@@ -3,6 +3,9 @@
 !include("shared_states")
 !use("shared_states", critical)
 !include("items")
+!use("items", spirit_light_60)
+!use("items", spirit_light_80)
+!use("items", spirit_light_120)
 !use("items", door_leaf)
 !use("items", gorlek_ore_pre_water)
 
@@ -10,11 +13,11 @@
 
 on EastHollow.RightKwolokEX gorlek_ore_pre_water()
 
-on EastHollow.GladesApproachOre spirit_light(60)
-on EastHollow.HornBeetleFightEX spirit_light(60)
-on EastHollow.SpikeLanternEX spirit_light(60)
-on EastHollow.BashEC spirit_light(60)
-on EastHollow.BashEX spirit_light(60)
+on EastHollow.GladesApproachOre spirit_light_60()
+on EastHollow.HornBeetleFightEX spirit_light_60()
+on EastHollow.SpikeLanternEX spirit_light_60()
+on EastHollow.BashEC spirit_light_60()
+on EastHollow.BashEX spirit_light_60()
 
 on EastHollow.DepthsExteriorEX {
     if critical && skills.doubleJump item_message("<purple>Withered Seed</>")
@@ -44,14 +47,14 @@ on MidnightBurrows.LeftKS {
 }
 
 on MidnightBurrows.DeflectorShard {
-    if critical spirit_light(80) // TODO I could do the yellow *and* the random names right
+    if critical spirit_light_80()
     if critical == false {
         skill(Skill::Spear)
         spear_efficiency()
     }
 }
 on MidnightBurrows.TabletQI {
-    spirit_light(80)
+    spirit_light_80()
     item_message("Curious Tablet")
 }
 
@@ -69,12 +72,12 @@ on MarshPastOpher.PoolsPathEC {
         item_message("@Reckless@")
         store(shards.reckless, true)
     }
-    if critical == false spirit_light(120)
+    if critical == false spirit_light_120()
 }
 
 on MarshSpawn.BurrowsApproachLedgeEX gorlek_ore_pre_water()
 on MarshPastOpher.CeilingEX gorlek_ore_pre_water()
 
-on MarshSpawn.FangEC spirit_light(60)
+on MarshSpawn.FangEC spirit_light_60()
 
 // TODO next: Sela Flower

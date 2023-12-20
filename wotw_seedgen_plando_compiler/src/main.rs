@@ -1,5 +1,6 @@
 use clap::Parser;
 use std::{
+    collections::HashMap,
     fmt::{self, Debug},
     fs::{self, File},
     io::{self, ErrorKind, Write},
@@ -126,6 +127,13 @@ fn main() -> Result<(), Error> {
     let mut file = File::create("seeds/out.wotwr")?;
     file.write_all(b"wotwr,0.0.1,p\n")?;
     serde_json::to_writer_pretty(file, &seed)?;
+
+    let debug_map = seed
+        .command_lookup
+        .into_iter()
+        .enumerate()
+        .collect::<HashMap<_, _>>();
+    fs::write("seeds/out.debug", serde_json::to_vec_pretty(&debug_map)?)?;
 
     Ok(())
 }

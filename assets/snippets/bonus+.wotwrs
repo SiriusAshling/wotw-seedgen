@@ -28,6 +28,20 @@
 !config(sentry_fire_rate_upgrades, "How many Sentry Fire Rate Upgrades to shuffle in", Integer, 1)
 !config(extra_shurikens, "How many Extra Shurikens to shuffle in", Integer, 1)
 
+!use_icon(rapid_regenerate_icon, "assets/icons/bonus/rapidregen.png")
+!use_icon(rapid_grenade_icon, "assets/icons/bonus/rapidgrenade.png")
+!use_icon(quickshot_upgrade_icon, "assets/icons/bonus/rapidquickshot.png")
+!use_icon(melting_blaze_icon, "assets/icons/bonus/meltingblaze.png")
+!use_icon(melting_sword_icon, "assets/icons/bonus/meltingsword.png")
+!use_icon(melting_shuriken_icon, "assets/icons/bonus/meltingshuriken.png")
+!use_icon(uncharged_bashnade_icon, "assets/icons/bonus/unchargedbashgrenade.png")
+!use_icon(extra_grenade_icon, "assets/icons/bonus/extragrenade.png")
+!use_icon(splinter_grenade_icon, "assets/icons/bonus/splintergrenade.png")
+!use_icon(unlimited_sentries_icon, "assets/icons/bonus/unlimitedsentries.png")
+!use_icon(sentry_burst_upgrade_icon, "assets/icons/bonus/sentryburstupgrade.png")
+!use_icon(sentry_fire_rate_upgrade_icon, "assets/icons/bonus/sentryattackspeed.png")
+!use_icon(extra_shuriken_icon, "assets/icons/bonus/extrashuriken.png")
+
 !add(rapid_hammer(), rapid_hammeres)
 !add(rapid_sword(), rapid_swords)
 !add(rapid_spear(), rapid_spears)
@@ -40,7 +54,7 @@ fun rapid_regenerate() { store(4|91, 4|91 + 1) }
     "#Rapid Regenerate#",
     200,
     "Heal faster with Regenerate",
-    read_icon("assets/icons/bonus/rapidregen.png"),
+    rapid_regenerate_icon,
     MapIcon::BonusItem
 )
 
@@ -51,7 +65,7 @@ fun rapid_grenade() { store(4|44, 4|44 - 0.5) }
     "#Rapid Grenade#",
     200,
     "Grenade attacks are faster",
-    read_icon("assets/icons/bonus/rapidgrenade.png"),
+    rapid_grenade_icon,
     MapIcon::BonusItem
 )
 
@@ -62,7 +76,7 @@ fun quickshot_upgrade() { store(4|10, 4|10 - 0.4) }
     "#Quickshot Upgrade#",
     200,
     "Bow attacks with Quickshot are faster",
-    read_icon("assets/icons/bonus/rapidquickshot.png"),
+    quickshot_upgrade_icon,
     MapIcon::BonusItem
 )
 
@@ -73,7 +87,7 @@ fun melting_blaze() { store(4|71, true) }
     "#Melting Blaze#",
     200,
     "Blaze melts ice and ignites lanterns",
-    read_icon("assets/icons/bonus/meltingblaze.png"),
+    melting_blaze_icon,
     MapIcon::BonusItem
 )
 
@@ -84,7 +98,7 @@ fun melting_sword() { store(4|72, true) }
     "#Melting Sword#",
     200,
     "Sword melts ice and ignites lanterns",
-    read_icon("assets/icons/bonus/meltingsword.png"),
+    melting_sword_icon,
     MapIcon::BonusItem
 )
 
@@ -95,7 +109,7 @@ fun melting_shuriken() { store(4|75, true) }
     "#Melting Shuriken#",
     200,
     "Shuriken melts ice and ignites lanterns",
-    read_icon("assets/icons/bonus/meltingshuriken.png"),
+    melting_shuriken_icon,
     MapIcon::BonusItem
 )
 
@@ -106,7 +120,7 @@ fun uncharged_bashnade() { store(4|42, true) }
     "#Uncharged Bashgrenades#",
     200,
     "Bash your Grenades without charging them first on the ground",
-    read_icon("assets/icons/bonus/unchargedbashgrenade.png"),
+    uncharged_bashnade_icon,
     MapIcon::BonusItem
 )
 
@@ -117,7 +131,7 @@ fun extra_grenade() { store(4|40, 4|40 + 1) }
     "#Extra Grenade#",
     200,
     "Throw multiple Grenades without exploding the prior one",
-    read_icon("assets/icons/bonus/extragrenade.png"),
+    extra_grenade_icon,
     MapIcon::BonusItem
 )
 
@@ -128,7 +142,7 @@ fun splinter_grenade() { store(4|45, 4|45 + 1) }
     "#Splinter Grenade#",
     200,
     "Throw an additional Grenade",
-    read_icon("assets/icons/bonus/splintergrenade.png"),
+    splinter_grenade_icon,
     MapIcon::BonusItem
 )
 
@@ -139,7 +153,7 @@ fun unlimited_sentries() { store(4|37, 100) }
     "#Unlimited Sentries#",
     200,
     "Spawn unlimited Sentries",
-    read_icon("assets/icons/bonus/unlimitedsentries.png"),
+    unlimited_sentries_icon,
     MapIcon::BonusItem
 )
 
@@ -150,7 +164,7 @@ fun sentry_burst_upgrade() { store(4|46, 4|46 + 10) }
     "#Sentry Burst Upgrade#",
     200,
     "Sentry fires more shots per burst",
-    read_icon("assets/icons/bonus/sentryburstupgrade.png"),
+    sentry_burst_upgrade_icon,
     MapIcon::BonusItem
 )
 
@@ -161,7 +175,7 @@ fun sentry_fire_rate_upgrade() { store(4|47, 4|47 + 2.5) }
     "#Sentry Fire Rate Upgrade#",
     200,
     "Sentry fires shots even faster",
-    read_icon("assets/icons/bonus/sentryattackspeed.png"),
+    sentry_fire_rate_upgrade_icon,
     MapIcon::BonusItem
 )
 
@@ -172,6 +186,6 @@ fun extra_shuriken() { store(4|38, 4|38 + 1) }
     "#Extra Shuriken#",
     200,
     "Throw multiple Shurikens",
-    read_icon("assets/icons/bonus/extrashuriken.png"),
+    extra_shuriken_icon,
     MapIcon::BonusItem
 )

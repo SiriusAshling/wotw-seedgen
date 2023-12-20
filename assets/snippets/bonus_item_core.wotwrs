@@ -2,6 +2,19 @@
 #name("Bonus Item Core")
 #description("Convenience functions for simple bonus items")
 
+!use_icon(health_regeneration_icon, "assets/icons/bonus/healthregeneration.png")
+!use_icon(energy_regeneration_icon, "assets/icons/bonus/energyregeneration.png")
+!use_icon(extra_double_jump_icon, "assets/icons/bonus/extradoublejump.png")
+!use_icon(extra_air_dash_icon, "assets/icons/bonus/extraairdash.png")
+!use_icon(blaze_efficiency_icon, "assets/icons/bonus/blazeefficiency.png")
+!use_icon(spear_efficiency_icon, "assets/icons/bonus/spearefficiency.png")
+!use_icon(shuriken_efficiency_icon, "assets/icons/bonus/shurikenefficiency.png")
+!use_icon(sentry_efficiency_icon, "assets/icons/bonus/sentryefficiency.png")
+!use_icon(bow_efficiency_icon, "assets/icons/bonus/bowefficiency.png")
+!use_icon(regenerate_efficiency_icon, "assets/icons/bonus/regenerateefficiency.png")
+!use_icon(flash_efficiency_icon, "assets/icons/bonus/flashefficiency.png")
+!use_icon(grenade_efficiency_icon, "assets/icons/bonus/grenadeefficiency.png")
+
 fun health_regeneration() {
     store(randoUpgrades.healthRegeneration, randoUpgrades.healthRegeneration + 1)
     item_message("#Health Regeneration x" + randoUpgrades.healthRegeneration + "#")
@@ -10,7 +23,7 @@ fun health_regeneration() {
     "#Health Regeneration#",
     200,
     "Passively regenerate health at a slow rate",
-    read_icon("assets/icons/bonus/healthregeneration.png"),
+    health_regeneration_icon,
     MapIcon::BonusItem
 )
 !share(health_regeneration)
@@ -23,7 +36,7 @@ fun energy_regeneration() {
     "#Energy Regeneration#",
     200,
     "Passively regenerate energy at a slow rate",
-    read_icon("assets/icons/bonus/energyregeneration.png"),
+    energy_regeneration_icon,
     MapIcon::BonusItem
 )
 !share(energy_regeneration)
@@ -36,7 +49,7 @@ fun extra_double_jump() {
     "#Extra Double Jump#",
     200,
     "If you have *Double Jump*, get an additional jump in the air",
-    read_icon("assets/icons/bonus/extradoublejump.png"),
+    extra_double_jump_icon,
     MapIcon::BonusItem
 )
 !share(extra_double_jump)
@@ -49,7 +62,7 @@ fun extra_air_dash() {
     "#Extra Air Dash#",
     200,
     "If you have *Dash*, get an additional dash in the air",
-    read_icon("assets/icons/bonus/extraairdash.png"),
+    extra_air_dash_icon,
     MapIcon::BonusItem
 )
 !share(extra_air_dash)
@@ -62,7 +75,7 @@ fun blaze_efficiency() {
     "#Blaze Efficiency#",
     200,
     "Halves the cost of using *Blaze*",
-    read_icon("assets/icons/bonus/blazeefficiency.png"),
+    blaze_efficiency_icon,
     MapIcon::BonusItem
 )
 !share(blaze_efficiency)
@@ -75,7 +88,7 @@ fun spear_efficiency() {
     "#Spear Efficiency#",
     200,
     "Halves the cost of using *Spear*",
-    read_icon("assets/icons/bonus/spearefficiency.png"),
+    spear_efficiency_icon,
     MapIcon::BonusItem
 )
 !share(spear_efficiency)
@@ -88,7 +101,7 @@ fun shuriken_efficiency() {
     "#Shuriken Efficiency#",
     200,
     "Halves the cost of using *Shuriken*",
-    read_icon("assets/icons/bonus/shurikenefficiency.png"),
+    shuriken_efficiency_icon,
     MapIcon::BonusItem
 )
 !share(shuriken_efficiency)
@@ -101,7 +114,7 @@ fun sentry_efficiency() {
     "#Sentry Efficiency#",
     200,
     "Halves the cost of using *Sentry*",
-    read_icon("assets/icons/bonus/sentryefficiency.png"),
+    sentry_efficiency_icon,
     MapIcon::BonusItem
 )
 !share(sentry_efficiency)
@@ -114,7 +127,7 @@ fun bow_efficiency() {
     "#Bow Efficiency#",
     200,
     "Halves the cost of using *Bow*",
-    read_icon("assets/icons/bonus/bowefficiency.png"),
+    bow_efficiency_icon,
     MapIcon::BonusItem
 )
 !share(bow_efficiency)
@@ -127,7 +140,7 @@ fun regenerate_efficiency() {
     "#Regenerate Efficiency#",
     200,
     "Halves the cost of using *Regenerate*",
-    read_icon("assets/icons/bonus/regenerateefficiency.png"),
+    regenerate_efficiency_icon,
     MapIcon::BonusItem
 )
 !share(regenerate_efficiency)
@@ -140,7 +153,7 @@ fun flash_efficiency() {
     "#Flash Efficiency#",
     200,
     "Halves the cost of using *Flash*",
-    read_icon("assets/icons/bonus/flashefficiency.png"),
+    flash_efficiency_icon,
     MapIcon::BonusItem
 )
 !share(flash_efficiency)
@@ -153,7 +166,7 @@ fun grenade_efficiency() {
     "#Grenade Efficiency#",
     200,
     "Halves the cost of using *Grenade*",
-    read_icon("assets/icons/bonus/grenadeefficiency.png"),
+    grenade_efficiency_icon,
     MapIcon::BonusItem
 )
 !share(grenade_efficiency)

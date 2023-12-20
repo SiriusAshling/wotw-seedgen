@@ -171,6 +171,14 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
         if let Some(&index) = compiler.function_indices.get(self.identifier.data.0) {
+            if let Ok(parameters) = &self.parameters.content {
+                if !parameters.is_empty() {
+                    compiler.errors.push(Error::custom(
+                    "parameters for custom functions aren't (yet) supported".to_string(),
+                    parameters.first().unwrap().span().start..parameters.last.as_ref().unwrap().span().end,
+                ).with_help("Use set commands for the values you want to pass and get them again in the function".to_string()))
+                }
+            }
             return Some(Command::Void(CommandVoid::Lookup { index }));
         }
         let identifier =
@@ -337,24 +345,40 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
             }
             FunctionIdentifier::CurrentZone => Command::Zone(CommandZone::CurrentZone {}),
             FunctionIdentifier::SpiritLight => {
-                let amount = arg(&mut context)?;
+                let amount = arg::<CommandInteger>(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
                         CommandVoid::ItemMessage {
-                            message: spirit_light_string(amount, &mut context.compiler.rng, false),
+                            message: spirit_light_string(
+                                amount.clone(),
+                                &mut context.compiler.rng,
+                                false,
+                            ),
                         },
                         add(UberIdentifier::SPIRIT_LIGHT, amount),
                     ],
                 })
             }
             FunctionIdentifier::RemoveSpiritLight => {
-                let amount = arg(&mut context)?;
+                let amount = arg::<CommandInteger>(&mut context)?;
+                let negative = match amount.clone() {
+                    CommandInteger::Constant { value } => {
+                        CommandInteger::Constant { value: -value }
+                    }
+                    other => CommandInteger::Arithmetic {
+                        operation: Box::new(Operation {
+                            left: other,
+                            operator: ArithmeticOperator::Multiply,
+                            right: CommandInteger::Constant { value: -1 },
+                        }),
+                    },
+                };
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
                         CommandVoid::ItemMessage {
                             message: spirit_light_string(amount, &mut context.compiler.rng, true),
                         },
-                        add(UberIdentifier::SPIRIT_LIGHT, -amount),
+                        add(UberIdentifier::SPIRIT_LIGHT, negative),
                     ],
                 })
             }
@@ -365,7 +389,10 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                         CommandVoid::ItemMessage {
                             message: resource_string(resource, false),
                         },
-                        add(resource.uber_identifier(), 1),
+                        add(
+                            resource.uber_identifier(),
+                            CommandInteger::Constant { value: 1 },
+                        ),
                     ],
                 })
             }
@@ -376,7 +403,10 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                         CommandVoid::ItemMessage {
                             message: resource_string(resource, true),
                         },
-                        add(resource.uber_identifier(), -1),
+                        add(
+                            resource.uber_identifier(),
+                            CommandInteger::Constant { value: -1 },
+                        ),
                     ],
                 })
             }
@@ -716,7 +746,7 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
     }
 }
 
-fn spirit_light_string(amount: i32, rng: &mut Pcg64Mcg, remove: bool) -> CommandString {
+fn spirit_light_string(amount: CommandInteger, rng: &mut Pcg64Mcg, remove: bool) -> CommandString {
     CommandString::Multi {
         commands: vec![
             CommandVoid::If {
@@ -744,21 +774,44 @@ fn spirit_light_string(amount: i32, rng: &mut Pcg64Mcg, remove: bool) -> Command
                 }),
             },
         ],
-        last: Box::new(CommandString::Concatenate {
-            left: Box::new(CommandString::Constant {
-                value: if remove {
-                    format!("@ Remove {amount} ")
-                } else {
-                    format!("#{amount} ")
-                }
-                .into(),
-            }),
-            right: Box::new(CommandString::Concatenate {
-                left: Box::new(CommandString::GetString { id: 2 }),
-                right: Box::new(CommandString::Constant {
-                    value: if remove { "#" } else { "@" }.into(),
+        last: Box::new(if remove {
+            CommandString::Concatenate {
+                left: Box::new(match amount {
+                    CommandInteger::Constant { value } => CommandString::Constant {
+                        value: format!("@ Remove {value} ").into(),
+                    },
+                    other => CommandString::Concatenate {
+                        left: Box::new(CommandString::Constant {
+                            value: "@ Remove ".into(),
+                        }),
+                        right: Box::new(CommandString::Concatenate {
+                            left: Box::new(CommandString::FromInteger {
+                                integer: Box::new(other),
+                            }),
+                            right: Box::new(CommandString::Constant { value: " ".into() }),
+                        }),
+                    },
                 }),
-            }),
+                right: Box::new(CommandString::Concatenate {
+                    left: Box::new(CommandString::GetString { id: 2 }),
+                    right: Box::new(CommandString::Constant { value: "@".into() }),
+                }),
+            }
+        } else {
+            CommandString::Concatenate {
+                left: Box::new(match amount {
+                    CommandInteger::Constant { value } => CommandString::Constant {
+                        value: format!("{value} ").into(),
+                    },
+                    other => CommandString::Concatenate {
+                        left: Box::new(CommandString::FromInteger {
+                            integer: Box::new(other),
+                        }),
+                        right: Box::new(CommandString::Constant { value: " ".into() }),
+                    },
+                }),
+                right: Box::new(CommandString::GetString { id: 2 }),
+            }
         }),
     }
 }
@@ -858,14 +911,14 @@ fn weapon_upgrade_string(weapon_upgrade: WeaponUpgrade, remove: bool) -> Command
     CommandString::Constant { value }
 }
 
-fn add(uber_identifier: UberIdentifier, amount: i32) -> CommandVoid {
+fn add(uber_identifier: UberIdentifier, amount: CommandInteger) -> CommandVoid {
     CommandVoid::StoreInteger {
         uber_identifier,
         value: CommandInteger::Arithmetic {
             operation: Box::new(Operation {
                 left: CommandInteger::FetchInteger { uber_identifier },
                 operator: ArithmeticOperator::Add,
-                right: CommandInteger::Constant { value: amount },
+                right: amount,
             }),
         },
         check_triggers: true,
@@ -979,7 +1032,7 @@ const SPIRIT_LIGHT_NAMES: &[&str] = &[
     "Diamonds",
     "Fun",
     "Minerals",
-    "Vespine Gas",
+    "Vespene Gas",
     "Sheep",
     "Brick",
     "Wheat",

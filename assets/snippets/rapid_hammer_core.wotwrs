@@ -8,6 +8,8 @@
 !include("bonus_core")
 !use("bonus_core", update_bonus_wheel)
 
+!use_icon(rapid_hammer_icon, "assets/icons/bonus/rapidsmash.png")
+
 !on_callback("bonus_core", any_collected, if collected > 0 set_boolean("any_collected", true))
 !on_callback("bonus_core", any_enabled, if enabled set_boolean("any_enabled", true))
 !on_callback("bonus_core", enable_all, if enabled == false enable())
@@ -23,7 +25,7 @@ fun rapid_hammer() {
     "#Rapid Hammer#",
     200,
     "Hammer attacks are faster",
-    read_icon("assets/icons/bonus/rapidsmash.png"), // TODO go through remaining uses of old names
+    rapid_hammer_icon,
     MapIcon::BonusItem
 )
 
@@ -50,7 +52,7 @@ on collected == 1 create_wheel_item()
 
 fun create_wheel_item() {
     set_wheel_item_name("bonus_upgrade", WheelItemPosition::RightTop, "Toggle Rapid Hammer")
-    set_wheel_item_icon("bonus_upgrade", WheelItemPosition::RightTop, read_icon("assets/icons/bonus/rapidsmash.png"))
+    set_wheel_item_icon("bonus_upgrade", WheelItemPosition::RightTop, rapid_hammer_icon)
     if enabled {
         set_wheel_item_disable()
     }

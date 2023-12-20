@@ -10,6 +10,8 @@
 !include("bonus_core")
 !use("bonus_core", update_bonus_wheel)
 
+!use_icon(skill_velocity_icon, "assets/icons/bonus/skillvelocity.png")
+
 !on_callback("bonus_core", any_collected, if collected > 0 set_boolean("any_collected", true))
 !on_callback("bonus_core", any_enabled, if enabled set_boolean("any_enabled", true))
 !on_callback("bonus_core", enable_all, if enabled == false enable())
@@ -25,7 +27,7 @@ fun skill_velocity() {
     "#Skill Velocity#",
     200,
     "Move faster when using abilities such as Dash and Bash",
-    read_icon("assets/icons/bonus/skillvelocity.png"),
+    skill_velocity_icon,
     MapIcon::BonusItem
 )
 
@@ -62,7 +64,7 @@ on collected == 1 create_wheel_item()
 
 fun create_wheel_item() {
     set_wheel_item_name("bonus_upgrade", WheelItemPosition::Top, "Toggle Skill Velocity")
-    set_wheel_item_icon("bonus_upgrade", WheelItemPosition::Top, read_icon("assets/icons/bonus/skillvelocity.png"))
+    set_wheel_item_icon("bonus_upgrade", WheelItemPosition::Top, skill_velocity_icon)
     if enabled {
         set_wheel_item_disable()
     }

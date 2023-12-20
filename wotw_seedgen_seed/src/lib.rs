@@ -162,7 +162,7 @@ pub enum Command {
     ItemMessageWithTimeout,
     /// Show String Memory 0 as priority message with Float Memory 0 as timeout
     PriorityMessage,
-    /// Show String Memory 0 as priority message and keep `id` as a reference to it
+    /// Create a controlled message with `id`
     ControlledMessage(/*id*/ usize),
     /// If `id` refers to an existing controlled message, set its text to String Memory 0
     SetMessageText(/*id*/ usize),
@@ -176,12 +176,15 @@ pub enum Command {
     SetMessageAlignment(/*id*/ usize, /*alignment*/ Alignment),
     /// If `id` refers to an existing controlled message, set its `screen_position`
     SetMessageScreenPosition(/*id*/ usize, /*screen_position*/ ScreenPosition),
+    /// If `id` refers to an existing controlled message, show it and play a sound if Boolean Memory 0 is `true`
+    ShowMessage(/*id*/ usize),
     /// If `id` refers to an existing controlled message, DESTROY, OBLITERATE and ANNIHILATE it
     DestroyMessage(/*id*/ usize),
     /// Perform a "hard" save like an autosave
     Save,
     /// Perform a "soft" checkpoint like a boss fight checkpoint
     Checkpoint,
+    // TODO preload area command
     /// Warp the player to (Float Memory 1, Float Memory 0)
     Warp,
     /// Equip `equipment` into `slot`
