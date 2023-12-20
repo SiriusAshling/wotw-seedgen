@@ -1,7 +1,9 @@
+use std::ops::Range;
+
 use super::{Compile, SnippetCompiler};
 use crate::{
     ast::{self, TriggerBinding},
-    output::{intermediate::Literal, Action, ActionCondition, Event, Trigger},
+    output::{intermediate::Literal, Command, CommandVoid, Event, Trigger},
 };
 use wotw_seedgen_parse::{Error, Span};
 
@@ -29,14 +31,14 @@ impl<'source> Compile<'source> for ast::Event<'source> {
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
         let trigger = self.trigger.compile(compiler);
-        let action = self.action.compile(compiler);
+        let command = self.action.compile(compiler);
 
-        if let (Some(trigger), Some(Some(action))) = (trigger, action) {
+        if let (Some(trigger), Some(Some(command))) = (trigger, command) {
             compiler
                 .global
                 .output
                 .events
-                .push(Event { trigger, action });
+                .push(Event { trigger, command });
         }
     }
 }
@@ -91,54 +93,71 @@ impl<'source> Compile<'source> for ast::FunctionDefinition<'source> {
     type Output = ();
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
-        let actions = self
+        let commands = self
             .actions
             .content
             .into_iter()
             .flatten()
-            .filter_map(|action| action.compile(compiler))
-            .collect::<Vec<_>>();
+            .filter_map(|action| {
+                let span = action.span();
+                expect_void(action.compile(compiler)?, compiler, span)
+            })
+            .collect();
 
         let index = compiler
             .function_indices
             .get(self.identifier.data.0)
             .unwrap();
-        compiler.global.output.action_lookup[*index] = Action::Multi(actions);
+        compiler.global.output.command_lookup[*index] =
+            Command::Void(CommandVoid::Multi { commands });
     }
 }
 
 impl<'source> Compile<'source> for ast::Action<'source> {
-    type Output = Option<Action>;
+    type Output = Option<Command>;
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
         match self {
             ast::Action::Function(function_call) => function_call.compile(compiler),
-            ast::Action::Condition(_, condition) => condition
-                .compile(compiler)
-                .map(Box::new)
-                .map(Action::Condition),
+            ast::Action::Condition(_, condition) => condition.compile(compiler),
             ast::Action::Multi(actions) => {
-                let actions = actions
+                let commands = actions
                     .content
                     .into_iter()
                     .flatten()
-                    .filter_map(|action| action.compile(compiler))
+                    .filter_map(|action| {
+                        let span = action.span();
+                        expect_void(action.compile(compiler)?, compiler, span)
+                    })
                     .collect();
-                Some(Action::Multi(actions))
+                Some(Command::Void(CommandVoid::Multi { commands }))
             }
         }
     }
 }
 impl<'source> Compile<'source> for ast::ActionCondition<'source> {
-    type Output = Option<ActionCondition>;
+    type Output = Option<Command>;
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
         let condition = self.condition.compile_into(compiler);
-        let action = self.action.compile(compiler);
+        let span = self.action.span();
+        let command = self.action.compile(compiler);
 
-        Some(ActionCondition {
+        Some(Command::Void(CommandVoid::If {
             condition: condition?,
-            action: action??,
-        })
+            command: Box::new(expect_void(command??, compiler, span)?),
+        }))
     }
+}
+
+pub(super) fn expect_void(
+    command: Command,
+    compiler: &mut SnippetCompiler,
+    span: Range<usize>,
+) -> Option<CommandVoid> {
+    let result = match command {
+        Command::Void(command) => Ok(command),
+        _ => Err(Error::custom("unused return value".to_string(), span)),
+    };
+    compiler.consume_result(result)
 }

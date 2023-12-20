@@ -1,9 +1,9 @@
-use super::{Compile, SharedValue, SnippetCompiler};
+use super::{content::expect_void, Compile, SharedValue, SnippetCompiler};
 use crate::{
     ast::{self, UberStateType},
-    output::{intermediate::Literal, Action, ItemMetadata, StringOrPlaceholder},
+    output::{intermediate::Literal, Command, CommandVoid, ItemMetadata, StringOrPlaceholder},
 };
-use decorum::R32;
+use ordered_float::OrderedFloat;
 use rand::Rng;
 use std::{iter, mem, ops::Range};
 use wotw_seedgen_assets::UberStateAlias;
@@ -100,12 +100,12 @@ impl<'source> Compile<'source> for ast::CallbackArgs<'source> {
     type Output = ();
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
-        let index = compiler.global.output.action_lookup.len();
+        let index = compiler.global.output.command_lookup.len();
         compiler
             .global
             .output
-            .action_lookup
-            .push(Action::Multi(vec![]));
+            .command_lookup
+            .push(Command::Void(CommandVoid::Multi { commands: vec![] }));
         compiler
             .global
             .callbacks
@@ -144,14 +144,19 @@ impl<'source> Compile<'source> for ast::OnCallbackArgs<'source> {
             ));
         }
 
-        let action = self.action.compile(compiler);
+        let span = self.action.span();
+        let action = self
+            .action
+            .compile(compiler)
+            .and_then(|command| expect_void(command, compiler, span));
 
         if let (Some(callback), Some(action)) = (callback, action) {
-            if let Action::Multi(lookup_entry) = &mut compiler.global.output.action_lookup[callback]
+            if let Command::Void(CommandVoid::Multi { commands }) =
+                &mut compiler.global.output.command_lookup[callback]
             {
                 match action {
-                    Action::Multi(multi) => lookup_entry.extend(multi),
-                    single => lookup_entry.push(single),
+                    CommandVoid::Multi { commands: extend } => commands.extend(extend),
+                    single => commands.push(single),
                 }
             }
         }
@@ -514,7 +519,7 @@ impl<'source> Compile<'source> for ast::ItemDataIconArgs<'source> {
 }
 fn insert_item_data<T, F: FnOnce(&mut ItemMetadata) -> &mut Option<T>>(
     compiler: &mut SnippetCompiler,
-    item: Action,
+    item: Command,
     span: Range<usize>,
     value: T,
     field: &str,
@@ -641,8 +646,8 @@ impl<'source> Compile<'source> for ast::RandomFloatArgs<'source> {
     type Output = ();
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
-        let min = self.0.min.data.evaluate::<R32>(compiler);
-        let max = self.0.max.data.evaluate::<R32>(compiler);
+        let min = self.0.min.data.evaluate::<OrderedFloat<f32>>(compiler);
+        let max = self.0.max.data.evaluate::<OrderedFloat<f32>>(compiler);
         if let (Some(min), Some(max)) = (min, max) {
             let value: f32 = compiler.rng.gen_range(min.into()..=max.into());
             compiler

@@ -21,7 +21,7 @@
 //!
 //! # Features
 //!
-//! - `decorum`: implements [`Ast`] for the decorum types [`R32`] and [`R64`]
+//! - `ordered_float`: implements [`Ast`] for the ordered_float types [`OrderedFloat<f32>`] and [`OrderedFloat<f64>`]
 //! - `ariadne`: adds [`Error::write_pretty`] to write error messages with ariadne without further configuration
 
 #![warn(clippy::todo)]

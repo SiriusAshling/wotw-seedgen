@@ -6,7 +6,7 @@ use crate::{
         Command, CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandZone,
     },
 };
-use decorum::R32;
+use ordered_float::OrderedFloat;
 use wotw_seedgen_data::Zone;
 use wotw_seedgen_parse::{Error, Span};
 
@@ -53,7 +53,7 @@ impl EvaluateFrom for i32 {
         }
     }
 }
-impl EvaluateFrom for R32 {
+impl EvaluateFrom for OrderedFloat<f32> {
     type From = CommandFloat;
 
     fn evaluate(from: Self::From) -> Option<Self> {

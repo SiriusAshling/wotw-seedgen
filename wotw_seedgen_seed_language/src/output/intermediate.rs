@@ -1,5 +1,5 @@
 use super::StringOrPlaceholder;
-use decorum::R32;
+use ordered_float::OrderedFloat;
 use wotw_seedgen_assets::UberStateAlias;
 
 // TODO is this still used for anything other than variables?
@@ -8,7 +8,7 @@ pub enum Literal {
     UberIdentifier(UberStateAlias),
     Boolean(bool),
     Integer(i32),
-    Float(R32),
+    Float(OrderedFloat<f32>),
     String(StringOrPlaceholder),
     Constant(Constant),
 }

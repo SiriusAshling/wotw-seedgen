@@ -1,5 +1,5 @@
 use crate::token::{Token, Tokenizer};
-use decorum::R32;
+use ordered_float::OrderedFloat;
 use std::ops::Range;
 use wotw_seedgen_parse::{
     parse_ast, Ast, ErrorKind, Identifier, NoTrailingInput, Parser, Recover, Recoverable, Result,
@@ -116,9 +116,9 @@ pub struct AnchorPosition {
 pub struct At;
 #[derive(Debug, Clone, PartialEq, Ast, Span)]
 pub struct Position {
-    pub x: Spanned<R32>,
+    pub x: Spanned<OrderedFloat<f32>>,
     pub comma: Symbol<','>,
-    pub y: Spanned<R32>,
+    pub y: Spanned<OrderedFloat<f32>>,
 }
 pub struct RecoverPosition;
 impl<'source> Recover<'source, Tokenizer> for RecoverPosition {

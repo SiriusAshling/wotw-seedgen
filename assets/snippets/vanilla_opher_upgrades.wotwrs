@@ -6,7 +6,7 @@
 
 // TODO rename the aliases to fit
 on OpherShop.ExplodingSpike weapon_upgrade(WeaponUpgrade::ExplodingSpear)
-on OpherShop.ShockSmash weapon_upgrade(WeaponUpgrade::ShockHammer)
+on OpherShop.ShockSmash weapon_upgrade(WeaponUpgrade::HammerShockwave)
 on OpherShop.StaticStar weapon_upgrade(WeaponUpgrade::StaticShuriken)
 on OpherShop.ChargeBlaze weapon_upgrade(WeaponUpgrade::ChargeBlaze)
 on OpherShop.RapidSentry weapon_upgrade(WeaponUpgrade::RapidSentry)

@@ -1,13 +1,10 @@
 use super::{Compile, SnippetCompiler};
 use crate::{
     ast,
-    output::{
-        intermediate::{Constant, Literal},
-        StringOrPlaceholder,
-    },
+    output::intermediate::{Constant, Literal},
 };
-use decorum::cmp::FloatOrd;
 use itertools::Itertools;
+use ordered_float::OrderedFloat;
 use wotw_seedgen_assets::UberStateAlias;
 use wotw_seedgen_data::UberIdentifier;
 use wotw_seedgen_parse::{Error, Span};
@@ -23,9 +20,7 @@ impl<'source> Compile<'source> for ast::Literal<'source> {
             ast::Literal::Boolean(bool) => Some(Literal::Boolean(bool)),
             ast::Literal::Integer(int) => Some(Literal::Integer(int)),
             ast::Literal::Float(float) => Some(Literal::Float(float)),
-            ast::Literal::String(string) => Some(Literal::String(StringOrPlaceholder::Value(
-                string.to_string(),
-            ))),
+            ast::Literal::String(string) => Some(Literal::String(string.into())),
             ast::Literal::Constant(constant) => constant.compile(compiler).map(Literal::Constant),
         }
     }
@@ -219,7 +214,7 @@ where
         if distances.len() == 1 {
             format!("Did you mean \"{}\"?", distances[0].1.as_ref())
         } else {
-            distances.sort_unstable_by(|a, b| b.0.float_cmp(&a.0));
+            distances.sort_unstable_by(|a, b| OrderedFloat(b.0).cmp(&OrderedFloat(a.0)));
             format!(
                 "Did you mean one of these? {}",
                 distances

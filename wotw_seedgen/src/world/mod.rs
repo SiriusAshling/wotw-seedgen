@@ -20,7 +20,6 @@ mod tests;
 use crate::inventory::Inventory;
 
 use self::reached::ReachContext;
-use decorum::R32;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::smallvec;
 use wotw_seedgen_data::{Resource, Shard, Skill, Teleporter, UberIdentifier, WeaponUpgrade};
@@ -139,7 +138,7 @@ impl<'graph, 'settings> World<'graph, 'settings> {
     pub fn set_float(
         &mut self,
         uber_identifier: UberIdentifier,
-        value: R32,
+        value: OrderedFloat<f32>,
         output: &CompilerOutput,
     ) {
         self.simulate(
@@ -175,7 +174,7 @@ impl<'graph, 'settings> World<'graph, 'settings> {
     pub fn modify_float(
         &mut self,
         uber_identifier: UberIdentifier,
-        add: R32,
+        add: OrderedFloat<f32>,
         output: &CompilerOutput,
     ) {
         self.simulate(
@@ -272,7 +271,7 @@ impl<'graph, 'settings> World<'graph, 'settings> {
 struct Variables {
     booleans: FxHashMap<usize, bool>,
     integers: FxHashMap<usize, i32>,
-    floats: FxHashMap<usize, R32>,
+    floats: FxHashMap<usize, OrderedFloat<f32>>,
     strings: FxHashMap<usize, String>,
 }
 impl Variables {
@@ -282,7 +281,7 @@ impl Variables {
     fn set_integer(&mut self, id: usize, value: i32) {
         self.integers.insert(id, value);
     }
-    fn set_float(&mut self, id: usize, value: R32) {
+    fn set_float(&mut self, id: usize, value: OrderedFloat<f32>) {
         self.floats.insert(id, value);
     }
     fn set_string(&mut self, id: usize, value: String) {
@@ -294,7 +293,7 @@ impl Variables {
     fn get_integer(&self, id: &usize) -> i32 {
         self.integers.get(id).copied().unwrap_or_default()
     }
-    fn get_float(&self, id: &usize) -> R32 {
+    fn get_float(&self, id: &usize) -> OrderedFloat<f32> {
         self.floats.get(id).copied().unwrap_or_default()
     }
     fn get_string(&self, id: &usize) -> String {

@@ -3,13 +3,13 @@ use crate::{
     ast::{self, Operator, UberStateType},
     output::{
         intermediate::{Constant, Literal},
-        Action, ArithmeticOperator, Command, CommandBoolean, CommandFloat, CommandInteger,
-        CommandString, CommandZone, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
+        ArithmeticOperator, Command, CommandBoolean, CommandFloat, CommandInteger, CommandString,
+        CommandZone, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
         StringOrPlaceholder,
     },
     types::{common_type, InferType, Type},
 };
-use decorum::R32;
+use ordered_float::OrderedFloat;
 use std::ops::Range;
 use wotw_seedgen_assets::UberStateAlias;
 use wotw_seedgen_data::UberIdentifier;
@@ -135,7 +135,7 @@ impl CompileInto for CommandBoolean {
             ast::Action::Function(function) => {
                 let span = function.span();
                 match function.compile(compiler)? {
-                    Action::Command(Command::Boolean(function)) => Ok(function),
+                    Command::Boolean(function) => Ok(function),
                     _ => Err(return_type_error(Type::Boolean, span)),
                 }
             }
@@ -409,7 +409,7 @@ impl CompileInto for CommandInteger {
             ast::Action::Function(function) => {
                 let span = function.span();
                 match function.compile(compiler)? {
-                    Action::Command(Command::Integer(function)) => Ok(function),
+                    Command::Integer(function) => Ok(function),
                     _ => Err(return_type_error(Type::Integer, span)),
                 }
             }
@@ -483,7 +483,7 @@ impl CompileInto for CommandFloat {
                     let inferred = compiler.uber_state_type(uber_identifier, &span)?;
                     match inferred {
                         UberStateType::Float => Ok(CommandFloat::FetchFloat { uber_identifier }),
-                        UberStateType::Integer => Ok(CommandFloat::ToFloat {
+                        UberStateType::Integer => Ok(CommandFloat::FromInteger {
                             integer: Box::new(CommandInteger::FetchInteger { uber_identifier }),
                         }),
                         _ => Err(uber_state_type_error(inferred, Type::Float, span)),
@@ -508,7 +508,7 @@ impl CompileInto for CommandFloat {
             ast::Action::Function(function) => {
                 let span = function.span();
                 match function.compile(compiler)? {
-                    Action::Command(Command::Float(function)) => Ok(function),
+                    Command::Float(function) => Ok(function),
                     _ => Err(return_type_error(Type::Float, span)),
                 }
             }
@@ -569,13 +569,41 @@ impl CompileInto for CommandString {
         span: Range<usize>,
         compiler: &mut SnippetCompiler,
     ) -> Option<Self> {
-        if let Literal::String(value) = literal {
-            Some(CommandString::Constant { value })
-        } else {
-            Some(CommandString::ToString {
-                command: Box::new(Command::coerce_literal(literal, span, compiler)?),
-            })
-        }
+        let result = match literal {
+            Literal::UberIdentifier(UberStateAlias {
+                uber_identifier,
+                value,
+            }) => match value {
+                None => match compiler.uber_state_type(uber_identifier, &span)? {
+                    UberStateType::Boolean => Ok(CommandString::FromBoolean {
+                        boolean: Box::new(CommandBoolean::FetchBoolean { uber_identifier }),
+                    }),
+                    UberStateType::Integer => Ok(CommandString::FromInteger {
+                        integer: Box::new(CommandInteger::FetchInteger { uber_identifier }),
+                    }),
+                    UberStateType::Float => Ok(CommandString::FromFloat {
+                        float: Box::new(CommandFloat::FetchFloat { uber_identifier }),
+                    }),
+                },
+                Some(value) => Ok(CommandString::FromBoolean {
+                    boolean: Box::new(create_quest_command(uber_identifier, value)),
+                }),
+            },
+            Literal::Boolean(value) => Ok(CommandString::Constant {
+                value: value.to_string().into(),
+            }),
+            Literal::Integer(value) => Ok(CommandString::Constant {
+                value: value.to_string().into(),
+            }),
+            Literal::Float(value) => Ok(CommandString::Constant {
+                value: value.to_string().into(),
+            }),
+            Literal::String(value) => Ok(CommandString::Constant { value }),
+            Literal::Constant(_) => {
+                Err(Error::custom("cannot convert to String".to_string(), span))
+            }
+        };
+        compiler.consume_result(result)
     }
     fn compile_action<'source>(
         action: ast::Action<'source>,
@@ -585,12 +613,16 @@ impl CompileInto for CommandString {
             ast::Action::Function(function) => {
                 let span = function.span();
                 match function.compile(compiler)? {
-                    Action::Command(Command::String(function)) => Ok(function),
-                    Action::Command(
-                        command @ (Command::Boolean(_) | Command::Integer(_) | Command::Float(_)),
-                    ) => Ok(CommandString::ToString {
-                        command: Box::new(command),
+                    Command::Boolean(command) => Ok(CommandString::FromBoolean {
+                        boolean: Box::new(command),
                     }),
+                    Command::Integer(command) => Ok(CommandString::FromInteger {
+                        integer: Box::new(command),
+                    }),
+                    Command::Float(command) => Ok(CommandString::FromFloat {
+                        float: Box::new(command),
+                    }),
+                    Command::String(command) => Ok(command),
                     _ => Err(return_type_error(Type::String, span)),
                 }
             }
@@ -615,7 +647,7 @@ impl CompileInto for CommandString {
                             value: StringOrPlaceholder::Value(right),
                         },
                     ) => CommandString::Constant {
-                        value: StringOrPlaceholder::Value(left + &right),
+                        value: (left + &right).into(),
                     },
                     (left, right) => CommandString::Concatenate {
                         left: Box::new(left),
@@ -654,7 +686,7 @@ impl CompileInto for CommandZone {
             ast::Action::Function(function) => {
                 let span = function.span();
                 match function.compile(compiler)? {
-                    Action::Command(Command::Zone(function)) => Ok(function),
+                    Command::Zone(function) => Ok(function),
                     _ => Err(return_type_error(Type::Zone, span)),
                 }
             }
@@ -714,16 +746,7 @@ impl CompileInto for Command {
         action: ast::Action<'source>,
         compiler: &mut SnippetCompiler<'_, 'source, '_>,
     ) -> Option<Self> {
-        let span = action.span();
-        match action.compile(compiler)? {
-            Action::Command(command) => Some(command),
-            _ => {
-                compiler
-                    .errors
-                    .push(Error::custom("Expected function".to_string(), span));
-                None
-            }
-        }
+        action.compile(compiler)
     }
     fn compile_operation<'source>(
         operation: ast::Operation<'source>,
@@ -786,9 +809,9 @@ impl CompileInto for usize {
         action: ast::Action<'source>,
         compiler: &mut SnippetCompiler<'_, 'source, '_>,
     ) -> Option<Self> {
-        let action = action.compile(compiler)?;
-        let index = compiler.global.output.action_lookup.len();
-        compiler.global.output.action_lookup.push(action);
+        let command = action.compile(compiler)?;
+        let index = compiler.global.output.command_lookup.len();
+        compiler.global.output.command_lookup.push(command);
         Some(index)
     }
     fn compile_operation<'source>(
@@ -877,7 +900,7 @@ impl CompileIntoLiteral for i32 {
         }
     }
 }
-impl CompileIntoLiteral for R32 {
+impl CompileIntoLiteral for OrderedFloat<f32> {
     const LITERAL_TYPE: Type = Type::Float;
     fn coerce_literal(
         literal: Literal,

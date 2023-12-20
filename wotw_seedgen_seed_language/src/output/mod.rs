@@ -1,12 +1,10 @@
 mod command;
-mod common_item;
 mod display;
 mod event;
 pub(crate) mod intermediate;
 mod operation;
 
 pub use command::*;
-pub use common_item::*;
 pub use event::*;
 pub use operation::*;
 
@@ -24,12 +22,12 @@ use wotw_seedgen_data::{Equipment, GromIcon, LupoIcon, MapIcon, OpherIcon, Shard
 pub struct CompilerOutput {
     pub spawn: Option<String>,
     pub events: Vec<Event>,
-    pub action_lookup: Vec<Action>,
+    pub command_lookup: Vec<Command>,
     pub flags: FxHashSet<String>,
-    pub item_pool_changes: FxHashMap<Action, i32>,
-    pub item_metadata: FxHashMap<Action, ItemMetadata>,
+    pub item_pool_changes: FxHashMap<Command, i32>,
+    pub item_metadata: FxHashMap<Command, ItemMetadata>,
     pub logical_state_sets: FxHashSet<String>,
-    pub preplacements: Vec<(Action, wotw_seedgen_data::Zone)>,
+    pub preplacements: Vec<(Command, wotw_seedgen_data::Zone)>,
     pub success: bool,
 }
 
@@ -50,9 +48,9 @@ pub struct ItemMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum StringOrPlaceholder {
     Value(String),
-    ZoneOfPlaceholder(Box<Action>),
+    ZoneOfPlaceholder(Box<Command>),
     ItemOnPlaceholder(Box<Trigger>),
-    CountInZonePlaceholder(Vec<Action>, wotw_seedgen_data::Zone),
+    CountInZonePlaceholder(Vec<Command>, wotw_seedgen_data::Zone),
 }
 impl Display for StringOrPlaceholder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -68,6 +66,16 @@ impl Display for StringOrPlaceholder {
                 )
             }
         }
+    }
+}
+impl From<String> for StringOrPlaceholder {
+    fn from(value: String) -> Self {
+        Self::Value(value)
+    }
+}
+impl From<&str> for StringOrPlaceholder {
+    fn from(value: &str) -> Self {
+        Self::Value(value.to_string())
     }
 }
 

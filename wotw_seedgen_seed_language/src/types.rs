@@ -141,15 +141,23 @@ impl InferType for FunctionCall<'_> {
                 .map(Type::from)?,
             FunctionIdentifier::GetBoolean | FunctionIdentifier::IsInHitbox => Type::Boolean,
             FunctionIdentifier::GetInteger => Type::Integer,
-            FunctionIdentifier::GetFloat | FunctionIdentifier::ToFloat => Type::Float,
+            FunctionIdentifier::GetFloat | FunctionIdentifier::FromInteger => Type::Float,
             FunctionIdentifier::GetString
             | FunctionIdentifier::ToString
-            | FunctionIdentifier::ResourceName
-            | FunctionIdentifier::SkillName
-            | FunctionIdentifier::ShardName
-            | FunctionIdentifier::TeleporterName
-            | FunctionIdentifier::CleanWaterName
-            | FunctionIdentifier::WeaponUpgradeName => Type::String,
+            | FunctionIdentifier::SpiritLightString
+            | FunctionIdentifier::RemoveSpiritLightString
+            | FunctionIdentifier::ResourceString
+            | FunctionIdentifier::RemoveResourceString
+            | FunctionIdentifier::SkillString
+            | FunctionIdentifier::RemoveSkillString
+            | FunctionIdentifier::ShardString
+            | FunctionIdentifier::RemoveShardString
+            | FunctionIdentifier::TeleporterString
+            | FunctionIdentifier::RemoveTeleporterString
+            | FunctionIdentifier::CleanWaterString
+            | FunctionIdentifier::RemoveCleanWaterString
+            | FunctionIdentifier::WeaponUpgradeString => Type::String,
+            FunctionIdentifier::RemoveWeaponUpgradeString => Type::String,
             FunctionIdentifier::CurrentZone => Type::Zone,
             FunctionIdentifier::SpiritLight
             | FunctionIdentifier::RemoveSpiritLight

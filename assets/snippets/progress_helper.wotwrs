@@ -84,7 +84,7 @@ on progress_message {
 }
 // TODO map progress message
 
-on bind1 {
+on bind_1 {
     write_tree_progress()
     write_wisp_progress()
     priority_message(
@@ -92,8 +92,8 @@ on bind1 {
         4.0
     )
 }
-on bind2 show_quest_progress()
-on bind3 show_teleporter_progress()
+on bind_2 show_quest_progress()
+on bind_3 show_teleporter_progress()
 
 fun write_tree_progress() {
     set_string("tree_progress", "#Trees found#: ")

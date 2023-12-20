@@ -9,7 +9,6 @@ use crate::{
     orbs::OrbVariants,
     ReachedLocations, World,
 };
-use decorum::R32;
 use itertools::Itertools;
 use rand::{
     distributions::Uniform,
@@ -766,12 +765,12 @@ fn boolean(value: bool) -> CommandBoolean {
 fn integer(value: i32) -> CommandInteger {
     CommandInteger::Constant { value }
 }
-fn float(value: R32) -> CommandFloat {
+fn float(value: OrderedFloat<f32>) -> CommandFloat {
     CommandFloat::Constant { value }
 }
 fn string(value: String) -> CommandString {
     CommandString::Constant {
-        value: StringOrPlaceholder::Value(value),
+        value: value.into(),
     }
 }
 fn icon(value: Icon) -> CommandIcon {
@@ -779,9 +778,7 @@ fn icon(value: Icon) -> CommandIcon {
 }
 fn read_icon(path: String) -> CommandIcon {
     CommandIcon::ReadIcon {
-        path: Box::new(CommandString::Constant {
-            value: StringOrPlaceholder::Value(path),
-        }),
+        path: Box::new(CommandString::Constant { value: path.into() }),
     }
 }
 

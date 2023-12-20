@@ -102,7 +102,7 @@ impl Default for ItemPool {
                     WeaponUpgrade::ExplodingSpear,
                 ))),
                 Action::Command(Command::Custom(CommonItem::WeaponUpgrade(
-                    WeaponUpgrade::ShockHammer,
+                    WeaponUpgrade::HammerShockwave,
                 ))),
                 Action::Command(Command::Custom(CommonItem::WeaponUpgrade(
                     WeaponUpgrade::StaticShuriken,
@@ -192,7 +192,7 @@ impl Default for ItemPool {
                 clean_water: true,
                 weapon_upgrades: [
                     WeaponUpgrade::ExplodingSpear,
-                    WeaponUpgrade::ShockHammer,
+                    WeaponUpgrade::HammerShockwave,
                     WeaponUpgrade::StaticShuriken,
                     WeaponUpgrade::ChargeBlaze,
                     WeaponUpgrade::RapidSentry,

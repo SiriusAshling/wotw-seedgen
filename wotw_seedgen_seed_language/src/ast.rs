@@ -1,19 +1,26 @@
 use crate::{
-    token::{Token, Tokenizer},
+    token::{Token, Tokenizer, TOKENIZER},
     types::Type,
 };
-use decorum::R32;
+use ordered_float::OrderedFloat;
 use parse_display::Display;
 use serde::{Deserialize, Serialize};
 use wotw_seedgen_parse::{
-    Ast, Identifier, Once, Parser, Recover, Recoverable, Result, SeparatedNonEmpty, Span, Spanned,
-    Symbol,
+    parse_ast, Ast, Identifier, NoTrailingInput, Once, Parser, Recover, Recoverable, Result,
+    SeparatedNonEmpty, Span, Spanned, Symbol,
 };
 
 pub type Delimited<const OPEN: char, Content, const CLOSE: char> =
     wotw_seedgen_parse::Delimited<Spanned<Symbol<OPEN>>, Content, Spanned<Symbol<CLOSE>>>;
 pub type Punctuated<Item, const PUNCTUATION: char> =
     wotw_seedgen_parse::Punctuated<Item, Symbol<PUNCTUATION>>;
+
+pub fn parse<'source, V>(source: &'source str) -> NoTrailingInput<V>
+where
+    V: Ast<'source, Tokenizer>,
+{
+    parse_ast(source, TOKENIZER)
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Ast)]
 pub struct Snippet<'source> {
@@ -276,7 +283,7 @@ pub enum Literal<'source> {
     UberIdentifier(UberIdentifier<'source>),
     Boolean(bool),
     Integer(i32),
-    Float(R32),
+    Float(OrderedFloat<f32>),
     String(&'source str),
     Constant(Constant<'source>),
 }

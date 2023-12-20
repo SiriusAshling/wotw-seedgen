@@ -21,7 +21,7 @@ pub struct Source {
     /// The contents of the file, which will be referenced for better error messages.
     ///
     /// This should be the same contents you were parsing, otherwise error messages will reference arbitrary spans in your source and possibly panic.
-    pub content: String,
+    pub content: String, // TODO maybe use &str?
 }
 impl Source {
     pub fn new(id: String, content: String) -> Self {

@@ -405,7 +405,7 @@ fun shops_explanation() {
     )
     store(bind_pointer, shops_explanation_next)
 }
-on bind1 if bind_pointer == shops_explanation_next {
+on bind_1 if bind_pointer == shops_explanation_next {
     set_message_text(
         "shops_explanation",
         "You can recall everything you have been told in the [RandoWheel] #randomizer wheel#\n" +
@@ -413,7 +413,7 @@ on bind1 if bind_pointer == shops_explanation_next {
     )
     store(bind_pointer, shops_explanation_finish)
 }
-on bind1 if bind_pointer == shops_explanation_finish {
+on bind_1 if bind_pointer == shops_explanation_finish {
     destroy_message("shops_explanation")
     store(bind_pointer, 0)
 }
@@ -426,7 +426,7 @@ fun downswing_lift() {
     )
     store(bind_pointer, downswing_lift_finish)
 }
-on bind1 if bind_pointer == downswing_lift_finish {
+on bind_1 if bind_pointer == downswing_lift_finish {
     destroy_message("downswing_lift")
     store(bind_pointer, 0)
 }
@@ -438,7 +438,7 @@ fun spring_plant_boost() {
     )
     store(bind_pointer, spring_plant_boost_finish)
 }
-on bind1 if bind_pointer == spring_plant_boost_finish {
+on bind_1 if bind_pointer == spring_plant_boost_finish {
     destroy_message("spring_plant_boost")
     store(bind_pointer, 0)
 }
@@ -450,7 +450,7 @@ fun upslash_turnaround() {
     )
     store(bind_pointer, upslash_turnaround_finish)
 }
-on bind1 if bind_pointer == upslash_turnaround_finish {
+on bind_1 if bind_pointer == upslash_turnaround_finish {
     destroy_message("upslash_turnaround")
     store(bind_pointer, 0)
 }
@@ -462,7 +462,7 @@ fun slash_acceleration() {
     )
     store(bind_pointer, slash_acceleration_finish)
 }
-on bind1 if bind_pointer == slash_acceleration_finish {
+on bind_1 if bind_pointer == slash_acceleration_finish {
     destroy_message("slash_acceleration")
     store(bind_pointer, 0)
 }
@@ -475,7 +475,7 @@ fun projectile_range() {
     )
     store(bind_pointer, projectile_range_finish)
 }
-on bind1 if bind_pointer == projectile_range_finish {
+on bind_1 if bind_pointer == projectile_range_finish {
     destroy_message("projectile_range")
     store(bind_pointer, 0)
 }
@@ -487,7 +487,7 @@ fun projectile_pogo() {
     )
     store(bind_pointer, projectile_pogo_finish)
 }
-on bind1 if bind_pointer == projectile_pogo_finish {
+on bind_1 if bind_pointer == projectile_pogo_finish {
     destroy_message("projectile_pogo")
     store(bind_pointer, 0)
 }
@@ -499,7 +499,7 @@ fun multi_pogo() {
     )
     store(bind_pointer, multi_pogo_finish)
 }
-on bind1 if bind_pointer == multi_pogo_finish {
+on bind_1 if bind_pointer == multi_pogo_finish {
     destroy_message("multi_pogo")
     store(bind_pointer, 0)
 }
@@ -512,7 +512,7 @@ fun shuriken_hop() {
     )
     store(bind_pointer, shuriken_hop_finish)
 }
-on bind1 if bind_pointer == shuriken_hop_finish {
+on bind_1 if bind_pointer == shuriken_hop_finish {
     destroy_message("shuriken_hop")
     store(bind_pointer, 0)
 }
@@ -524,7 +524,7 @@ fun shuriken_acceleration() {
     )
     store(bind_pointer, shuriken_acceleration_finish)
 }
-on bind1 if bind_pointer == shuriken_acceleration_finish {
+on bind_1 if bind_pointer == shuriken_acceleration_finish {
     destroy_message("shuriken_acceleration")
     store(bind_pointer, 0)
 }
@@ -536,7 +536,7 @@ fun shuriken_slashes() {
     )
     store(bind_pointer, shuriken_slashes_finish)
 }
-on bind1 if bind_pointer == shuriken_slashes_finish {
+on bind_1 if bind_pointer == shuriken_slashes_finish {
     destroy_message("shuriken_slashes")
     store(bind_pointer, 0)
 }
@@ -548,7 +548,7 @@ fun shuriken_clip() {
     )
     store(bind_pointer, shuriken_clip_finish)
 }
-on bind1 if bind_pointer == shuriken_clip_finish {
+on bind_1 if bind_pointer == shuriken_clip_finish {
     destroy_message("shuriken_clip")
     store(bind_pointer, 0)
 }
@@ -560,7 +560,7 @@ fun shuriken_pogo() {
     )
     store(bind_pointer, shuriken_pogo_finish)
 }
-on bind1 if bind_pointer == shuriken_pogo_finish {
+on bind_1 if bind_pointer == shuriken_pogo_finish {
     destroy_message("shuriken_pogo")
     store(bind_pointer, 0)
 }
@@ -572,7 +572,7 @@ fun wall_shuriken_pogo() {
     )
     store(bind_pointer, wall_shuriken_pogo_finish)
 }
-on bind1 if bind_pointer == wall_shuriken_pogo_finish {
+on bind_1 if bind_pointer == wall_shuriken_pogo_finish {
     destroy_message("wall_shuriken_pogo")
     store(bind_pointer, 0)
 }
@@ -584,7 +584,7 @@ fun ground_shuriken_pogo() {
     )
     store(bind_pointer, ground_shuriken_pogo_finish)
 }
-on bind1 if bind_pointer == ground_shuriken_pogo_finish {
+on bind_1 if bind_pointer == ground_shuriken_pogo_finish {
     destroy_message("ground_shuriken_pogo")
     store(bind_pointer, 0)
 }
@@ -596,7 +596,7 @@ fun air_shuriken_pogo() {
     )
     store(bind_pointer, air_shuriken_pogo_finish)
 }
-on bind1 if bind_pointer == air_shuriken_pogo_finish {
+on bind_1 if bind_pointer == air_shuriken_pogo_finish {
     destroy_message("air_shuriken_pogo")
     store(bind_pointer, 0)
 }
@@ -608,7 +608,7 @@ fun shuriken_leak() {
     )
     store(bind_pointer, shuriken_leak_finish)
 }
-on bind1 if bind_pointer == shuriken_leak_finish {
+on bind_1 if bind_pointer == shuriken_leak_finish {
     destroy_message("shuriken_leak")
     store(bind_pointer, 0)
 }
@@ -620,7 +620,7 @@ fun double_shuriken() {
     )
     store(bind_pointer, double_shuriken_finish)
 }
-on bind1 if bind_pointer == double_shuriken_finish {
+on bind_1 if bind_pointer == double_shuriken_finish {
     destroy_message("double_shuriken")
     store(bind_pointer, 0)
 }
@@ -633,7 +633,7 @@ fun deflector_refresh() {
     )
     store(bind_pointer, deflector_refresh_finish)
 }
-on bind1 if bind_pointer == deflector_refresh_finish {
+on bind_1 if bind_pointer == deflector_refresh_finish {
     destroy_message("deflector_refresh")
     store(bind_pointer, 0)
 }

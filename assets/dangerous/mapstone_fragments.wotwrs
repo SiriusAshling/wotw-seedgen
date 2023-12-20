@@ -67,7 +67,7 @@ fun read_mapstone() {
     )
     store(bind_pointer, mapstone_finish)
 }
-on bind1 if bind_pointer == mapstone_finish {
+on bind_1 if bind_pointer == mapstone_finish {
     destroy_message("mapstone")
     store(bind_pointer, 0)
 }

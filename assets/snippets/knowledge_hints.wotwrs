@@ -10,9 +10,9 @@ on tick {
     if is_in_hitbox(-98, -4245, -60, -4205) && EastHollow.ForestsVoice == false set_integer("show_message", 4) // TODO check hornbug fight state.
 
     if get_integer("show_message") > 0 && get_boolean("showing_message") == false {
-        if get_integer("show_message") == 1 item_message("#Motay's Note#\nThe moki will only open the entrance once you find " + skill_name(Skill::Glide))
-        if get_integer("show_message") == 2 item_message("#Motay's Note#\nThe bear will only wake if you use " + skill_name(Skill::Flap))
-        if get_integer("show_message") == 3 item_message("#Motay's Note#\nThe semisolid platform will remain solid until you find " + skill_name(Skill::Dash) + ", " + skill_name(Skill::Burrow) + " or " + skill_name(Skill::WaterDash))
+        if get_integer("show_message") == 1 item_message("#Motay's Note#\nThe moki will only open the entrance once you find " + skill_string(Skill::Glide))
+        if get_integer("show_message") == 2 item_message("#Motay's Note#\nThe bear will only wake if you use " + skill_string(Skill::Flap))
+        if get_integer("show_message") == 3 item_message("#Motay's Note#\nThe semisolid platform will remain solid until you find " + skill_string(Skill::Dash) + ", " + skill_string(Skill::Burrow) + " or " + skill_string(Skill::WaterDash))
         if get_integer("show_message") == 4 item_message("#Motay's Note#\nThe moki will only open the door to Glades once you get the #Voice of the Forest# from Kwolok")
         set_boolean("showing_message", true)
     }
@@ -35,24 +35,24 @@ on tick if
     && is_in_hitbox(-486, -3773, -476, -3763) == false
     && skills.regenerate == false
         store(regen_message_shown, true)
-on regen_message_shown item_message("#Motay's Note#\nIn Moki and Gorlek, entering zones after #The Wellspring# won't be required until you find " + skill_name(Skill::Regenerate))
+on regen_message_shown item_message("#Motay's Note#\nIn Moki and Gorlek, entering zones after #The Wellspring# won't be required until you find " + skill_string(Skill::Regenerate))
 
 // TODO interface the settings to check the difficulty
 on LowerReach.TeleporterActive if skills.flap && is_in_hitbox(-284, -3971, -223, -3945) == false
-    item_message("#Motay's Note#\nUsing the " + teleporter_name(Teleporter::Reach) + " won't be required until you find " + skill_name(Skill::Flap))
+    item_message("#Motay's Note#\nUsing the " + teleporter_string(Teleporter::Reach) + " won't be required until you find " + skill_string(Skill::Flap))
 on UpperDepths.TeleporterActive if skills.glide && is_in_hitbox(499, -4381, 561, -4335) == false
-    item_message("#Motay's Note#\nUsing the " + teleporter_name(Teleporter::Depths) + " won't be required until you find " + skill_name(Skill::Glide))
+    item_message("#Motay's Note#\nUsing the " + teleporter_string(Teleporter::Depths) + " won't be required until you find " + skill_string(Skill::Glide))
 on EastPools.TeleporterActive if randoState.cleanWater && is_in_hitbox(-1334, -4160, -1280, -4121) == false
-    item_message("#Motay's Note#\nUsing the " + teleporter_name(Teleporter::CentralLuma) + " won't be required until you find " + clean_water_name())
+    item_message("#Motay's Note#\nUsing the " + teleporter_string(Teleporter::CentralLuma) + " won't be required until you find " + clean_water_string())
 on WestPools.TeleporterActive if randoState.cleanWater && is_in_hitbox(-1677, -4175, -1625, -4156) == false
-    item_message("#Motay's Note#\nUsing the " + teleporter_name(Teleporter::LumaBoss) + " won't be required until you find " + clean_water_name())
+    item_message("#Motay's Note#\nUsing the " + teleporter_string(Teleporter::LumaBoss) + " won't be required until you find " + clean_water_string())
 on LowerWastes.CentralTeleporterActive if skills.burrow && is_in_hitbox(1946, -3910, 2018, -3857) == false
-    item_message("#Motay's Note#\nUsing the " + teleporter_name(Teleporter::CentralWastes) + " won't be required until you find " + skill_name(Skill::Burrow))
+    item_message("#Motay's Note#\nUsing the " + teleporter_string(Teleporter::CentralWastes) + " won't be required until you find " + skill_string(Skill::Burrow))
 on UpperWastes.TeleporterActive if skills.burrow && is_in_hitbox(2013, -3690, 2067, -3658) == false
-    item_message("#Motay's Note#\nUsing the " + teleporter_name(Teleporter::OuterRuins) + " won't be required until you find " + skill_name(Skill::Burrow))
+    item_message("#Motay's Note#\nUsing the " + teleporter_string(Teleporter::OuterRuins) + " won't be required until you find " + skill_string(Skill::Burrow))
 on WindtornRuins.TeleporterActive if skills.burrow && is_in_hitbox(2106, -4001, 2142, -3972) == false
-    item_message("#Motay's Note#\nUsing the " + teleporter_name(Teleporter::InnerRuins) + " won't be required until you find " + skill_name(Skill::Burrow))
+    item_message("#Motay's Note#\nUsing the " + teleporter_string(Teleporter::InnerRuins) + " won't be required until you find " + skill_string(Skill::Burrow))
 on WillowsEnd.InnerTeleporterActive if skills.burrow && is_in_hitbox(400, 3870, 447, -3847) == false
-    item_message("#Motay's Note#\nUsing the " + teleporter_name(Teleporter::Willow) + " won't be required until you find " + skill_name(Skill::Burrow))
+    item_message("#Motay's Note#\nUsing the " + teleporter_string(Teleporter::Willow) + " won't be required until you find " + skill_string(Skill::Burrow))
 on MidnightBurrows.TeleporterActive if skills.bash && is_in_hitbox(-960, -4586, -931, -4564) == false
-    item_message("#Motay's Note#\nUsing the " + teleporter_name(Teleporter::Burrows) + " won't be required until you find " + skill_name(Skill::Bash))
+    item_message("#Motay's Note#\nUsing the " + teleporter_string(Teleporter::Burrows) + " won't be required until you find " + skill_string(Skill::Bash))

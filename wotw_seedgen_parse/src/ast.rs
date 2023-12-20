@@ -2,8 +2,6 @@ use crate::{
     ErrorKind, NoTrailingInput, ParseBoolToken, ParseFloatToken, ParseIntToken, ParseStringToken,
     Parser, Result, Tokenize,
 };
-#[cfg(feature = "decorum")]
-use decorum::{R32, R64};
 
 /// Trait responsible for parsing Ast nodes
 ///
@@ -21,7 +19,7 @@ use decorum::{R32, R64};
 /// - [`bool`] implements `Ast` if `Token` implements [`ParseBoolToken`]
 /// - [`u8`] through [`u128`] and [`i8`] through [`i128`] implement `Ast` if `Token` implements [`ParseIntToken`]
 /// - [`f32`] and [`f64`] implement `Ast` if `Token` implements [`ParseFloatToken`]
-/// - With the `decorum` feature, [`R32`] and [`R64`] implement `Ast` if `Token` implements [`ParseFloatToken`]
+/// - With the `ordered_float` feature, [`OrderedFloat<f32>`] and [`OrderedFloat<f64>`] implement `Ast` if `Token` implements [`ParseFloatToken`]
 /// - [`&str`](str) and [`String`] implement `Ast` if `Token` implements [`ParseStringToken`]
 /// - [`Box<T>`] implements `Ast` if `T` does
 /// - [`Option<T>`] implements `Ast` if `T` does. [`Option::ast`] returns `Ok(Some(T))` if `T` succeeds and `Ok(None)` if `T` fails to parse
@@ -374,8 +372,14 @@ macro_rules! impl_ast_floats {
 }
 impl_ast_integers! { u8 parse_u8 u16 parse_u16 u32 parse_u32 u64 parse_u64 u128 parse_u128 i8 parse_i8 i16 parse_i16 i32 parse_i32 i64 parse_i64 i128 parse_i128 }
 impl_ast_floats! { f32 parse_f32 f64 parse_f64 }
-#[cfg(feature = "decorum")]
-impl_ast_floats! { R32 parse_f32 R64 parse_f64 }
+#[cfg(feature = "ordered_float")]
+mod impl_ordered_float {
+    use super::*;
+    use ordered_float::OrderedFloat;
+    type OrderedF32 = OrderedFloat<f32>;
+    type OrderedF64 = OrderedFloat<f64>;
+    impl_ast_floats! { OrderedF32 parse_f32 OrderedF64 parse_f64 }
+}
 
 impl<'source, T> Ast<'source, T> for &'source str
 where

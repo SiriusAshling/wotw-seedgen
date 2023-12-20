@@ -1,7 +1,6 @@
 // TODO why is this in a directory?
 
 use crate::log;
-use decorum::R32;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cmp::Ordering;
 use wotw_seedgen_assets::UberStateData;
@@ -63,7 +62,7 @@ pub struct UberStateEntry {
 pub enum UberStateValue {
     Boolean(bool),
     Integer(i32),
-    Float(R32),
+    Float(OrderedFloat<f32>),
 }
 impl UberStateValue {
     pub fn as_boolean(self) -> bool {
@@ -84,7 +83,7 @@ impl UberStateValue {
             }
         }
     }
-    pub fn as_float(self) -> R32 {
+    pub fn as_float(self) -> OrderedFloat<f32> {
         match self {
             UberStateValue::Float(value) => value,
             _ => {
@@ -122,13 +121,13 @@ impl PartialOrd<i32> for UberStateValue {
         self.as_integer().partial_cmp(other)
     }
 }
-impl PartialEq<R32> for UberStateValue {
-    fn eq(&self, other: &R32) -> bool {
+impl PartialEq<OrderedFloat<f32>> for UberStateValue {
+    fn eq(&self, other: &OrderedFloat<f32>) -> bool {
         self.as_float() == *other
     }
 }
-impl PartialOrd<R32> for UberStateValue {
-    fn partial_cmp(&self, other: &R32) -> Option<Ordering> {
+impl PartialOrd<OrderedFloat<f32>> for UberStateValue {
+    fn partial_cmp(&self, other: &OrderedFloat<f32>) -> Option<Ordering> {
         self.as_float().partial_cmp(other)
     }
 }
@@ -261,7 +260,7 @@ impl ContainedUberIdentifiers for CommandFloat {
         match self {
             CommandFloat::Arithmetic { operation } => operation.contained_uber_identifiers(output),
             CommandFloat::FetchFloat { uber_identifier } => output.push(*uber_identifier),
-            CommandFloat::ToFloat { integer } => integer.contained_uber_identifiers(output),
+            CommandFloat::FromInteger { integer } => integer.contained_uber_identifiers(output),
             CommandFloat::Constant { .. } | CommandFloat::GetFloat { .. } => {}
         }
     }

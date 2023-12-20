@@ -1,7 +1,7 @@
-use super::{args::Args, Compile};
+use super::{args::Args, compile_into_lookup, Compile};
 use crate::Command;
 use wotw_seedgen_seed_language::output::{
-    self as input, Comparator, EqualityComparator, StringOrPlaceholder,
+    self as input, CommandVoid, Comparator, EqualityComparator, StringOrPlaceholder,
 };
 
 fn unwrap_string_placeholder(value: StringOrPlaceholder) -> String {
@@ -22,7 +22,6 @@ impl Compile for input::Command {
             Self::String(command) => command.compile(command_lookup),
             Self::Zone(command) => command.compile(command_lookup),
             Self::Void(command) => command.compile(command_lookup),
-            Self::Common(command) => todo!(),
         }
     }
 }
@@ -33,6 +32,7 @@ impl Compile for input::CommandBoolean {
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
             Self::Constant { value } => vec![Command::LoadBoolean { value }],
+            Self::Multi { commands, last } => multi(commands, *last, command_lookup),
             Self::CompareBoolean { operation } => Args::new(2, command_lookup)
                 .bool(operation.left)
                 .bool(operation.right)
@@ -93,6 +93,7 @@ impl Compile for input::CommandInteger {
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
             Self::Constant { value } => vec![Command::LoadInteger { value }],
+            Self::Multi { commands, last } => multi(commands, *last, command_lookup),
             Self::Arithmetic { operation } => Args::new(2, command_lookup)
                 .int(operation.left)
                 .int(operation.right)
@@ -115,6 +116,7 @@ impl Compile for input::CommandFloat {
             Self::Constant { value } => vec![Command::LoadFloat {
                 value: value.into(),
             }],
+            Self::Multi { commands, last } => multi(commands, *last, command_lookup),
             Self::Arithmetic { operation } => Args::new(2, command_lookup)
                 .float(operation.left)
                 .float(operation.right)
@@ -125,9 +127,9 @@ impl Compile for input::CommandFloat {
                 vec![Command::FetchFloat { uber_identifier }]
             }
             Self::GetFloat { id } => vec![Command::CopyFloat { from: id, to: 0 }],
-            Self::ToFloat { integer } => Args::new(1, command_lookup)
+            Self::FromInteger { integer } => Args::new(1, command_lookup)
                 .int(*integer)
-                .call(Command::ToFloat),
+                .call(Command::IntegerToFloat),
         }
     }
 }
@@ -140,13 +142,22 @@ impl Compile for input::CommandString {
             Self::Constant { value } => vec![Command::LoadString {
                 value: unwrap_string_placeholder(value),
             }],
+            Self::Multi { commands, last } => multi(commands, *last, command_lookup),
             Self::Concatenate { left, right } => Args::new(2, command_lookup)
                 .string(*left)
                 .string(*right)
                 .call(Command::Concatenate),
             Self::GetString { id } => vec![Command::CopyString { from: id, to: 0 }],
             Self::WorldName { index } => vec![Command::WorldName { index }],
-            Self::ToString { command } => todo!(), // Probably have to split the command into variants for each input
+            Self::FromBoolean { boolean } => Args::new(1, command_lookup)
+                .bool(*boolean)
+                .call(Command::BooleanToString),
+            Self::FromInteger { integer } => Args::new(1, command_lookup)
+                .int(*integer)
+                .call(Command::IntegerToString),
+            Self::FromFloat { float } => Args::new(1, command_lookup)
+                .float(*float)
+                .call(Command::FloatToString),
         }
     }
 }
@@ -154,11 +165,12 @@ impl Compile for input::CommandString {
 impl Compile for input::CommandZone {
     type Output = Vec<Command>;
 
-    fn compile(self, _command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
+    fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
             Self::Constant { value } => vec![Command::LoadInteger {
                 value: value as i32,
             }],
+            Self::Multi { commands, last } => multi(commands, *last, command_lookup),
             Self::CurrentZone {} => vec![Command::CurrentZone],
         }
     }
@@ -169,6 +181,17 @@ impl Compile for input::CommandVoid {
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
+            Self::Multi { commands } => commands
+                .into_iter()
+                .flat_map(|command| command.compile(command_lookup))
+                .collect(),
+            Self::Lookup { index } => vec![Command::Execute { index }],
+            Self::If { condition, command } => {
+                let index = compile_into_lookup(*command, command_lookup);
+                Args::new(1, command_lookup)
+                    .bool(condition)
+                    .call(Command::ExecuteIf { index })
+            }
             Self::ItemMessage { message } => Args::new(1, command_lookup)
                 .string(message)
                 .call(Command::ItemMessage),
@@ -232,7 +255,7 @@ impl Compile for input::CommandVoid {
             Self::SetString { id, value } => Args::new(1, command_lookup)
                 .string(value)
                 .call(Command::CopyString { from: 0, to: id }),
-            Self::DefineTimer { toggle, timer } => todo!(),
+            Self::DefineTimer { toggle, timer } => vec![Command::DefineTimer { toggle, timer }],
             Self::Save {} => vec![Command::Save],
             Self::Checkpoint {} => vec![Command::Checkpoint],
             Self::Warp { x, y } => Args::new(2, command_lookup)
@@ -358,7 +381,19 @@ impl Compile for input::CommandVoid {
             Self::ClearAllWheels {} => {
                 vec![Command::ClearAllWheels]
             }
-            Self::Lookup { index } => vec![Command::Execute { index }],
         }
     }
+}
+
+fn multi<T: Compile<Output = Vec<Command>>>(
+    commands: Vec<CommandVoid>,
+    last: T,
+    command_lookup: &mut Vec<Vec<Command>>,
+) -> Vec<Command> {
+    let mut commands = commands
+        .into_iter()
+        .flat_map(|command| command.compile(command_lookup))
+        .collect::<Vec<_>>();
+    commands.extend(last.compile(command_lookup));
+    commands
 }

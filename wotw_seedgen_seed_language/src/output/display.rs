@@ -1,6 +1,6 @@
 use super::{
-    Action, ActionCondition, Command, CommandBoolean, CommandFloat, CommandInteger, CommandString,
-    CommandVoid, CommandZone, Event, Icon, Operation, Trigger,
+    Command, CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandVoid, CommandZone,
+    Event, Icon, Operation, Trigger,
 };
 use itertools::Itertools;
 use std::fmt::{self, Display};
@@ -21,7 +21,7 @@ impl Display for Icon {
 
 impl Display for Event {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "on {} {}", self.trigger, self.action)
+        write!(f, "on {} {}", self.trigger, self.command)
     }
 }
 
@@ -33,22 +33,6 @@ impl Display for Trigger {
             Trigger::Binding(uber_identifier) => write!(f, "[{uber_identifier}]"),
             Trigger::Condition(condition) => condition.fmt(f),
         }
-    }
-}
-
-impl Display for Action {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Action::Command(action) => action.fmt(f),
-            Action::Condition(action) => action.fmt(f),
-            Action::Multi(action) => write!(f, "[{}]", action.iter().format(", ")),
-        }
-    }
-}
-
-impl Display for ActionCondition {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "if ({}) {{ {} }}", self.condition, self.action)
     }
 }
 
@@ -67,7 +51,6 @@ impl Display for Command {
             Command::String(command) => command.fmt(f),
             Command::Zone(command) => command.fmt(f),
             Command::Void(command) => command.fmt(f),
-            Command::Common(command) => command.fmt(f),
         }
     }
 }
@@ -76,6 +59,9 @@ impl Display for CommandBoolean {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CommandBoolean::Constant { value } => value.fmt(f),
+            CommandBoolean::Multi { commands, last } => {
+                write!(f, "{{ {}, {} }}", commands.iter().format(", "), last)
+            }
             CommandBoolean::CompareBoolean { operation } => operation.fmt(f),
             CommandBoolean::CompareInteger { operation } => operation.fmt(f),
             CommandBoolean::CompareFloat { operation } => operation.fmt(f),
@@ -98,6 +84,9 @@ impl Display for CommandInteger {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CommandInteger::Constant { value } => value.fmt(f),
+            CommandInteger::Multi { commands, last } => {
+                write!(f, "{{ {}, {} }}", commands.iter().format(", "), last)
+            }
             CommandInteger::Arithmetic { operation } => operation.fmt(f),
             CommandInteger::FetchInteger { uber_identifier } => {
                 write!(f, "fetch({uber_identifier})")
@@ -111,10 +100,13 @@ impl Display for CommandFloat {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CommandFloat::Constant { value } => value.fmt(f),
+            CommandFloat::Multi { commands, last } => {
+                write!(f, "{{ {}, {} }}", commands.iter().format(", "), last)
+            }
             CommandFloat::Arithmetic { operation } => operation.fmt(f),
             CommandFloat::FetchFloat { uber_identifier } => write!(f, "fetch({uber_identifier})"),
             CommandFloat::GetFloat { id } => write!(f, "get_float({id})"),
-            CommandFloat::ToFloat { integer } => write!(f, "to_float({integer})"),
+            CommandFloat::FromInteger { integer } => write!(f, "to_float({integer})"),
         }
     }
 }
@@ -123,10 +115,15 @@ impl Display for CommandString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CommandString::Constant { value } => write!(f, "\"{value}\""),
+            CommandString::Multi { commands, last } => {
+                write!(f, "{{ {}, {} }}", commands.iter().format(", "), last)
+            }
             CommandString::Concatenate { left, right } => write!(f, "{left} + {right}"),
             CommandString::GetString { id } => write!(f, "get_string({id})"),
             CommandString::WorldName { index } => write!(f, "world_name({index})"),
-            CommandString::ToString { command } => write!(f, "to_string({command})"),
+            CommandString::FromBoolean { boolean } => write!(f, "to_string({boolean})"),
+            CommandString::FromInteger { integer } => write!(f, "to_string({integer})"),
+            CommandString::FromFloat { float } => write!(f, "to_string({float})"),
         }
     }
 }
@@ -135,6 +132,9 @@ impl Display for CommandZone {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CommandZone::Constant { value } => value.fmt(f),
+            CommandZone::Multi { commands, last } => {
+                write!(f, "{{ {}, {} }}", commands.iter().format(", "), last)
+            }
             CommandZone::CurrentZone {} => write!(f, "current_zone()"),
         }
     }
@@ -143,6 +143,9 @@ impl Display for CommandZone {
 impl Display for CommandVoid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            CommandVoid::Multi { commands } => write!(f, "{{ {} }}", commands.iter().format(" ")),
+            CommandVoid::Lookup { index } => write!(f, "lookup({index})"),
+            CommandVoid::If { condition, command } => write!(f, "if ({condition}) {{ {command} }}"),
             CommandVoid::ItemMessage { message } => write!(f, "item_message({message})"),
             CommandVoid::ItemMessageWithTimeout { message, timeout } => {
                 write!(f, "item_message_with_timeout({message}, {timeout})")
@@ -302,7 +305,6 @@ impl Display for CommandVoid {
                 write!(f, "set_wheel_pinned({wheel}, {pinned})")
             }
             CommandVoid::ClearAllWheels {} => write!(f, "clear_all_wheels()"),
-            CommandVoid::Lookup { index } => write!(f, "lookup({index})"),
         }
     }
 }

@@ -15,7 +15,7 @@ fun launch_fragment() {
     launch_fragment(),
     "*Launch Fragment*",
     200,
-    "Collect " + required + " *Launch Fragment*s to get " + skill_name(Skill::Launch),
+    "Collect " + required + " *Launch Fragment*s to get " + skill_string(Skill::Launch),
     read_icon("assets/icons/bonus/launchfragment.png"),
     MapIcon::LaunchFragment
 )

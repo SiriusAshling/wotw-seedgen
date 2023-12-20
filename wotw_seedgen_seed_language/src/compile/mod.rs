@@ -12,7 +12,7 @@ use wotw_seedgen_data::UberIdentifier;
 use self::preprocess::{Preprocessor, PreprocessorOutput};
 use crate::{
     ast::{self, UberStateType},
-    output::{self, intermediate::Literal, Action, CompilerOutput},
+    output::{self, intermediate::Literal, Command, CommandVoid, CompilerOutput},
     token::TOKENIZER,
     types::uber_state_type,
 };
@@ -158,28 +158,40 @@ impl<'uberstates> GlobalCompilerData<'uberstates> {
             uber_state_data,
             callbacks: Default::default(),
             shared_values: Default::default(),
-            boolean_ids: Default::default(),
-            integer_ids: Default::default(),
-            float_ids: Default::default(),
-            string_ids: Default::default(),
+            boolean_ids: IdProvider::new(2), // 2 reserved for function arguments
+            integer_ids: IdProvider::new(4), // 4 reserved for function arguments
+            float_ids: IdProvider::new(4),   // 4 reserved for function arguments
+            string_ids: IdProvider::new(3), // 2 reserved for function arguments, 1 reserved for spirit light strings
             boolean_state_id: 100,
             integer_state_id: 0,
             float_state_id: 150,
-            message_ids: Default::default(),
-            wheel_ids: IdProvider(FxHashMap::from_iter([("root".to_string(), 0)])),
-            warp_icon_ids: Default::default(),
+            message_ids: IdProvider::new(0),
+            wheel_ids: IdProvider {
+                offset: 0,
+                ids: FxHashMap::from_iter([("root".to_string(), 0)]),
+            },
+            warp_icon_ids: IdProvider::new(0),
             config,
         }
     }
 }
-#[derive(Debug, Default)]
-pub(crate) struct IdProvider(FxHashMap<String, usize>);
+#[derive(Debug)]
+pub(crate) struct IdProvider {
+    offset: usize,
+    ids: FxHashMap<String, usize>,
+}
 impl IdProvider {
-    pub(crate) fn id(&mut self, id: String) -> usize {
-        match self.0.get(&id) {
+    pub fn new(offset: usize) -> Self {
+        Self {
+            offset,
+            ids: Default::default(),
+        }
+    }
+    pub fn id(&mut self, id: String) -> usize {
+        match self.ids.get(&id) {
             None => {
-                let len = self.0.len();
-                self.0.insert(id, len);
+                let len = self.ids.len() + self.offset;
+                self.ids.insert(id, len);
                 len
             }
             Some(id) => *id,
@@ -211,10 +223,10 @@ impl<'compiler, 'source, 'uberstates> SnippetCompiler<'compiler, 'source, 'ubers
             .functions
             .iter()
             .cloned()
-            .zip(global.output.action_lookup.len()..)
+            .zip(global.output.command_lookup.len()..)
             .collect();
-        global.output.action_lookup.extend(vec![
-            Action::Multi(vec![]); // Fill with placeholders for all the functions, this also ensures a sane result if some of the functions fail to compile
+        global.output.command_lookup.extend(vec![
+            Command::Void(CommandVoid::Multi { commands: vec![] }); // Fill with placeholders for all the functions, this also ensures a sane result if some of the functions fail to compile
             preprocessed.functions.len()
         ]);
         let mut compiler = Self {

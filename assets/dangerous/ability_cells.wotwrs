@@ -28,7 +28,7 @@ fun ability_cell() {
     store(owned, owned + 1)
 }
 
-on bind4 show_shop()
+on bind_4 show_shop()
 on change selected show_shop()
 fun show_shop() {
     if selected == 0 shuriken_efficiency()
@@ -86,7 +86,7 @@ fun shop_message() {
     )
 }
 
-on bind1 if bind_pointer == shop_shuriken_efficiency
+on bind_1 if bind_pointer == shop_shuriken_efficiency
     || bind_pointer == shop_shuriken_upgrade
     || bind_pointer == shop_ancestral_light
     || bind_pointer == shop_pendant
@@ -99,7 +99,7 @@ on bind1 if bind_pointer == shop_shuriken_efficiency
     if pendant_purchased set_integer("collected", get_integer("collected") + 1)
     if selected == 4 || (selected == 3 && (get_integer("collected") < 4)) store(selected, 0)
 }
-on bind2 if (bind_pointer == shop_shuriken_efficiency
+on bind_2 if (bind_pointer == shop_shuriken_efficiency
     || bind_pointer == shop_shuriken_upgrade
     || bind_pointer == shop_ancestral_light
     || bind_pointer == shop_pendant)
@@ -111,7 +111,7 @@ on bind2 if (bind_pointer == shop_shuriken_efficiency
     if bind_pointer == shop_ancestral_light store(ancestral_light_purchased, true)
     if bind_pointer == shop_pendant store(pendant_purchased, true)
 }
-on bind3 if bind_pointer == shop_shuriken_efficiency
+on bind_3 if bind_pointer == shop_shuriken_efficiency
     || bind_pointer == shop_shuriken_upgrade
     || bind_pointer == shop_ancestral_light
     || bind_pointer == shop_pendant

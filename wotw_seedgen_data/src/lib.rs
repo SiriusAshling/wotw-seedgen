@@ -1,6 +1,6 @@
-use decorum::R32;
 #[cfg(feature = "try_from_number")]
 use num_enum::TryFromPrimitive;
+use ordered_float::OrderedFloat;
 #[cfg(feature = "parse_display")]
 use parse_display::{Display, FromStr};
 #[cfg(feature = "serde")]
@@ -203,7 +203,7 @@ impl UberIdentifier {
     pub const WILLOW: UberIdentifier = Teleporter::Willow.uber_identifier();
     pub const SHRIEK: UberIdentifier = Teleporter::Shriek.uber_identifier();
     pub const EXPLODING_SPEAR: UberIdentifier = WeaponUpgrade::ExplodingSpear.uber_identifier();
-    pub const SHOCK_HAMMER: UberIdentifier = WeaponUpgrade::ShockHammer.uber_identifier();
+    pub const SHOCK_HAMMER: UberIdentifier = WeaponUpgrade::HammerShockwave.uber_identifier();
     pub const STATIC_SHURIKEN: UberIdentifier = WeaponUpgrade::StaticShuriken.uber_identifier();
     pub const CHARGE_BLAZE: UberIdentifier = WeaponUpgrade::ChargeBlaze.uber_identifier();
     pub const RAPID_SENTRY: UberIdentifier = WeaponUpgrade::RapidSentry.uber_identifier();
@@ -225,11 +225,11 @@ impl Display for UberIdentifier {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Position {
-    pub x: R32,
-    pub y: R32,
+    pub x: OrderedFloat<f32>,
+    pub y: OrderedFloat<f32>,
 }
 impl Position {
-    pub fn new<F: Into<R32>>(x: F, y: F) -> Self {
+    pub fn new<F: Into<OrderedFloat<f32>>>(x: F, y: F) -> Self {
         Self {
             x: x.into(),
             y: y.into(),
@@ -532,7 +532,7 @@ impl Teleporter {
 #[repr(u8)]
 pub enum WeaponUpgrade {
     ExplodingSpear = 0,
-    ShockHammer = 1,
+    HammerShockwave = 1,
     StaticShuriken = 2,
     ChargeBlaze = 3,
     RapidSentry = 4,

@@ -4,12 +4,13 @@ use super::{Command, CommandBoolean};
 use wotw_seedgen_data::UberIdentifier;
 
 /// The main event (:badumtsss:)
+// TODO improve documentation
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Event {
     /// The Trigger defines when to give the Action
     pub trigger: Trigger,
-    /// The Action defines what to do when the Trigger happens
-    pub action: Action,
+    /// The Command defines what to do when the Trigger happens
+    pub command: Command,
 }
 
 /// Trigger for an [`Event`]
@@ -21,25 +22,4 @@ pub enum Trigger {
     Binding(UberIdentifier),
     /// Trigger when the condition changes from `false` to `true`
     Condition(CommandBoolean),
-}
-
-// TODO these could be variants of command?
-/// Action performed in an [`Event`]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Action {
-    /// Execute the Command
-    Command(Command),
-    /// Check a Condition
-    Condition(Box<ActionCondition>),
-    /// Perform all the contained Actions
-    Multi(Vec<Action>),
-}
-
-/// A conditional [`Action`]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ActionCondition {
-    /// If the expression fails to evaluate, the action should not be performed
-    pub condition: CommandBoolean,
-    /// Action to perform if the condition evaluated to `true`
-    pub action: Action,
 }

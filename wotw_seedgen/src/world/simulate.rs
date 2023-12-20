@@ -1,5 +1,4 @@
 use super::{uber_states::UberStateValue, World};
-use decorum::R32;
 use std::ops::{Add, Div, Mul, Sub};
 use wotw_seedgen_data::{Resource, Shard, UberIdentifier, Zone};
 use wotw_seedgen_seed::{
@@ -178,7 +177,7 @@ impl Simulate for CommandInteger {
     }
 }
 impl Simulate for CommandFloat {
-    type Return = R32;
+    type Return = OrderedFloat<f32>;
 
     fn simulate(&self, world: &mut World, output: &CompilerOutput) -> Self::Return {
         match self {
@@ -188,7 +187,9 @@ impl Simulate for CommandFloat {
                 world.uber_states.get(*uber_identifier).as_float()
             }
             CommandFloat::GetFloat { id } => world.variables.get_float(id),
-            CommandFloat::ToFloat { integer } => (integer.simulate(world, output) as f32).into(),
+            CommandFloat::FromInteger { integer } => {
+                (integer.simulate(world, output) as f32).into()
+            }
         }
     }
 }

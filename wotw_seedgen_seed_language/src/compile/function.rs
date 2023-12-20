@@ -2,13 +2,18 @@ use super::{expression::CompileInto, Compile, SnippetCompiler};
 use crate::{
     ast::{self, UberStateType},
     output::{
-        Action, Command, CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandVoid,
-        CommandZone, CommonItem, StringOrPlaceholder,
+        ArithmeticOperator, Command, CommandBoolean, CommandFloat, CommandInteger, CommandString,
+        CommandVoid, CommandZone, EqualityComparator, Operation, StringOrPlaceholder,
     },
 };
+use convert_case::{Case, Casing};
 use parse_display::FromStr;
+use rand::seq::SliceRandom;
+use rand_pcg::Pcg64Mcg;
 use std::ops::Range;
-use wotw_seedgen_data::{UberIdentifier, WheelBind};
+use wotw_seedgen_data::{
+    Resource, Shard, Skill, Teleporter, UberIdentifier, WeaponUpgrade, WheelBind,
+};
 use wotw_seedgen_parse::{Error, Punctuated, Span, Symbol};
 
 struct ArgContext<'a, 'compiler, 'source, 'uberstates> {
@@ -85,15 +90,23 @@ pub(crate) enum FunctionIdentifier {
     GetBoolean,
     GetInteger,
     GetFloat,
-    ToFloat,
+    FromInteger,
     GetString,
     ToString,
-    ResourceName,
-    SkillName,
-    ShardName,
-    TeleporterName,
-    CleanWaterName,
-    WeaponUpgradeName,
+    SpiritLightString,
+    RemoveSpiritLightString,
+    ResourceString,
+    RemoveResourceString,
+    SkillString,
+    RemoveSkillString,
+    ShardString,
+    RemoveShardString,
+    TeleporterString,
+    RemoveTeleporterString,
+    CleanWaterString,
+    RemoveCleanWaterString,
+    WeaponUpgradeString,
+    RemoveWeaponUpgradeString,
     CurrentZone,
     SpiritLight,
     RemoveSpiritLight,
@@ -154,13 +167,11 @@ pub(crate) enum FunctionIdentifier {
 }
 
 impl<'source> Compile<'source> for ast::FunctionCall<'source> {
-    type Output = Option<Action>;
+    type Output = Option<Command>;
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
         if let Some(&index) = compiler.function_indices.get(self.identifier.data.0) {
-            return Some(Action::Command(Command::Void(CommandVoid::Lookup {
-                index,
-            })));
+            return Some(Command::Void(CommandVoid::Lookup { index }));
         }
         let identifier =
             compiler.consume_result(self.identifier.data.0.parse().map_err(|_| {
@@ -187,7 +198,7 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 let span = uber_identifier.span();
                 let uber_identifier =
                     uber_identifier.compile_into::<UberIdentifier>(&mut context.compiler)?;
-                let function = match context.compiler.uber_state_type(uber_identifier, &span)? {
+                match context.compiler.uber_state_type(uber_identifier, &span)? {
                     UberStateType::Boolean => {
                         Command::Boolean(CommandBoolean::FetchBoolean { uber_identifier })
                     }
@@ -197,391 +208,465 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                     UberStateType::Float => {
                         Command::Float(CommandFloat::FetchFloat { uber_identifier })
                     }
-                };
-                Action::Command(function)
+                }
             }
             FunctionIdentifier::IsInHitbox => {
-                Action::Command(Command::Boolean(CommandBoolean::IsInHitbox {
+                Command::Boolean(CommandBoolean::IsInHitbox {
                     x1: boxed_arg(&mut context)?, // TODO we short circuit potential error messages here, but this does avoid duplicate "too few arguments" errors, so we'd need a different approach to begin with
                     y1: boxed_arg(&mut context)?,
                     x2: boxed_arg(&mut context)?,
                     y2: boxed_arg(&mut context)?,
-                }))
+                })
             }
-            FunctionIdentifier::GetBoolean => {
-                Action::Command(Command::Boolean(CommandBoolean::GetBoolean {
-                    id: boolean_id(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::GetInteger => {
-                Action::Command(Command::Integer(CommandInteger::GetInteger {
-                    id: integer_id(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::GetFloat => {
-                Action::Command(Command::Float(CommandFloat::GetFloat {
-                    id: float_id(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::ToFloat => Action::Command(Command::Float(CommandFloat::ToFloat {
+            FunctionIdentifier::GetBoolean => Command::Boolean(CommandBoolean::GetBoolean {
+                id: boolean_id(&mut context)?,
+            }),
+            FunctionIdentifier::GetInteger => Command::Integer(CommandInteger::GetInteger {
+                id: integer_id(&mut context)?,
+            }),
+            FunctionIdentifier::GetFloat => Command::Float(CommandFloat::GetFloat {
+                id: float_id(&mut context)?,
+            }),
+            FunctionIdentifier::FromInteger => Command::Float(CommandFloat::FromInteger {
                 integer: boxed_arg(&mut context)?,
-            })),
-            FunctionIdentifier::GetString => {
-                Action::Command(Command::String(CommandString::GetString {
-                    id: string_id(&mut context)?,
-                }))
-            }
+            }),
+            FunctionIdentifier::GetString => Command::String(CommandString::GetString {
+                id: string_id(&mut context)?,
+            }),
             FunctionIdentifier::ToString => {
                 // TODO sometimes we can evaluate this already
-                Action::Command(Command::String(CommandString::ToString {
-                    command: boxed_arg(&mut context)?,
-                }))
+                let (arg, span) = spanned_arg(&mut context)?;
+                let command: CommandString = match arg {
+                    Command::Boolean(command) => CommandString::FromBoolean {
+                        boolean: Box::new(command),
+                    },
+                    Command::Integer(command) => CommandString::FromInteger {
+                        integer: Box::new(command),
+                    },
+                    Command::Float(command) => CommandString::FromFloat {
+                        float: Box::new(command),
+                    },
+                    Command::String(command) => command,
+                    _ => {
+                        context
+                            .compiler
+                            .errors
+                            .push(Error::custom("cannot convert to String".to_string(), span));
+                        return None;
+                    }
+                };
+
+                Command::String(command)
             }
-            FunctionIdentifier::ResourceName => {
-                Action::Command(Command::String(CommandString::Constant {
-                    value: StringOrPlaceholder::Value(
-                        CommonItem::Resource(arg(&mut context)?).to_string(),
-                    ),
-                }))
+            FunctionIdentifier::SpiritLightString => Command::String(spirit_light_string(
+                arg(&mut context)?,
+                &mut context.compiler.rng,
+                false,
+            )),
+            FunctionIdentifier::RemoveSpiritLightString => Command::String(spirit_light_string(
+                arg(&mut context)?,
+                &mut context.compiler.rng,
+                true,
+            )),
+            FunctionIdentifier::ResourceString => {
+                Command::String(resource_string(arg(&mut context)?, false))
             }
-            FunctionIdentifier::SkillName => {
-                Action::Command(Command::String(CommandString::Constant {
-                    value: StringOrPlaceholder::Value(
-                        CommonItem::Skill(arg(&mut context)?).to_string(),
-                    ),
-                }))
+            FunctionIdentifier::RemoveResourceString => {
+                Command::String(resource_string(arg(&mut context)?, true))
             }
-            FunctionIdentifier::ShardName => {
-                Action::Command(Command::String(CommandString::Constant {
-                    value: StringOrPlaceholder::Value(
-                        CommonItem::Shard(arg(&mut context)?).to_string(),
-                    ),
-                }))
+            FunctionIdentifier::SkillString => {
+                Command::String(skill_string(arg(&mut context)?, false))
             }
-            FunctionIdentifier::TeleporterName => {
-                Action::Command(Command::String(CommandString::Constant {
-                    value: StringOrPlaceholder::Value(
-                        CommonItem::Teleporter(arg(&mut context)?).to_string(),
-                    ),
-                }))
+            FunctionIdentifier::RemoveSkillString => {
+                Command::String(skill_string(arg(&mut context)?, true))
             }
-            FunctionIdentifier::CleanWaterName => {
-                Action::Command(Command::String(CommandString::Constant {
-                    value: StringOrPlaceholder::Value(CommonItem::CleanWater.to_string()),
-                }))
+            FunctionIdentifier::ShardString => {
+                Command::String(shard_string(arg(&mut context)?, false))
             }
-            FunctionIdentifier::WeaponUpgradeName => {
-                Action::Command(Command::String(CommandString::Constant {
-                    value: StringOrPlaceholder::Value(
-                        CommonItem::WeaponUpgrade(arg(&mut context)?).to_string(),
-                    ),
-                }))
+            FunctionIdentifier::RemoveShardString => {
+                Command::String(shard_string(arg(&mut context)?, true))
             }
-            FunctionIdentifier::CurrentZone => {
-                Action::Command(Command::Zone(CommandZone::CurrentZone {}))
+            FunctionIdentifier::TeleporterString => {
+                Command::String(teleporter_string(arg(&mut context)?, false))
             }
+            FunctionIdentifier::RemoveTeleporterString => {
+                Command::String(teleporter_string(arg(&mut context)?, true))
+            }
+            FunctionIdentifier::CleanWaterString => Command::String(clean_water_string(false)),
+            FunctionIdentifier::RemoveCleanWaterString => Command::String(clean_water_string(true)),
+            FunctionIdentifier::WeaponUpgradeString => {
+                Command::String(weapon_upgrade_string(arg(&mut context)?, false))
+            }
+            FunctionIdentifier::RemoveWeaponUpgradeString => {
+                Command::String(weapon_upgrade_string(arg(&mut context)?, true))
+            }
+            FunctionIdentifier::CurrentZone => Command::Zone(CommandZone::CurrentZone {}),
             FunctionIdentifier::SpiritLight => {
-                Action::Command(Command::Common(CommonItem::SpiritLight(arg(&mut context)?)))
+                let amount = arg(&mut context)?;
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::ItemMessage {
+                            message: spirit_light_string(amount, &mut context.compiler.rng, false),
+                        },
+                        add(UberIdentifier::SPIRIT_LIGHT, amount),
+                    ],
+                })
             }
-            FunctionIdentifier::RemoveSpiritLight => Action::Command(Command::Common(
-                CommonItem::RemoveSpiritLight(arg(&mut context)?),
-            )),
+            FunctionIdentifier::RemoveSpiritLight => {
+                let amount = arg(&mut context)?;
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::ItemMessage {
+                            message: spirit_light_string(amount, &mut context.compiler.rng, true),
+                        },
+                        add(UberIdentifier::SPIRIT_LIGHT, -amount),
+                    ],
+                })
+            }
             FunctionIdentifier::Resource => {
-                Action::Command(Command::Common(CommonItem::Resource(arg(&mut context)?)))
+                let resource = arg(&mut context)?;
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::ItemMessage {
+                            message: resource_string(resource, false),
+                        },
+                        add(resource.uber_identifier(), 1),
+                    ],
+                })
             }
-            FunctionIdentifier::RemoveResource => Action::Command(Command::Common(
-                CommonItem::RemoveResource(arg(&mut context)?),
-            )),
+            FunctionIdentifier::RemoveResource => {
+                let resource = arg(&mut context)?;
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::ItemMessage {
+                            message: resource_string(resource, true),
+                        },
+                        add(resource.uber_identifier(), -1),
+                    ],
+                })
+            }
             FunctionIdentifier::Skill => {
-                Action::Command(Command::Common(CommonItem::Skill(arg(&mut context)?)))
+                let skill = arg(&mut context)?;
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::ItemMessage {
+                            message: skill_string(skill, false),
+                        },
+                        set(skill.uber_identifier(), true),
+                    ],
+                })
             }
             FunctionIdentifier::RemoveSkill => {
-                Action::Command(Command::Common(CommonItem::RemoveSkill(arg(&mut context)?)))
+                let skill = arg(&mut context)?;
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::ItemMessage {
+                            message: skill_string(skill, true),
+                        },
+                        set(skill.uber_identifier(), false),
+                    ],
+                })
             }
             FunctionIdentifier::Shard => {
-                Action::Command(Command::Common(CommonItem::Shard(arg(&mut context)?)))
+                let shard = arg(&mut context)?;
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::ItemMessage {
+                            message: shard_string(shard, false),
+                        },
+                        set(shard.uber_identifier(), true),
+                    ],
+                })
             }
             FunctionIdentifier::RemoveShard => {
-                Action::Command(Command::Common(CommonItem::RemoveShard(arg(&mut context)?)))
+                let shard = arg(&mut context)?;
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::ItemMessage {
+                            message: shard_string(shard, true),
+                        },
+                        set(shard.uber_identifier(), false),
+                    ],
+                })
             }
             FunctionIdentifier::Teleporter => {
-                Action::Command(Command::Common(CommonItem::Teleporter(arg(&mut context)?)))
+                let teleporter = arg(&mut context)?;
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::ItemMessage {
+                            message: teleporter_string(teleporter, false),
+                        },
+                        set(teleporter.uber_identifier(), true),
+                    ],
+                })
             }
-            FunctionIdentifier::RemoveTeleporter => Action::Command(Command::Common(
-                CommonItem::RemoveTeleporter(arg(&mut context)?),
-            )),
-            FunctionIdentifier::CleanWater => {
-                Action::Command(Command::Common(CommonItem::CleanWater))
+            FunctionIdentifier::RemoveTeleporter => {
+                let teleporter = arg(&mut context)?;
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::ItemMessage {
+                            message: teleporter_string(teleporter, true),
+                        },
+                        set(teleporter.uber_identifier(), false),
+                    ],
+                })
             }
-            FunctionIdentifier::RemoveCleanWater => {
-                Action::Command(Command::Common(CommonItem::RemoveCleanWater))
+            FunctionIdentifier::CleanWater => Command::Void(CommandVoid::Multi {
+                commands: vec![
+                    CommandVoid::ItemMessage {
+                        message: clean_water_string(false),
+                    },
+                    set(UberIdentifier::CLEAN_WATER, true),
+                ],
+            }),
+            FunctionIdentifier::RemoveCleanWater => Command::Void(CommandVoid::Multi {
+                commands: vec![
+                    CommandVoid::ItemMessage {
+                        message: clean_water_string(true),
+                    },
+                    set(UberIdentifier::CLEAN_WATER, false),
+                ],
+            }),
+            FunctionIdentifier::WeaponUpgrade => {
+                let weapon_upgrade = arg(&mut context)?;
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::ItemMessage {
+                            message: weapon_upgrade_string(weapon_upgrade, false),
+                        },
+                        set(weapon_upgrade.uber_identifier(), true),
+                    ],
+                })
             }
-            FunctionIdentifier::WeaponUpgrade => Action::Command(Command::Common(
-                CommonItem::WeaponUpgrade(arg(&mut context)?),
-            )),
-            FunctionIdentifier::RemoveWeaponUpgrade => Action::Command(Command::Common(
-                CommonItem::RemoveWeaponUpgrade(arg(&mut context)?),
-            )),
-            FunctionIdentifier::ItemMessage => {
-                Action::Command(Command::Void(CommandVoid::ItemMessage {
-                    message: arg(&mut context)?,
-                }))
+            FunctionIdentifier::RemoveWeaponUpgrade => {
+                let weapon_upgrade = arg(&mut context)?;
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::ItemMessage {
+                            message: weapon_upgrade_string(weapon_upgrade, true),
+                        },
+                        set(weapon_upgrade.uber_identifier(), false),
+                    ],
+                })
             }
+            FunctionIdentifier::ItemMessage => Command::Void(CommandVoid::ItemMessage {
+                message: arg(&mut context)?,
+            }),
             FunctionIdentifier::ItemMessageWithTimeout => {
-                Action::Command(Command::Void(CommandVoid::ItemMessageWithTimeout {
+                Command::Void(CommandVoid::ItemMessageWithTimeout {
                     message: arg(&mut context)?,
                     timeout: arg(&mut context)?,
-                }))
+                })
             }
-            FunctionIdentifier::PriorityMessage => {
-                Action::Command(Command::Void(CommandVoid::PriorityMessage {
-                    message: arg(&mut context)?,
-                    timeout: arg(&mut context)?,
-                }))
-            }
+            FunctionIdentifier::PriorityMessage => Command::Void(CommandVoid::PriorityMessage {
+                message: arg(&mut context)?,
+                timeout: arg(&mut context)?,
+            }),
             FunctionIdentifier::ControlledMessage => {
-                Action::Command(Command::Void(CommandVoid::ControlledMessage {
+                Command::Void(CommandVoid::ControlledMessage {
                     id: message_id(&mut context)?,
                     message: arg(&mut context)?,
-                }))
+                })
             }
-            FunctionIdentifier::SetMessageText => {
-                Action::Command(Command::Void(CommandVoid::SetMessageText {
-                    id: message_id(&mut context)?,
-                    message: arg(&mut context)?,
-                }))
-            }
+            FunctionIdentifier::SetMessageText => Command::Void(CommandVoid::SetMessageText {
+                id: message_id(&mut context)?,
+                message: arg(&mut context)?,
+            }),
             FunctionIdentifier::SetMessageTimeout => {
-                Action::Command(Command::Void(CommandVoid::SetMessageTimeout {
+                Command::Void(CommandVoid::SetMessageTimeout {
                     id: message_id(&mut context)?,
                     timeout: arg(&mut context)?,
-                }))
+                })
             }
-            FunctionIdentifier::DestroyMessage => {
-                Action::Command(Command::Void(CommandVoid::DestroyMessage {
-                    id: message_id(&mut context)?,
-                }))
-            }
+            FunctionIdentifier::DestroyMessage => Command::Void(CommandVoid::DestroyMessage {
+                id: message_id(&mut context)?,
+            }),
             FunctionIdentifier::Store => store(true, &mut context)?,
             FunctionIdentifier::StoreWithoutTriggers => store(false, &mut context)?,
-            FunctionIdentifier::SetBoolean => {
-                Action::Command(Command::Void(CommandVoid::SetBoolean {
-                    id: boolean_id(&mut context)?,
-                    value: arg(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::SetInteger => {
-                Action::Command(Command::Void(CommandVoid::SetInteger {
-                    id: integer_id(&mut context)?,
-                    value: arg(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::SetFloat => Action::Command(Command::Void(CommandVoid::SetFloat {
+            FunctionIdentifier::SetBoolean => Command::Void(CommandVoid::SetBoolean {
+                id: boolean_id(&mut context)?,
+                value: arg(&mut context)?,
+            }),
+            FunctionIdentifier::SetInteger => Command::Void(CommandVoid::SetInteger {
+                id: integer_id(&mut context)?,
+                value: arg(&mut context)?,
+            }),
+            FunctionIdentifier::SetFloat => Command::Void(CommandVoid::SetFloat {
                 id: float_id(&mut context)?,
                 value: arg(&mut context)?,
-            })),
-            FunctionIdentifier::SetString => {
-                Action::Command(Command::Void(CommandVoid::SetString {
-                    id: string_id(&mut context)?,
-                    value: arg(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::DefineTimer => {
-                Action::Command(Command::Void(CommandVoid::DefineTimer {
-                    toggle: arg(&mut context)?,
-                    timer: arg(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::Save => Action::Command(Command::Void(CommandVoid::Save {})),
-            FunctionIdentifier::Checkpoint => {
-                Action::Command(Command::Void(CommandVoid::Checkpoint {}))
-            }
-            FunctionIdentifier::Warp => Action::Command(Command::Void(CommandVoid::Warp {
+            }),
+            FunctionIdentifier::SetString => Command::Void(CommandVoid::SetString {
+                id: string_id(&mut context)?,
+                value: arg(&mut context)?,
+            }),
+            FunctionIdentifier::DefineTimer => Command::Void(CommandVoid::DefineTimer {
+                toggle: arg(&mut context)?,
+                timer: arg(&mut context)?,
+            }),
+            FunctionIdentifier::Save => Command::Void(CommandVoid::Save {}),
+            FunctionIdentifier::Checkpoint => Command::Void(CommandVoid::Checkpoint {}),
+            FunctionIdentifier::Warp => Command::Void(CommandVoid::Warp {
                 x: arg(&mut context)?,
                 y: arg(&mut context)?,
-            })),
-            FunctionIdentifier::Equip => Action::Command(Command::Void(CommandVoid::Equip {
+            }),
+            FunctionIdentifier::Equip => Command::Void(CommandVoid::Equip {
                 slot: arg(&mut context)?,
                 equipment: arg(&mut context)?,
-            })),
-            FunctionIdentifier::Unequip => Action::Command(Command::Void(CommandVoid::Unequip {
+            }),
+            FunctionIdentifier::Unequip => Command::Void(CommandVoid::Unequip {
                 equipment: arg(&mut context)?,
-            })),
-            FunctionIdentifier::TriggerKeybind => {
-                Action::Command(Command::Void(CommandVoid::TriggerKeybind {
-                    bind: arg(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::EnableServerSync => {
-                Action::Command(Command::Void(CommandVoid::EnableServerSync {
-                    uber_identifier: arg(&mut context)?,
-                }))
-            }
+            }),
+            FunctionIdentifier::TriggerKeybind => Command::Void(CommandVoid::TriggerKeybind {
+                bind: arg(&mut context)?,
+            }),
+            FunctionIdentifier::EnableServerSync => Command::Void(CommandVoid::EnableServerSync {
+                uber_identifier: arg(&mut context)?,
+            }),
             FunctionIdentifier::DisableServerSync => {
-                Action::Command(Command::Void(CommandVoid::DisableServerSync {
+                Command::Void(CommandVoid::DisableServerSync {
                     uber_identifier: arg(&mut context)?,
-                }))
+                })
             }
             FunctionIdentifier::SetKwolokStatueEnabled => {
-                Action::Command(Command::Void(CommandVoid::SetKwolokStatueEnabled {
+                Command::Void(CommandVoid::SetKwolokStatueEnabled {
                     enabled: arg(&mut context)?,
-                }))
+                })
             }
-            FunctionIdentifier::CreateWarpIcon => {
-                Action::Command(Command::Void(CommandVoid::CreateWarpIcon {
-                    id: warp_icon_id(&mut context)?,
-                    x: arg(&mut context)?,
-                    y: arg(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::SetWarpIconLabel => {
-                Action::Command(Command::Void(CommandVoid::SetWarpIconLabel {
-                    id: warp_icon_id(&mut context)?,
-                    label: arg(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::DestroyWarpIcon => {
-                Action::Command(Command::Void(CommandVoid::DestroyWarpIcon {
-                    id: warp_icon_id(&mut context)?,
-                }))
-            }
+            FunctionIdentifier::CreateWarpIcon => Command::Void(CommandVoid::CreateWarpIcon {
+                id: warp_icon_id(&mut context)?,
+                x: arg(&mut context)?,
+                y: arg(&mut context)?,
+            }),
+            FunctionIdentifier::SetWarpIconLabel => Command::Void(CommandVoid::SetWarpIconLabel {
+                id: warp_icon_id(&mut context)?,
+                label: arg(&mut context)?,
+            }),
+            FunctionIdentifier::DestroyWarpIcon => Command::Void(CommandVoid::DestroyWarpIcon {
+                id: warp_icon_id(&mut context)?,
+            }),
             FunctionIdentifier::SetShopItemData => {
                 let uber_identifier = arg::<UberIdentifier>(&mut context)?;
-                Action::Multi(vec![
-                    Action::Command(Command::Void(CommandVoid::SetShopItemPrice {
-                        uber_identifier,
-                        price: arg(&mut context)?,
-                    })),
-                    Action::Command(Command::Void(CommandVoid::SetShopItemName {
-                        uber_identifier,
-                        name: arg(&mut context)?,
-                    })),
-                    Action::Command(Command::Void(CommandVoid::SetShopItemDescription {
-                        uber_identifier,
-                        description: arg(&mut context)?,
-                    })),
-                    Action::Command(Command::Void(CommandVoid::SetShopItemIcon {
-                        uber_identifier,
-                        icon: arg(&mut context)?,
-                    })),
-                ])
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::SetShopItemPrice {
+                            uber_identifier,
+                            price: arg(&mut context)?,
+                        },
+                        CommandVoid::SetShopItemName {
+                            uber_identifier,
+                            name: arg(&mut context)?,
+                        },
+                        CommandVoid::SetShopItemDescription {
+                            uber_identifier,
+                            description: arg(&mut context)?,
+                        },
+                        CommandVoid::SetShopItemIcon {
+                            uber_identifier,
+                            icon: arg(&mut context)?,
+                        },
+                    ],
+                })
             }
-            FunctionIdentifier::SetShopItemPrice => {
-                Action::Command(Command::Void(CommandVoid::SetShopItemPrice {
-                    uber_identifier: arg(&mut context)?,
-                    price: arg(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::SetShopItemName => {
-                Action::Command(Command::Void(CommandVoid::SetShopItemName {
-                    uber_identifier: arg(&mut context)?,
-                    name: arg(&mut context)?,
-                }))
-            }
+            FunctionIdentifier::SetShopItemPrice => Command::Void(CommandVoid::SetShopItemPrice {
+                uber_identifier: arg(&mut context)?,
+                price: arg(&mut context)?,
+            }),
+            FunctionIdentifier::SetShopItemName => Command::Void(CommandVoid::SetShopItemName {
+                uber_identifier: arg(&mut context)?,
+                name: arg(&mut context)?,
+            }),
             FunctionIdentifier::SetShopItemDescription => {
-                Action::Command(Command::Void(CommandVoid::SetShopItemDescription {
+                Command::Void(CommandVoid::SetShopItemDescription {
                     uber_identifier: arg(&mut context)?,
                     description: arg(&mut context)?,
-                }))
+                })
             }
-            FunctionIdentifier::SetShopItemIcon => {
-                Action::Command(Command::Void(CommandVoid::SetShopItemIcon {
-                    uber_identifier: arg(&mut context)?,
-                    icon: arg(&mut context)?,
-                }))
-            }
+            FunctionIdentifier::SetShopItemIcon => Command::Void(CommandVoid::SetShopItemIcon {
+                uber_identifier: arg(&mut context)?,
+                icon: arg(&mut context)?,
+            }),
             FunctionIdentifier::SetShopItemHidden => {
-                Action::Command(Command::Void(CommandVoid::SetShopItemHidden {
+                Command::Void(CommandVoid::SetShopItemHidden {
                     uber_identifier: arg(&mut context)?,
                     hidden: arg(&mut context)?,
-                }))
+                })
             }
             FunctionIdentifier::SetWheelItemData => {
                 let wheel = wheel_id(&mut context)?;
                 let position = arg(&mut context)?;
-                Action::Multi(vec![
-                    Action::Command(Command::Void(CommandVoid::SetWheelItemName {
-                        wheel,
-                        position,
-                        name: arg(&mut context)?,
-                    })),
-                    Action::Command(Command::Void(CommandVoid::SetWheelItemDescription {
-                        wheel,
-                        position,
-                        description: arg(&mut context)?,
-                    })),
-                    Action::Command(Command::Void(CommandVoid::SetWheelItemIcon {
-                        wheel,
-                        position,
-                        icon: arg(&mut context)?,
-                    })),
-                    Action::Command(Command::Void(CommandVoid::SetWheelItemAction {
-                        wheel,
-                        position,
-                        bind: WheelBind::All,
-                        action: arg(&mut context)?,
-                    })),
-                ])
+                Command::Void(CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::SetWheelItemName {
+                            wheel,
+                            position,
+                            name: arg(&mut context)?,
+                        },
+                        CommandVoid::SetWheelItemDescription {
+                            wheel,
+                            position,
+                            description: arg(&mut context)?,
+                        },
+                        CommandVoid::SetWheelItemIcon {
+                            wheel,
+                            position,
+                            icon: arg(&mut context)?,
+                        },
+                        CommandVoid::SetWheelItemAction {
+                            wheel,
+                            position,
+                            bind: WheelBind::All,
+                            action: arg(&mut context)?,
+                        },
+                    ],
+                })
             }
-            FunctionIdentifier::SetWheelItemName => {
-                Action::Command(Command::Void(CommandVoid::SetWheelItemName {
-                    wheel: wheel_id(&mut context)?,
-                    position: arg(&mut context)?,
-                    name: arg(&mut context)?,
-                }))
-            }
+            FunctionIdentifier::SetWheelItemName => Command::Void(CommandVoid::SetWheelItemName {
+                wheel: wheel_id(&mut context)?,
+                position: arg(&mut context)?,
+                name: arg(&mut context)?,
+            }),
             FunctionIdentifier::SetWheelItemDescription => {
-                Action::Command(Command::Void(CommandVoid::SetWheelItemDescription {
+                Command::Void(CommandVoid::SetWheelItemDescription {
                     wheel: wheel_id(&mut context)?,
                     position: arg(&mut context)?,
                     description: arg(&mut context)?,
-                }))
+                })
             }
-            FunctionIdentifier::SetWheelItemIcon => {
-                Action::Command(Command::Void(CommandVoid::SetWheelItemIcon {
-                    wheel: wheel_id(&mut context)?,
-                    position: arg(&mut context)?,
-                    icon: arg(&mut context)?,
-                }))
-            }
+            FunctionIdentifier::SetWheelItemIcon => Command::Void(CommandVoid::SetWheelItemIcon {
+                wheel: wheel_id(&mut context)?,
+                position: arg(&mut context)?,
+                icon: arg(&mut context)?,
+            }),
             FunctionIdentifier::SetWheelItemColor => {
-                Action::Command(Command::Void(CommandVoid::SetWheelItemColor {
+                Command::Void(CommandVoid::SetWheelItemColor {
                     wheel: wheel_id(&mut context)?,
                     position: arg(&mut context)?,
                     red: arg(&mut context)?,
                     green: arg(&mut context)?,
                     blue: arg(&mut context)?,
                     alpha: arg(&mut context)?,
-                }))
+                })
             }
             FunctionIdentifier::SetWheelItemAction => {
-                Action::Command(Command::Void(CommandVoid::SetWheelItemAction {
+                Command::Void(CommandVoid::SetWheelItemAction {
                     wheel: wheel_id(&mut context)?,
                     position: arg(&mut context)?,
                     bind: arg(&mut context)?,
                     action: arg(&mut context)?,
-                }))
+                })
             }
-            FunctionIdentifier::DestroyWheelItem => {
-                Action::Command(Command::Void(CommandVoid::DestroyWheelItem {
-                    wheel: wheel_id(&mut context)?,
-                    position: arg(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::SwitchWheel => {
-                Action::Command(Command::Void(CommandVoid::SwitchWheel {
-                    wheel: wheel_id(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::SetWheelPinned => {
-                Action::Command(Command::Void(CommandVoid::SetWheelPinned {
-                    wheel: wheel_id(&mut context)?,
-                    pinned: arg(&mut context)?,
-                }))
-            }
-            FunctionIdentifier::ClearAllWheels => {
-                Action::Command(Command::Void(CommandVoid::ClearAllWheels {}))
-            }
+            FunctionIdentifier::DestroyWheelItem => Command::Void(CommandVoid::DestroyWheelItem {
+                wheel: wheel_id(&mut context)?,
+                position: arg(&mut context)?,
+            }),
+            FunctionIdentifier::SwitchWheel => Command::Void(CommandVoid::SwitchWheel {
+                wheel: wheel_id(&mut context)?,
+            }),
+            FunctionIdentifier::SetWheelPinned => Command::Void(CommandVoid::SetWheelPinned {
+                wheel: wheel_id(&mut context)?,
+                pinned: arg(&mut context)?,
+            }),
+            FunctionIdentifier::ClearAllWheels => Command::Void(CommandVoid::ClearAllWheels {}),
         };
 
         if let Some(excess) = context.parameters.next() {
@@ -601,7 +686,170 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
     }
 }
 
-fn store(check_triggers: bool, context: &mut ArgContext) -> Option<Action> {
+fn spirit_light_string(amount: i32, rng: &mut Pcg64Mcg, remove: bool) -> CommandString {
+    CommandString::Multi {
+        commands: vec![
+            CommandVoid::If {
+                condition: CommandBoolean::RandomSpiritLightNames {},
+                command: Box::new(CommandVoid::SetString {
+                    id: 2,
+                    value: CommandString::Constant {
+                        value: (*SPIRIT_LIGHT_NAMES.choose(rng).unwrap()).into(),
+                    },
+                }),
+            },
+            CommandVoid::If {
+                condition: CommandBoolean::CompareBoolean {
+                    operation: Box::new(Operation {
+                        left: CommandBoolean::RandomSpiritLightNames {},
+                        operator: EqualityComparator::Equal,
+                        right: CommandBoolean::Constant { value: false },
+                    }),
+                },
+                command: Box::new(CommandVoid::SetString {
+                    id: 2,
+                    value: CommandString::Constant {
+                        value: "Spirit Light".into(),
+                    },
+                }),
+            },
+        ],
+        last: Box::new(CommandString::Concatenate {
+            left: Box::new(CommandString::Constant {
+                value: if remove {
+                    format!("@ Remove {amount} ")
+                } else {
+                    format!("#{amount} ")
+                }
+                .into(),
+            }),
+            right: Box::new(CommandString::Concatenate {
+                left: Box::new(CommandString::GetString { id: 2 }),
+                right: Box::new(CommandString::Constant {
+                    value: if remove { "#" } else { "@" }.into(),
+                }),
+            }),
+        }),
+    }
+}
+fn resource_string(resource: Resource, remove: bool) -> CommandString {
+    let resource_cased = resource
+        .to_string()
+        .from_case(Case::Pascal)
+        .to_case(Case::Title);
+    let value = if remove {
+        format!("@Remove {resource_cased}@")
+    } else {
+        resource_cased
+    }
+    .into();
+    CommandString::Constant { value }
+}
+fn skill_string(skill: Skill, remove: bool) -> CommandString {
+    let skill_cased = skill
+        .to_string()
+        .from_case(Case::Pascal)
+        .to_case(Case::Title);
+    let value = if remove {
+        format!("@Remove {skill_cased}@")
+    } else {
+        match skill {
+            Skill::GladesAncestralLight | Skill::InkwaterAncestralLight => {
+                format!("#{skill_cased}#")
+            }
+            _ => format!("*{skill_cased}*"),
+        }
+    }
+    .into();
+    CommandString::Constant { value }
+}
+fn shard_string(shard: Shard, remove: bool) -> CommandString {
+    let shard_cased = shard
+        .to_string()
+        .from_case(Case::Pascal)
+        .to_case(Case::Title);
+    let value = if remove {
+        format!("@Remove {shard_cased}@")
+    } else {
+        format!("${shard_cased}$")
+    }
+    .into();
+    CommandString::Constant { value }
+}
+fn teleporter_string(teleporter: Teleporter, remove: bool) -> CommandString {
+    let name = match teleporter {
+        Teleporter::Inkwater => "Inkwater Marsh",
+        Teleporter::Den => "Howl's Den",
+        Teleporter::Hollow => "Kwolok's Hollow",
+        Teleporter::Glades => "Glades",
+        Teleporter::Wellspring => "Wellspring",
+        Teleporter::Burrows => "Midnight Burrows",
+        Teleporter::WoodsEntrance => "Woods Entrance",
+        Teleporter::WoodsExit => "Woods Exit",
+        Teleporter::Reach => "Baur's Reach",
+        Teleporter::Depths => "Mouldwood Depths",
+        Teleporter::CentralLuma => "Central Luma",
+        Teleporter::LumaBoss => "Luma Boss",
+        Teleporter::FeedingGrounds => "Feeding Grounds",
+        Teleporter::CentralWastes => "Central Wastes",
+        Teleporter::OuterRuins => "Outer Ruins",
+        Teleporter::InnerRuins => "Inner Ruins",
+        Teleporter::Willow => "Willow's End",
+        Teleporter::Shriek => "Shriek",
+    };
+    let value = if remove {
+        format!("@Remove {name} Teleporter@")
+    } else {
+        format!("#{name} Teleporter#")
+    }
+    .into();
+    CommandString::Constant { value }
+}
+fn clean_water_string(remove: bool) -> CommandString {
+    let value = if remove {
+        "@Remove Clean Water@"
+    } else {
+        "*Clean Water*"
+    }
+    .into();
+    CommandString::Constant { value }
+}
+fn weapon_upgrade_string(weapon_upgrade: WeaponUpgrade, remove: bool) -> CommandString {
+    let weapon_upgrade_cased = weapon_upgrade
+        .to_string()
+        .from_case(Case::Pascal)
+        .to_case(Case::Title);
+    let value = if remove {
+        format!("@Remove {weapon_upgrade_cased}@")
+    } else {
+        format!("#{weapon_upgrade_cased}#")
+    }
+    .into();
+    CommandString::Constant { value }
+}
+
+fn add(uber_identifier: UberIdentifier, amount: i32) -> CommandVoid {
+    CommandVoid::StoreInteger {
+        uber_identifier,
+        value: CommandInteger::Arithmetic {
+            operation: Box::new(Operation {
+                left: CommandInteger::FetchInteger { uber_identifier },
+                operator: ArithmeticOperator::Add,
+                right: CommandInteger::Constant { value: amount },
+            }),
+        },
+        check_triggers: true,
+    }
+}
+fn set(uber_identifier: UberIdentifier, value: bool) -> CommandVoid {
+    CommandVoid::StoreBoolean {
+        uber_identifier,
+        value: CommandBoolean::Constant { value },
+        check_triggers: true,
+    }
+}
+
+fn store(check_triggers: bool, context: &mut ArgContext) -> Option<Command> {
     let (uber_identifier, span) = spanned_arg::<UberIdentifier>(context)?;
     let command = match context.compiler.uber_state_type(uber_identifier, &span)? {
         UberStateType::Boolean => CommandVoid::StoreBoolean {
@@ -633,5 +881,93 @@ fn store(check_triggers: bool, context: &mut ArgContext) -> Option<Action> {
             span,
         ));
     }
-    Some(Action::Command(Command::Void(command)))
+    Some(Command::Void(command))
 }
+
+const SPIRIT_LIGHT_NAMES: &[&str] = &[
+    "Spirit Light",
+    "Gallons",
+    "Spirit Bucks",
+    "Gold",
+    "Geo",
+    "EXP",
+    "Experience",
+    "XP",
+    "Gil",
+    "GP",
+    "Dollars",
+    "Tokens",
+    "Tickets",
+    "Pounds Sterling",
+    "Brownie Points",
+    "Euros",
+    "Credits",
+    "Bells",
+    "Fish",
+    "Zenny",
+    "Pesos",
+    "Exalted Orbs",
+    "Hryvnia",
+    "Poké",
+    "Glod",
+    "Dollerydoos",
+    "Boonbucks",
+    "Pieces of Eight",
+    "Shillings",
+    "Farthings",
+    "Kalganids",
+    "Quatloos",
+    "Crowns",
+    "Solari",
+    "Widgets",
+    "Ori Money",
+    "Money",
+    "Cash",
+    "Munny",
+    "Nuyen",
+    "Rings",
+    "Rupees",
+    "Coins",
+    "Echoes",
+    "Sovereigns",
+    "Points",
+    "Drams",
+    "Doubloons",
+    "Spheres",
+    "Silver",
+    "Slivers",
+    "Rubies",
+    "Emeralds",
+    "Notes",
+    "Yen",
+    "Złoty",
+    "Likes",
+    "Comments",
+    "Subs",
+    "Bananas",
+    "Sapphires",
+    "Diamonds",
+    "Fun",
+    "Minerals",
+    "Vespine Gas",
+    "Sheep",
+    "Brick",
+    "Wheat",
+    "Wood",
+    "Quills",
+    "Bits",
+    "Bytes",
+    "Nuts",
+    "Bolts",
+    "Souls",
+    "Runes",
+    "Pons",
+    "Boxings",
+    "Stonks",
+    "Leaves",
+    "Marbles",
+    "Stamps",
+    "Hugs",
+    "Nobles",
+    "Socks",
+];

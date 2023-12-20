@@ -1,8 +1,8 @@
 use super::{
-    ArithmeticOperator, CommonItem, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
+    ArithmeticOperator, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
     StringOrPlaceholder,
 };
-use decorum::R32;
+use ordered_float::OrderedFloat;
 use wotw_seedgen_data::{
     EquipSlot, Equipment, MapIcon, UberIdentifier, WheelBind, WheelItemPosition, Zone,
 };
@@ -22,8 +22,6 @@ pub enum Command {
     Zone(CommandZone),
     /// Commands returning nothing
     Void(CommandVoid),
-    /// Commands provided by [`LiteralTypes`]
-    Common(CommonItem),
 }
 
 /// Command which returns [`bool`]
@@ -31,6 +29,11 @@ pub enum Command {
 pub enum CommandBoolean {
     /// Return `value`
     Constant { value: bool },
+    /// Execute `commands`, then use `last` for the return value
+    Multi {
+        commands: Vec<CommandVoid>,
+        last: Box<CommandBoolean>,
+    },
     /// Return the result of `operation`
     CompareBoolean {
         operation: Box<Operation<CommandBoolean, EqualityComparator>>,
@@ -77,6 +80,11 @@ pub enum CommandBoolean {
 pub enum CommandInteger {
     /// Return `value`
     Constant { value: i32 },
+    /// Execute `commands`, then use `last` for the return value
+    Multi {
+        commands: Vec<CommandVoid>,
+        last: Box<CommandInteger>,
+    },
     /// Return the result of `operation`
     Arithmetic {
         operation: Box<Operation<CommandInteger, ArithmeticOperator>>,
@@ -92,7 +100,12 @@ pub enum CommandInteger {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CommandFloat {
     /// Return `value`
-    Constant { value: R32 },
+    Constant { value: OrderedFloat<f32> },
+    /// Execute `commands`, then use `last` for the return value
+    Multi {
+        commands: Vec<CommandVoid>,
+        last: Box<CommandFloat>,
+    },
     /// Return the result of `operation`
     Arithmetic {
         operation: Box<Operation<CommandFloat, ArithmeticOperator>>,
@@ -102,7 +115,7 @@ pub enum CommandFloat {
     /// Get the value stored under `id`
     GetFloat { id: usize },
     /// Convert `integer` to `f32`
-    ToFloat { integer: Box<CommandInteger> },
+    FromInteger { integer: Box<CommandInteger> },
 }
 
 /// Command which returns [`StringOrPlaceholder`]
@@ -110,6 +123,11 @@ pub enum CommandFloat {
 pub enum CommandString {
     /// Return `value`
     Constant { value: StringOrPlaceholder },
+    /// Execute `commands`, then use `last` for the return value
+    Multi {
+        commands: Vec<CommandVoid>,
+        last: Box<CommandString>,
+    },
     /// Return a String consisting of `left`, then `right`
     Concatenate {
         left: Box<CommandString>,
@@ -119,10 +137,12 @@ pub enum CommandString {
     GetString { id: usize },
     /// Return the name of world number `index`
     WorldName { index: usize },
-    /// Convert `command` to a `String`
-    ///
-    /// Only booleans, numbers and strings are required to be converted successfully
-    ToString { command: Box<Command> },
+    /// Convert `boolean` to `String`
+    FromBoolean { boolean: Box<CommandBoolean> },
+    /// Convert `integer` to `String`
+    FromInteger { integer: Box<CommandInteger> },
+    /// Convert `float` to `String`
+    FromFloat { float: Box<CommandFloat> },
 }
 
 /// Command which returns [`Zone`]
@@ -130,6 +150,11 @@ pub enum CommandString {
 pub enum CommandZone {
     /// Return `value`
     Constant { value: Zone },
+    /// Execute `commands`, then use `last` for the return value
+    Multi {
+        commands: Vec<CommandVoid>,
+        last: Box<CommandZone>,
+    },
     /// Return the zone Ori is currently in
     CurrentZone {},
 }
@@ -137,6 +162,15 @@ pub enum CommandZone {
 /// Command which returns nothing
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CommandVoid {
+    /// Execute `commands`
+    Multi { commands: Vec<CommandVoid> },
+    /// Lookup and perform the action at `index`
+    Lookup { index: usize },
+    /// Only perform `command` if `condition` evaluates to true
+    If {
+        condition: CommandBoolean,
+        command: Box<CommandVoid>,
+    },
     /// Add `message` to the item message queue with a default timeout
     ItemMessage { message: CommandString },
     /// Add `message` to the item message queue with `timeout`
@@ -300,6 +334,4 @@ pub enum CommandVoid {
     },
     /// Remove all wheel items
     ClearAllWheels {},
-    /// Lookup and perform the action at `index`
-    Lookup { index: usize },
 }

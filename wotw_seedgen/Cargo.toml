@@ -31,7 +31,6 @@ ansi_term = "0.12"
 smallvec = { version = "1.6", features = ["const_generics"] }
 regex = "1"
 num_enum = "0.5"
-decorum = { version = "0.3", default-features = false, features = ["std"] }
 partition = "0.1"
 itertools = "0.10"
 # TODO check if used

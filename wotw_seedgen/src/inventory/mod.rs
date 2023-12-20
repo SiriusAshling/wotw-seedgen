@@ -304,7 +304,6 @@ impl Inventory {
             .collect::<SmallVec<[_; 9]>>();
 
         // Use the best weapon as long as it doesn't "waste" any damage
-        use decorum::cmp::FloatOrd;
         let ((damage, mut cost), _) = weapon_stats
             .iter()
             .map(|(damage, cost)| ((*damage, *cost), damage / cost))

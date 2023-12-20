@@ -1,14 +1,15 @@
 mod compile;
 
-use wotw_seedgen_seed_language::output::{ArithmeticOperator, Icon};
+pub use compile::*;
+pub use wotw_seedgen_data::{
+    EquipSlot, Equipment, MapIcon, Position, UberIdentifier, WheelBind, WheelItemPosition,
+};
 pub use wotw_seedgen_seed_language::output::{
-    Comparator, EqualityComparator, LogicOperator, Operation, PseudoTrigger,
+    ArithmeticOperator, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
+    PseudoTrigger,
 };
 
 use serde::{Deserialize, Serialize};
-use wotw_seedgen_data::{
-    EquipSlot, Equipment, MapIcon, Position, UberIdentifier, WheelBind, WheelItemPosition,
-};
 
 /// Seed data for one World
 #[derive(Debug, Serialize, Deserialize)]
@@ -117,7 +118,17 @@ pub enum Command {
     /// Concatenate String Memory 1 and String Memory 0 and store the result in String Memory 0
     Concatenate,
     /// Convert Integer Memory 0 to a float and store it in Float Memory 0
-    ToFloat,
+    IntegerToFloat,
+    /// Convert Boolean Memory 0 to a string and store it in String Memory 0
+    BooleanToString,
+    /// Convert Integer Memory 0 to a string and store it in String Memory 0
+    IntegerToString,
+    /// Convert Float Memory 0 to a string and store it in String Memory 0
+    FloatToString,
+    DefineTimer {
+        toggle: UberIdentifier,
+        timer: UberIdentifier,
+    },
     /// Check if Ori is in the hitbox defined by (Float Memory 1, Float Memory 2) and (Float Memory 3, Float Memory 0) and store the result in Boolean Memory 0
     IsInHitbox,
     /// Store whether the user wants to see random spirit light names in Boolean Memory 0
