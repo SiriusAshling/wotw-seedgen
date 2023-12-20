@@ -15,12 +15,14 @@ use std::{
     fmt::{self, Display},
     hash::Hash,
 };
-use wotw_seedgen_data::{Equipment, GromIcon, LupoIcon, MapIcon, OpherIcon, Shard, TuleyIcon};
+use wotw_seedgen_data::{
+    Equipment, GromIcon, LupoIcon, MapIcon, OpherIcon, Position, Shard, TuleyIcon,
+};
 
 // TODO check all the public derives
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CompilerOutput {
-    pub spawn: Option<String>,
+    pub spawn: Option<Position>,
     pub events: Vec<Event>,
     pub command_lookup: Vec<Command>,
     pub flags: FxHashSet<String>,

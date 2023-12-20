@@ -768,6 +768,34 @@ pub enum MapIcon {
 #[cfg_attr(feature = "parse_display", derive(FromStr, Display))]
 #[cfg_attr(feature = "try_from_number", derive(TryFromPrimitive))]
 #[repr(u8)]
+pub enum Alignment {
+    Left = 0,
+    Center = 1,
+    Right = 2,
+    Justify = 3,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Deserialize_repr, Serialize_repr))]
+#[cfg_attr(feature = "parse_display", derive(FromStr, Display))]
+#[cfg_attr(feature = "try_from_number", derive(TryFromPrimitive))]
+#[repr(u8)]
+pub enum ScreenPosition {
+    TopLeft = 0,
+    TopCenter = 1,
+    TopRight = 2,
+    MiddleLeft = 3,
+    MiddleCenter = 4,
+    MiddleRight = 5,
+    BottomLeft = 6,
+    BottomCenter = 7,
+    BottomRight = 8,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Deserialize_repr, Serialize_repr))]
+#[cfg_attr(feature = "parse_display", derive(FromStr, Display))]
+#[cfg_attr(feature = "try_from_number", derive(TryFromPrimitive))]
+#[repr(u8)]
 pub enum EquipSlot {
     Ability1 = 0,
     Ability2 = 1,

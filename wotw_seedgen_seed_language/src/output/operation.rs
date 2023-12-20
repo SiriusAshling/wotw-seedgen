@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::fmt::{self, Display};
 
 /// An Operation performed on two values
@@ -10,16 +11,17 @@ pub struct Operation<Item, Operator> {
 }
 /// Arithmetic Operations performed on numbers
 // TODO why does this have a duplicate in the ast module?
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
 pub enum ArithmeticOperator {
     /// `+`
-    Add,
+    Add = 0,
     /// `-`
-    Subtract,
+    Subtract = 1,
     /// `*`
-    Multiply,
+    Multiply = 2,
     /// `/`
-    Divide,
+    Divide = 3,
 }
 impl Display for ArithmeticOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -32,12 +34,13 @@ impl Display for ArithmeticOperator {
     }
 }
 /// Logic Operations performed on booleans
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
 pub enum LogicOperator {
     /// `&&`
-    And,
+    And = 0,
     /// `||`
-    Or,
+    Or = 1,
 }
 impl Display for LogicOperator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -48,12 +51,13 @@ impl Display for LogicOperator {
     }
 }
 /// Comparison Operations performed on strings or booleans
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
 pub enum EqualityComparator {
     /// `==`
-    Equal,
+    Equal = 0,
     /// `!=`
-    NotEqual,
+    NotEqual = 1,
 }
 impl Display for EqualityComparator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -64,20 +68,21 @@ impl Display for EqualityComparator {
     }
 }
 /// Comparison Operations performed on numbers
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize_repr, Deserialize_repr, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
 pub enum Comparator {
     /// `==`
-    Equal,
+    Equal = 0,
     /// `!=`
-    NotEqual,
+    NotEqual = 1,
     /// `<`
-    Less,
+    Less = 2,
     /// `<=`
-    LessOrEqual,
+    LessOrEqual = 3,
     /// `>`
-    Greater,
+    Greater = 4,
     /// `>=`
-    GreaterOrEqual,
+    GreaterOrEqual = 5,
 }
 impl Display for Comparator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

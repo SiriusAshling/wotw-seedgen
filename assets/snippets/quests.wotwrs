@@ -1,7 +1,8 @@
 #category("Goals")
-#name("All Quests")
-#description("Require finishing all Quests before fighting Shriek (you poor soul...)")
+#name("All Side Quests")
+#description("Require finishing all side quests before fighting Shriek (you poor soul...)")
 
+!flags("All Side Quests")
 !include("goal_mode_core")
 
 !on_callback("goal_mode_core", write_goal_progress_message, {
@@ -9,19 +10,19 @@
     set_boolean("comma", true)
     count_quests()
     set_string("color", "")
-    if get_integer("quest_count") == 17 set_string("color", "$")
+    if get_integer("quest_count") == 12 set_string("color", "$")
     write_quests_message()
     set_string("goal_progress_message", get_string("goal_progress_message") + get_string("quest_message"))
 })
 
 !on_callback("goal_mode_core", check_goals_completed, {
     count_quests()
-    if get_integer("count_quests") < 17 set_boolean("goals_completed", false)
+    if get_integer("count_quests") < 12 set_boolean("goals_completed", false)
 })
 
 !on_callback("goal_mode_core", write_goals_incomplete_message, {
     count_quests()
-    if get_integer("count_quests") < 17 {
+    if get_integer("count_quests") < 12 {
         set_string("color", "@")
         write_quests_message()
         set_string("goals_incomplete_message", get_string("goals_incomplete_message") + "\n" + get_string("quest_message"))
@@ -30,11 +31,6 @@
 
 fun count_quests() {
     set_integer("quest_count", 0)
-    if kwolokGroupDescriptor.cleanseWellspringQuestUberState >= 4 increment_quest_count()
-    if questUberStateGroup.desertWispQuestUberState >= 3 increment_quest_count()
-    if questUberStateGroup.lagoonWispQuestUberState >= 3 increment_quest_count()
-    if questUberStateGroup.mouldwoodDepthsWispQuestUberState >= 3 increment_quest_count()
-    if questUberStateGroup.winterForestWispQuestUberState >= 3 increment_quest_count()
     if MarshSpawn.TokkKeystoneQuest increment_quest_count()
     if MarshSpawn.TokkTabletQuest increment_quest_count()
     if OuterWellspring.TheLostCompass increment_quest_count()
@@ -53,5 +49,5 @@ fun increment_quest_count() {
 }
 
 fun write_quests_message() {
-    set_string("quest_message", get_string("color") + "Quests: " + get_integer("quest_count") + "/17" + get_string("color"))
+    set_string("quest_message", get_string("color") + "Quests: " + get_integer("quest_count") + "/12" + get_string("color"))
 }

@@ -23,7 +23,7 @@
 !include("1_lost")
 !include("2_strength")
 
-// TODO !spawn(-3537, -5881)
+!spawn(-3537, -5881)
 on spawn difficulty_menu()
 
 on kwolokGroupDescriptor.areaText priority_message(

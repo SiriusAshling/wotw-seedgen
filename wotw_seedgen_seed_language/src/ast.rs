@@ -321,7 +321,7 @@ pub enum Command<'source> {
     OnCallback(Spanned<OnCallback>, CommandArgs<OnCallbackArgs<'source>>),
     Share(Spanned<Share>, CommandArgs<ShareArgs<'source>>),
     Use(Spanned<Use>, CommandArgs<UseArgs<'source>>),
-    Spawn(Spanned<Spawn>, CommandArgs<SpawnArgs<'source>>),
+    Spawn(Spanned<Spawn>, CommandArgs<SpawnArgs>),
     Flags(
         Spanned<Flags>,
         CommandArgsCollection<SeparatedNonEmpty<FlagsArg<'source>, Symbol<','>>>,
@@ -410,7 +410,11 @@ pub struct UseArgs<'source> {
 #[ast(case = "snake")]
 pub struct Spawn;
 #[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
-pub struct SpawnArgs<'source>(pub Spanned<&'source str>);
+pub struct SpawnArgs {
+    pub x: Spanned<OrderedFloat<f32>>,
+    pub comma: Symbol<','>,
+    pub y: Spanned<OrderedFloat<f32>>,
+}
 #[derive(Debug, Clone, PartialEq, Eq, Ast)]
 #[ast(case = "snake")]
 pub struct Flags;

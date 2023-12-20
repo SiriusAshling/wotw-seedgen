@@ -26,61 +26,52 @@ impl<'a> Args<'a> {
     }
 
     pub fn bool(mut self, arg: CommandBoolean) -> Self {
-        self.commands.push(Command::Execute {
-            index: compile_into_lookup(arg, self.command_lookup),
-        });
-        self.commands.push(Command::CopyBoolean {
-            from: 0,
-            to: self.bool_index,
-        });
+        self.commands.push(Command::Execute(compile_into_lookup(
+            arg,
+            self.command_lookup,
+        )));
+        self.commands.push(Command::CopyBoolean(0, self.bool_index));
         self.bool_index += 1;
         self
     }
 
     pub fn int(mut self, arg: CommandInteger) -> Self {
-        self.commands.push(Command::Execute {
-            index: compile_into_lookup(arg, self.command_lookup),
-        });
-        self.commands.push(Command::CopyInteger {
-            from: 0,
-            to: self.int_index,
-        });
+        self.commands.push(Command::Execute(compile_into_lookup(
+            arg,
+            self.command_lookup,
+        )));
+        self.commands.push(Command::CopyInteger(0, self.int_index));
         self.int_index += 1;
         self
     }
 
     pub fn float(mut self, arg: CommandFloat) -> Self {
-        self.commands.push(Command::Execute {
-            index: compile_into_lookup(arg, self.command_lookup),
-        });
-        self.commands.push(Command::CopyFloat {
-            from: 0,
-            to: self.float_index,
-        });
+        self.commands.push(Command::Execute(compile_into_lookup(
+            arg,
+            self.command_lookup,
+        )));
+        self.commands.push(Command::CopyFloat(0, self.float_index));
         self.float_index += 1;
         self
     }
 
     pub fn string(mut self, arg: CommandString) -> Self {
-        self.commands.push(Command::Execute {
-            index: compile_into_lookup(arg, self.command_lookup),
-        });
-        self.commands.push(Command::CopyString {
-            from: 0,
-            to: self.string_index,
-        });
+        self.commands.push(Command::Execute(compile_into_lookup(
+            arg,
+            self.command_lookup,
+        )));
+        self.commands
+            .push(Command::CopyString(0, self.string_index));
         self.string_index += 1;
         self
     }
 
     pub fn zone(mut self, arg: CommandZone) -> Self {
-        self.commands.push(Command::Execute {
-            index: compile_into_lookup(arg, self.command_lookup),
-        });
-        self.commands.push(Command::CopyInteger {
-            from: 0,
-            to: self.int_index,
-        });
+        self.commands.push(Command::Execute(compile_into_lookup(
+            arg,
+            self.command_lookup,
+        )));
+        self.commands.push(Command::CopyInteger(0, self.int_index));
         self.int_index += 1;
         self
     }

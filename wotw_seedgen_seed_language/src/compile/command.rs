@@ -7,7 +7,7 @@ use ordered_float::OrderedFloat;
 use rand::Rng;
 use std::{iter, mem, ops::Range};
 use wotw_seedgen_assets::UberStateAlias;
-use wotw_seedgen_data::{UberIdentifier, Zone};
+use wotw_seedgen_data::{Position, UberIdentifier, Zone};
 use wotw_seedgen_parse::{Error, Identifier, Result, Span};
 
 impl<'source> Compile<'source> for ast::Command<'source> {
@@ -239,17 +239,20 @@ impl<'source> Compile<'source> for ast::UseArgs<'source> {
         }
     }
 }
-impl<'source> Compile<'source> for ast::SpawnArgs<'source> {
+impl<'source> Compile<'source> for ast::SpawnArgs {
     type Output = ();
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
         if compiler.global.output.spawn.is_some() {
             compiler.errors.push(Error::custom(
                 "Multiple spawn commands".to_string(),
-                self.0.span,
-            ))
+                self.span(),
+            ));
         } else {
-            compiler.global.output.spawn = Some(self.0.data.to_string())
+            compiler.global.output.spawn = Some(Position {
+                x: self.x.data,
+                y: self.y.data,
+            });
         }
     }
 }

@@ -4,6 +4,9 @@ mod command;
 use crate::{Command, Event, Trigger};
 use wotw_seedgen_seed_language::output as input;
 
+// TODO inline single command functions
+// TODO dedup functions
+
 pub trait Compile {
     type Output;
 
@@ -24,10 +27,10 @@ impl Compile for input::Event {
     type Output = Event;
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
-        Event {
-            trigger: self.trigger.compile(command_lookup),
-            command: compile_into_lookup(self.command, command_lookup),
-        }
+        Event(
+            self.trigger.compile(command_lookup),
+            compile_into_lookup(self.command, command_lookup),
+        )
     }
 }
 

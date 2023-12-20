@@ -1,17 +1,13 @@
-use bugsalot::debugger;
 use clap::Parser;
+use itertools::Itertools;
 use std::{
-    env,
     fs::{self, File},
-    io::{self, ErrorKind},
+    io::{self, ErrorKind, Write},
     path::{Path, PathBuf},
 };
 use wotw_seedgen_assets::{SnippetAccess, Source};
-use wotw_seedgen_seed::{Compile, Position, SeedWorld, Spawn};
-use wotw_seedgen_seed_language::{
-    ast::{parse, Snippet},
-    compile::Compiler,
-};
+use wotw_seedgen_seed::{Compile, SeedWorld, Spawn};
+use wotw_seedgen_seed_language::compile::Compiler;
 use wotw_seedgen_static_assets::UBER_STATE_DATA;
 
 struct Files {
@@ -80,7 +76,20 @@ fn main() -> Result<(), String> {
         .finish(&mut io::stderr())
         .map_err(|err| err.to_string())?;
 
+    let flags = output.flags.into_iter().join(", ");
+    let spawn = output
+        .spawn
+        .map(|position| Spawn {
+            position,
+            identifier: "Custom Spawn".to_string(),
+        })
+        .unwrap_or_default();
+
     let mut command_lookup = vec![];
+    command_lookup.resize_with(output.command_lookup.len(), Default::default);
+    for (index, command) in output.command_lookup.into_iter().enumerate() {
+        command_lookup[index] = command.compile(&mut command_lookup);
+    }
     let events = output
         .events
         .into_iter()
@@ -88,15 +97,18 @@ fn main() -> Result<(), String> {
         .collect::<Vec<_>>();
 
     let seed = SeedWorld {
-        spawn: Spawn {
-            position: Position::new(-3537., -5881.),
-            identifier: "".to_string(),
-        },
+        flags,
+        spawn,
         events,
         command_lookup,
+        metadata: (),
     };
 
-    fs::write("out.json", serde_json::to_vec(&seed).unwrap()).unwrap();
+    fs::create_dir_all("seeds").map_err(|err| err.to_string())?;
+    let mut file = File::create("seeds/out.wotwr").map_err(|err| err.to_string())?;
+    file.write_all(b"wotwr,0.0.1,\n")
+        .map_err(|err| err.to_string())?;
+    serde_json::to_writer(file, &seed).map_err(|err| err.to_string())?;
 
     Ok(())
 }
