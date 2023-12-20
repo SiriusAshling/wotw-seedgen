@@ -51,7 +51,7 @@ pub enum Trigger {
     Binding(UberIdentifier),
     /// Index into `command_lookup`
     ///
-    /// After executing the command, BRA determines whether the condition is met.
+    /// After executing the command, Boolean Memory 0 determines whether the condition is met.
     /// The last result of executing the command should be saved, with an initial value of `false`.
     /// The trigger should only fire if the last result was `false` and the current result is `true`
     Condition(usize),
