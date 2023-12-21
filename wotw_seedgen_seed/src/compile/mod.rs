@@ -1,6 +1,7 @@
 mod args;
 mod command;
 
+use self::command::MemoryUsed;
 use crate::{Command, Event, Trigger};
 use wotw_seedgen_seed_language::output as input;
 
@@ -13,11 +14,12 @@ pub trait Compile {
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output;
 }
 
-fn compile_into_lookup<I: Compile<Output = Vec<Command>>>(
+fn compile_into_lookup<I: Compile<Output = (Vec<Command>, MemoryUsed)>>(
     input: I,
     command_lookup: &mut Vec<Vec<Command>>,
 ) -> usize {
-    let command = input.compile(command_lookup);
+    // TODO are we allowed to ignore memoryused here?
+    let (command, _) = input.compile(command_lookup);
     let index = command_lookup.len();
     command_lookup.push(command);
     index

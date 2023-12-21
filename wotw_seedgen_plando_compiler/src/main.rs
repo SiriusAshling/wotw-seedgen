@@ -87,6 +87,8 @@ fn main() -> Result<(), Error> {
     compiler.compile_snippet("main")?;
     let output = compiler.finish(&mut io::stderr())?;
 
+    fs::write("seeds/out.intermediate", format!("{output:#?}"))?;
+
     let mut flags = output
         .flags
         .into_iter()
@@ -107,7 +109,7 @@ fn main() -> Result<(), Error> {
     let mut command_lookup = vec![];
     command_lookup.resize_with(output.command_lookup.len(), Default::default);
     for (index, command) in output.command_lookup.into_iter().enumerate() {
-        command_lookup[index] = command.compile(&mut command_lookup);
+        command_lookup[index] = command.compile(&mut command_lookup).0;
     }
     let events = output
         .events

@@ -1,86 +1,191 @@
+use super::command::MemoryUsed;
 use crate::{Command, Compile};
+use rustc_hash::FxHashMap;
 use wotw_seedgen_seed_language::output::{
     CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandZone,
 };
 
-// TODO brainstorming the memory overwrite problem
-// 1 + (2 + (3 + 4))
-// should compile to
-// SetInteger 1
-// CopyInteger 0 3
-// SetInteger 2
-// CopyInteger 0 2
-// SetInteger 3
-// CopyInteger 0 1
-// SetInteger 4
-// ArithmeticInteger 0
-// CopyInteger 2 1
-// ArithmeticInteger 0
-// CopyInteger 3 1
-// ArithmeticInteger 0
-
 pub struct Args<'a> {
-    commands: Vec<Command>,
     command_lookup: &'a mut Vec<Vec<Command>>,
-    bool_index: usize,
-    int_index: usize,
-    float_index: usize,
-    string_index: usize,
+    commands: Vec<(usize, ArgType, (Vec<Command>, MemoryUsed))>,
 }
 impl<'a> Args<'a> {
     #[inline]
-    pub fn new(arg_count: usize, command_lookup: &'a mut Vec<Vec<Command>>) -> Self {
+    pub fn new(_arg_count: usize, command_lookup: &'a mut Vec<Vec<Command>>) -> Self {
         Self {
-            commands: Vec::with_capacity(arg_count * 2),
             command_lookup,
-            bool_index: 1,
-            int_index: 1,
-            float_index: 1,
-            string_index: 1,
+            commands: vec![], // TODO can we estimate the needed capacity? kept arg_count in case we want it for that
         }
     }
 
-    pub fn bool(mut self, arg: CommandBoolean) -> Self {
-        // TODO fundamental problem here: To calculate, for example, (a + b) + (c + d), you need at least three memory locations
-        // to get the result of one side out of the way while calculating the other side
-        // TODO once deduplication exists, check if moving these out into function calls is ever worth it
-        self.commands.extend(arg.compile(self.command_lookup));
-        self.commands.push(Command::CopyBoolean(0, self.bool_index));
-        self.bool_index += 1;
+    // TODO once deduplication exists, check if moving commands out into function calls is ever worth it
+    fn arg<T>(mut self, arg: T, arg_type: ArgType) -> Self
+    where
+        T: Compile<Output = (Vec<Command>, MemoryUsed)>,
+    {
+        self.commands.push((
+            self.commands.len(),
+            arg_type,
+            arg.compile(self.command_lookup),
+        ));
         self
     }
-
-    pub fn int(mut self, arg: CommandInteger) -> Self {
-        self.commands.extend(arg.compile(self.command_lookup));
-        self.commands.push(Command::CopyInteger(0, self.int_index));
-        self.int_index += 1;
-        self
+    #[inline]
+    pub fn boolean(self, arg: CommandBoolean) -> Self {
+        self.arg(arg, ArgType::Boolean)
+    }
+    #[inline]
+    pub fn integer(self, arg: CommandInteger) -> Self {
+        self.arg(arg, ArgType::Integer)
+    }
+    #[inline]
+    pub fn float(self, arg: CommandFloat) -> Self {
+        self.arg(arg, ArgType::Float)
+    }
+    #[inline]
+    pub fn string(self, arg: CommandString) -> Self {
+        self.arg(arg, ArgType::String)
+    }
+    #[inline]
+    pub fn zone(self, arg: CommandZone) -> Self {
+        self.arg(arg, ArgType::Integer)
     }
 
-    pub fn float(mut self, arg: CommandFloat) -> Self {
-        self.commands.extend(arg.compile(self.command_lookup));
-        self.commands.push(Command::CopyFloat(0, self.float_index));
-        self.float_index += 1;
-        self
-    }
+    pub fn call(mut self, command: Command) -> (Vec<Command>, MemoryUsed) {
+        // TODO sometimes reordering operands is allowed and would result in a more optimal output
 
-    pub fn string(mut self, arg: CommandString) -> Self {
-        self.commands.extend(arg.compile(self.command_lookup));
-        self.commands
-            .push(Command::CopyString(0, self.string_index));
-        self.string_index += 1;
-        self
-    }
+        // The order in which we calculate the arguments matters a lot for how many copies we have to do
+        // After all is done, the arguments have to be in memory 0, 1, 2... etc.
+        // However, the calculation of arguments may need this memory itself
+        // Sometimes this is unavoidable and we have to copy results out of the way and get them back later
+        // But we still want to copy as many result as possible directly into their final destination
+        // In the optimal scenario we can calculate all arguments last to first and copy them into their destination directly
+        // Calculating arguments in reverse order isn't always the best strategy though
+        // For example if the first of four integer arguments requires 4 integer memory to calculate and everything else requires 0 memory,
+        // calculating the first argument last would require moving all others out of the way and copying them back (3 extra copies),
+        // while calculating the first argument first would only require copying that out of the way and back later (2 extra copies)
+        // Specifically, we employ the following strategies:
+        // - Calculating the first argument last saves 2 copies (since it naturally lands in memory 0)
+        // - Copying any other argument directly into its destination saves 1 copy
 
-    pub fn zone(mut self, arg: CommandZone) -> Self {
-        self.commands.extend(arg.compile(self.command_lookup));
-        self.commands.push(Command::CopyInteger(0, self.int_index));
-        self.int_index += 1;
-        self
-    }
+        let mut output = vec![]; // TODO capacity
+        let mut back_copies = vec![];
+        let mut occupied_intermediate_locations = FxHashMap::<ArgType, Vec<usize>>::default();
+        let mut total_memory_used = self.commands.iter().fold(
+            MemoryUsed::ZERO,
+            |mut memory_used, (memory_destination, arg_type, (_, other))| {
+                memory_used.combine(other.clone());
+                let arg_type_memory_used = arg_type.memory_used_mut(&mut memory_used);
+                *arg_type_memory_used = usize::max(*arg_type_memory_used, *memory_destination);
+                memory_used
+            },
+        );
 
-    pub fn call(mut self, command: Command) -> Vec<Command> {
-        *self.commands.last_mut().unwrap() = command;
-        self.commands
+        while !self.commands.is_empty() {
+            let args_except_last = &self.commands[..self.commands.len() - 1];
+            let prioritized_arg_index = args_except_last.iter().enumerate().rev().find_map(
+                |(index, (memory_destination, _, (_, memory_used)))| {
+                    let args_after = &self.commands[index + 1..];
+                    let mut args_which_this_overwrites =
+                        args_after
+                            .iter()
+                            .filter(|(memory_destination, other_arg_type, _)| {
+                                other_arg_type.memory_used(memory_used) >= *memory_destination
+                            });
+                    let is_first_arg = *memory_destination == 0;
+                    let overwrite_threshold = if is_first_arg { 2 } else { 1 };
+                    let should_prioritize = args_which_this_overwrites
+                        .nth(overwrite_threshold)
+                        .is_some();
+                    if should_prioritize {
+                        Some(index)
+                    } else {
+                        None
+                    }
+                },
+            );
+            match prioritized_arg_index {
+                None => {
+                    for (memory_destination, arg_type, (commands, _)) in
+                        self.commands.into_iter().rev()
+                    {
+                        output.extend(commands);
+                        if memory_destination != 0 {
+                            output.push(arg_type.copy_command()(0, memory_destination));
+                        }
+                    }
+                    break;
+                }
+                Some(index) => {
+                    let (memory_destination, arg_type, (commands, _)) = self.commands.remove(index);
+                    output.extend(commands);
+                    let max_memory_used = self
+                        .commands
+                        .iter()
+                        .map(|(memory_destination, other_arg_type, (_, memory_used))| {
+                            let mut used = arg_type.memory_used(memory_used);
+                            if arg_type == *other_arg_type {
+                                used = usize::max(used, *memory_destination);
+                            }
+                            used
+                        })
+                        .max()
+                        .unwrap_or_default();
+                    let occupied_intermediate_locations =
+                        occupied_intermediate_locations.entry(arg_type).or_default();
+                    let intermediate_location = ((max_memory_used + 1)..)
+                        .find(|location| !occupied_intermediate_locations.contains(location))
+                        .unwrap();
+                    occupied_intermediate_locations.push(intermediate_location);
+                    let copy_command = arg_type.copy_command();
+                    output.push(copy_command(0, intermediate_location));
+                    back_copies.push(copy_command(intermediate_location, memory_destination));
+                    let total_memory_used = arg_type.memory_used_mut(&mut total_memory_used);
+                    *total_memory_used = usize::max(*total_memory_used, intermediate_location);
+                }
+            }
+        }
+
+        output.extend(back_copies);
+        output.push(command);
+
+        (output, total_memory_used)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+enum ArgType {
+    Boolean,
+    Integer,
+    Float,
+    String,
+}
+impl ArgType {
+    #[inline]
+    fn memory_used(self, memory_used: &MemoryUsed) -> usize {
+        match self {
+            ArgType::Boolean => memory_used.boolean,
+            ArgType::Integer => memory_used.integer,
+            ArgType::Float => memory_used.float,
+            ArgType::String => memory_used.string,
+        }
+    }
+    #[inline]
+    fn memory_used_mut(self, memory_used: &mut MemoryUsed) -> &mut usize {
+        match self {
+            ArgType::Boolean => &mut memory_used.boolean,
+            ArgType::Integer => &mut memory_used.integer,
+            ArgType::Float => &mut memory_used.float,
+            ArgType::String => &mut memory_used.string,
+        }
+    }
+    #[inline]
+    fn copy_command(self) -> fn(usize, usize) -> Command {
+        match self {
+            ArgType::Boolean => Command::CopyBoolean,
+            ArgType::Integer => Command::CopyInteger,
+            ArgType::Float => Command::CopyFloat,
+            ArgType::String => Command::CopyString,
+        }
     }
 }

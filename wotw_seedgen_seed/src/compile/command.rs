@@ -12,8 +12,31 @@ fn unwrap_string_placeholder(value: StringOrPlaceholder) -> String {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MemoryUsed {
+    pub boolean: usize,
+    pub integer: usize,
+    pub float: usize,
+    pub string: usize,
+}
+impl MemoryUsed {
+    pub const ZERO: Self = Self {
+        boolean: 0,
+        integer: 0,
+        float: 0,
+        string: 0,
+    };
+
+    pub fn combine(&mut self, other: Self) {
+        self.boolean = usize::max(self.boolean, other.boolean);
+        self.integer = usize::max(self.integer, other.integer);
+        self.float = usize::max(self.float, other.float);
+        self.string = usize::max(self.string, other.string);
+    }
+}
+
 impl Compile for input::Command {
-    type Output = Vec<Command>;
+    type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
@@ -28,19 +51,19 @@ impl Compile for input::Command {
 }
 
 impl Compile for input::CommandBoolean {
-    type Output = Vec<Command>;
+    type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
-            Self::Constant { value } => vec![Command::SetBoolean(value)],
-            Self::Multi { commands, last } => multi(commands, *last, command_lookup),
+            Self::Constant { value } => (vec![Command::SetBoolean(value)], MemoryUsed::ZERO),
+            Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
             Self::CompareBoolean { operation } => Args::new(2, command_lookup)
-                .bool(operation.left)
-                .bool(operation.right)
+                .boolean(operation.left)
+                .boolean(operation.right)
                 .call(Command::CompareBoolean(operation.operator)),
             Self::CompareInteger { operation } => Args::new(2, command_lookup)
-                .int(operation.left)
-                .int(operation.right)
+                .integer(operation.left)
+                .integer(operation.right)
                 .call(Command::CompareInteger(operation.operator)),
             Self::CompareFloat { operation } => Args::new(2, command_lookup)
                 .float(operation.left)
@@ -58,39 +81,43 @@ impl Compile for input::CommandBoolean {
                     EqualityComparator::NotEqual => Comparator::NotEqual,
                 })),
             Self::LogicOperation { operation } => Args::new(2, command_lookup)
-                .bool(operation.left)
-                .bool(operation.right)
+                .boolean(operation.left)
+                .boolean(operation.right)
                 .call(Command::LogicOperation(operation.operator)),
-            Self::FetchBoolean { uber_identifier } => {
-                vec![Command::FetchBoolean(uber_identifier)]
-            }
-            Self::GetBoolean { id } => vec![Command::CopyBoolean(id, 0)],
+            Self::FetchBoolean { uber_identifier } => (
+                vec![Command::FetchBoolean(uber_identifier)],
+                MemoryUsed::ZERO,
+            ),
+            Self::GetBoolean { id } => (vec![Command::CopyBoolean(id, 0)], MemoryUsed::ZERO),
             Self::IsInHitbox { x1, y1, x2, y2 } => Args::new(4, command_lookup)
                 .float(*x1)
                 .float(*y1)
                 .float(*x2)
                 .float(*y2)
                 .call(Command::IsInHitbox),
-            Self::RandomSpiritLightNames {} => vec![Command::RandomSpiritLightNames],
+            Self::RandomSpiritLightNames {} => {
+                (vec![Command::RandomSpiritLightNames], MemoryUsed::ZERO)
+            }
         }
     }
 }
 
 impl Compile for input::CommandInteger {
-    type Output = Vec<Command>;
+    type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
-            Self::Constant { value } => vec![Command::SetInteger(value)],
-            Self::Multi { commands, last } => multi(commands, *last, command_lookup),
+            Self::Constant { value } => (vec![Command::SetInteger(value)], MemoryUsed::ZERO),
+            Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
             Self::Arithmetic { operation } => Args::new(2, command_lookup)
-                .int(operation.left)
-                .int(operation.right)
+                .integer(operation.left)
+                .integer(operation.right)
                 .call(Command::ArithmeticInteger(operation.operator)),
-            Self::FetchInteger { uber_identifier } => {
-                vec![Command::FetchInteger(uber_identifier)]
-            }
-            Self::GetInteger { id } => vec![Command::CopyInteger(id, 0)],
+            Self::FetchInteger { uber_identifier } => (
+                vec![Command::FetchInteger(uber_identifier)],
+                MemoryUsed::ZERO,
+            ),
+            Self::GetInteger { id } => (vec![Command::CopyInteger(id, 0)], MemoryUsed::ZERO),
             Self::FromFloat { float } => Args::new(1, command_lookup)
                 .float(*float)
                 .call(Command::FloatToInteger),
@@ -99,45 +126,48 @@ impl Compile for input::CommandInteger {
 }
 
 impl Compile for input::CommandFloat {
-    type Output = Vec<Command>;
+    type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
-            Self::Constant { value } => vec![Command::SetFloat(value.into())],
-            Self::Multi { commands, last } => multi(commands, *last, command_lookup),
+            Self::Constant { value } => (vec![Command::SetFloat(value.into())], MemoryUsed::ZERO),
+            Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
             Self::Arithmetic { operation } => Args::new(2, command_lookup)
                 .float(operation.left)
                 .float(operation.right)
                 .call(Command::ArithmeticFloat(operation.operator)),
             Self::FetchFloat { uber_identifier } => {
-                vec![Command::FetchFloat(uber_identifier)]
+                (vec![Command::FetchFloat(uber_identifier)], MemoryUsed::ZERO)
             }
-            Self::GetFloat { id } => vec![Command::CopyFloat(id, 0)],
+            Self::GetFloat { id } => (vec![Command::CopyFloat(id, 0)], MemoryUsed::ZERO),
             Self::FromInteger { integer } => Args::new(1, command_lookup)
-                .int(*integer)
+                .integer(*integer)
                 .call(Command::IntegerToFloat),
         }
     }
 }
 
 impl Compile for input::CommandString {
-    type Output = Vec<Command>;
+    type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
-            Self::Constant { value } => vec![Command::SetString(unwrap_string_placeholder(value))],
-            Self::Multi { commands, last } => multi(commands, *last, command_lookup),
+            Self::Constant { value } => (
+                vec![Command::SetString(unwrap_string_placeholder(value))],
+                MemoryUsed::ZERO,
+            ),
+            Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
             Self::Concatenate { left, right } => Args::new(2, command_lookup)
                 .string(*left)
                 .string(*right)
                 .call(Command::Concatenate),
-            Self::GetString { id } => vec![Command::CopyString(id, 0)],
-            Self::WorldName { index } => vec![Command::WorldName(index)],
+            Self::GetString { id } => (vec![Command::CopyString(id, 0)], MemoryUsed::ZERO),
+            Self::WorldName { index } => (vec![Command::WorldName(index)], MemoryUsed::ZERO),
             Self::FromBoolean { boolean } => Args::new(1, command_lookup)
-                .bool(*boolean)
+                .boolean(*boolean)
                 .call(Command::BooleanToString),
             Self::FromInteger { integer } => Args::new(1, command_lookup)
-                .int(*integer)
+                .integer(*integer)
                 .call(Command::IntegerToString),
             Self::FromFloat { float } => Args::new(1, command_lookup)
                 .float(*float)
@@ -147,34 +177,34 @@ impl Compile for input::CommandString {
 }
 
 impl Compile for input::CommandZone {
-    type Output = Vec<Command>;
+    type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
-            Self::Constant { value } => vec![Command::SetInteger(value as i32)],
-            Self::Multi { commands, last } => multi(commands, *last, command_lookup),
-            Self::CurrentZone {} => vec![Command::FetchInteger(UberIdentifier {
-                group: 5,
-                member: 50,
-            })],
+            Self::Constant { value } => (vec![Command::SetInteger(value as i32)], MemoryUsed::ZERO),
+            Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
+            Self::CurrentZone {} => (
+                vec![Command::FetchInteger(UberIdentifier {
+                    group: 5,
+                    member: 50,
+                })],
+                MemoryUsed::ZERO,
+            ),
         }
     }
 }
 
 impl Compile for input::CommandVoid {
-    type Output = Vec<Command>;
+    type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
         match self {
-            Self::Multi { commands } => commands
-                .into_iter()
-                .flat_map(|command| command.compile(command_lookup))
-                .collect(),
-            Self::Lookup { index } => vec![Command::Execute(index)],
+            Self::Multi { commands } => multi(commands, command_lookup),
+            Self::Lookup { index } => (vec![Command::Execute(index)], MemoryUsed::ZERO),
             Self::If { condition, command } => {
                 let index = compile_into_lookup(*command, command_lookup);
                 Args::new(1, command_lookup)
-                    .bool(condition)
+                    .boolean(condition)
                     .call(Command::ExecuteIf(index))
             }
             Self::ItemMessage { message } => Args::new(1, command_lookup)
@@ -191,35 +221,34 @@ impl Compile for input::CommandVoid {
             Self::ControlledMessage { id, message } => {
                 let mut commands = Vec::with_capacity(5);
                 commands.push(Command::ControlledMessage(id));
-                commands.extend(
-                    Args::new(1, command_lookup)
-                        .string(message)
-                        .call(Command::SetMessageText(id)),
-                );
+                let (message, memory_used) = Args::new(1, command_lookup)
+                    .string(message)
+                    .call(Command::SetMessageText(id));
+                commands.extend(message);
                 commands.push(Command::SetBoolean(true));
                 commands.push(Command::ShowMessage(id));
-                commands
+                (commands, memory_used)
             }
             Self::SetMessageText { id, message } => Args::new(1, command_lookup)
                 .string(message)
                 .call(Command::SetMessageText(id)),
             Self::SetMessageTimeout { id, timeout } => Args::new(1, command_lookup)
-                .int(timeout)
+                .integer(timeout)
                 .call(Command::SetMessageTimeout(id)),
-            Self::DestroyMessage { id } => vec![Command::DestroyMessage(id)],
+            Self::DestroyMessage { id } => (vec![Command::DestroyMessage(id)], MemoryUsed::ZERO),
             Self::StoreBoolean {
                 uber_identifier,
                 value,
                 check_triggers,
             } => Args::new(1, command_lookup)
-                .bool(value)
+                .boolean(value)
                 .call(Command::StoreBoolean(uber_identifier, check_triggers)),
             Self::StoreInteger {
                 uber_identifier,
                 value,
                 check_triggers,
             } => Args::new(1, command_lookup)
-                .int(value)
+                .integer(value)
                 .call(Command::StoreInteger(uber_identifier, check_triggers)),
             Self::StoreFloat {
                 uber_identifier,
@@ -229,10 +258,10 @@ impl Compile for input::CommandVoid {
                 .float(value)
                 .call(Command::StoreFloat(uber_identifier, check_triggers)),
             Self::SetBoolean { id, value } => Args::new(1, command_lookup)
-                .bool(value)
+                .boolean(value)
                 .call(Command::CopyBoolean(0, id)),
             Self::SetInteger { id, value } => Args::new(1, command_lookup)
-                .int(value)
+                .integer(value)
                 .call(Command::CopyInteger(0, id)),
             Self::SetFloat { id, value } => Args::new(1, command_lookup)
                 .float(value)
@@ -240,24 +269,31 @@ impl Compile for input::CommandVoid {
             Self::SetString { id, value } => Args::new(1, command_lookup)
                 .string(value)
                 .call(Command::CopyString(0, id)),
-            Self::DefineTimer { toggle, timer } => vec![Command::DefineTimer(toggle, timer)],
-            Self::Save {} => vec![Command::Save],
-            Self::Checkpoint {} => vec![Command::Checkpoint],
+            Self::DefineTimer { toggle, timer } => {
+                (vec![Command::DefineTimer(toggle, timer)], MemoryUsed::ZERO)
+            }
+            Self::Save {} => (vec![Command::Save], MemoryUsed::ZERO),
+            Self::Checkpoint {} => (vec![Command::Checkpoint], MemoryUsed::ZERO),
             Self::Warp { x, y } => Args::new(2, command_lookup)
                 .float(x)
                 .float(y)
                 .call(Command::Warp),
-            Self::Equip { slot, equipment } => vec![Command::Equip(slot, equipment)],
-            Self::Unequip { equipment } => vec![Command::Unequip(equipment)],
-            Self::TriggerKeybind { bind } => {
-                vec![Command::TriggerKeybind(unwrap_string_placeholder(bind))]
+            Self::Equip { slot, equipment } => {
+                (vec![Command::Equip(slot, equipment)], MemoryUsed::ZERO)
             }
-            Self::EnableServerSync { uber_identifier } => {
-                vec![Command::EnableServerSync(uber_identifier)]
-            }
-            Self::DisableServerSync { uber_identifier } => {
-                vec![Command::DisableServerSync(uber_identifier)]
-            }
+            Self::Unequip { equipment } => (vec![Command::Unequip(equipment)], MemoryUsed::ZERO),
+            Self::TriggerKeybind { bind } => (
+                vec![Command::TriggerKeybind(unwrap_string_placeholder(bind))],
+                MemoryUsed::ZERO,
+            ),
+            Self::EnableServerSync { uber_identifier } => (
+                vec![Command::EnableServerSync(uber_identifier)],
+                MemoryUsed::ZERO,
+            ),
+            Self::DisableServerSync { uber_identifier } => (
+                vec![Command::DisableServerSync(uber_identifier)],
+                MemoryUsed::ZERO,
+            ),
             Self::SetSpoilerMapIcon {
                 location,
                 icon,
@@ -272,12 +308,12 @@ impl Compile for input::CommandVoid {
             Self::SetWarpIconLabel { id, label } => Args::new(1, command_lookup)
                 .string(label)
                 .call(Command::SetWarpIconLabel(id)),
-            Self::DestroyWarpIcon { id } => vec![Command::DestroyWarpIcon(id)],
+            Self::DestroyWarpIcon { id } => (vec![Command::DestroyWarpIcon(id)], MemoryUsed::ZERO),
             Self::SetShopItemPrice {
                 uber_identifier,
                 price,
             } => Args::new(1, command_lookup)
-                .int(price)
+                .integer(price)
                 .call(Command::SetShopItemPrice(uber_identifier)),
             Self::SetShopItemName {
                 uber_identifier,
@@ -294,12 +330,15 @@ impl Compile for input::CommandVoid {
             Self::SetShopItemIcon {
                 uber_identifier,
                 icon,
-            } => vec![Command::SetShopItemIcon(uber_identifier, icon)],
+            } => (
+                vec![Command::SetShopItemIcon(uber_identifier, icon)],
+                MemoryUsed::ZERO,
+            ),
             Self::SetShopItemHidden {
                 uber_identifier,
                 hidden,
             } => Args::new(1, command_lookup)
-                .bool(hidden)
+                .boolean(hidden)
                 .call(Command::SetShopItemHidden(uber_identifier)),
             Self::SetWheelItemName {
                 wheel,
@@ -319,7 +358,10 @@ impl Compile for input::CommandVoid {
                 wheel,
                 position,
                 icon,
-            } => vec![Command::SetWheelItemIcon(wheel, position, icon)],
+            } => (
+                vec![Command::SetWheelItemIcon(wheel, position, icon)],
+                MemoryUsed::ZERO,
+            ),
             Self::SetWheelItemColor {
                 wheel,
                 position,
@@ -328,42 +370,58 @@ impl Compile for input::CommandVoid {
                 blue,
                 alpha,
             } => Args::new(4, command_lookup)
-                .int(red)
-                .int(green)
-                .int(blue)
-                .int(alpha)
+                .integer(red)
+                .integer(green)
+                .integer(blue)
+                .integer(alpha)
                 .call(Command::SetWheelItemColor(wheel, position)),
             Self::SetWheelItemAction {
                 wheel,
                 position,
                 bind,
                 action,
-            } => vec![Command::SetWheelItemCommand(wheel, position, bind, action)],
-            Self::DestroyWheelItem { wheel, position } => {
-                vec![Command::DestroyWheelItem(wheel, position)]
-            }
-            Self::SwitchWheel { wheel } => {
-                vec![Command::SwitchWheel(wheel)]
-            }
+            } => (
+                vec![Command::SetWheelItemCommand(wheel, position, bind, action)],
+                MemoryUsed::ZERO,
+            ),
+            Self::DestroyWheelItem { wheel, position } => (
+                vec![Command::DestroyWheelItem(wheel, position)],
+                MemoryUsed::ZERO,
+            ),
+            Self::SwitchWheel { wheel } => (vec![Command::SwitchWheel(wheel)], MemoryUsed::ZERO),
             Self::SetWheelPinned { wheel, pinned } => Args::new(1, command_lookup)
-                .bool(pinned)
+                .boolean(pinned)
                 .call(Command::SetWheelPinned(wheel)),
-            Self::ClearAllWheels {} => {
-                vec![Command::ClearAllWheels]
-            }
+            Self::ClearAllWheels {} => (vec![Command::ClearAllWheels], MemoryUsed::ZERO),
         }
     }
 }
 
-fn multi<T: Compile<Output = Vec<Command>>>(
+fn multi(
+    commands: Vec<CommandVoid>,
+    command_lookup: &mut Vec<Vec<Command>>,
+) -> (Vec<Command>, MemoryUsed) {
+    // these commands don't return values, so we don't have to worry about commands overwriting previous results
+    // since multis might be used in arguments, we still have to faithfully return the biggest amount of memory used at any point
+    let mut memory_used = MemoryUsed::ZERO;
+    let commands = commands
+        .into_iter()
+        .flat_map(|command| {
+            let (commands, used) = command.compile(command_lookup);
+            memory_used.combine(used);
+            commands
+        })
+        .collect::<Vec<_>>();
+    (commands, memory_used)
+}
+fn multi_with_return<T: Compile<Output = (Vec<Command>, MemoryUsed)>>(
     commands: Vec<CommandVoid>,
     last: T,
     command_lookup: &mut Vec<Vec<Command>>,
-) -> Vec<Command> {
-    let mut commands = commands
-        .into_iter()
-        .flat_map(|command| command.compile(command_lookup))
-        .collect::<Vec<_>>();
-    commands.extend(last.compile(command_lookup));
-    commands
+) -> (Vec<Command>, MemoryUsed) {
+    let (mut commands, mut memory_used) = multi(commands, command_lookup);
+    let (last, used) = last.compile(command_lookup);
+    memory_used.combine(used);
+    commands.extend(last);
+    (commands, memory_used)
 }

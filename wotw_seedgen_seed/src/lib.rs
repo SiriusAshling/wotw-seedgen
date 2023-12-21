@@ -118,21 +118,21 @@ pub enum Command {
         /*uber_identifier*/ UberIdentifier,
         /*check_triggers*/ bool,
     ),
-    /// Perform `operator` on Boolean Memory 1 and Boolean Memory 0 and store the result in Boolean Memory 0
+    /// Perform `operator` on Boolean Memory 0 and Boolean Memory 1 and store the result in Boolean Memory 0
     CompareBoolean(/*operator*/ EqualityComparator),
-    /// Perform `operator` on Integer Memory 1 and Integer Memory 0 and store the result in Integer Memory 0
+    /// Perform `operator` on Integer Memory 0 and Integer Memory 1 and store the result in Integer Memory 0
     CompareInteger(/*operator*/ Comparator),
-    /// Perform `operator` on Float Memory 1 and Float Memory 0 and store the result in Float Memory 0
+    /// Perform `operator` on Float Memory 0 and Float Memory 1 and store the result in Float Memory 0
     CompareFloat(/*operator*/ Comparator),
-    /// Perform `operator` on String Memory 1 and String Memory 0 and store the result in String Memory 0
+    /// Perform `operator` on String Memory 0 and String Memory 1 and store the result in String Memory 0
     CompareString(/*operator*/ EqualityComparator),
-    /// Perform `operator` on Boolean Memory 1 and Boolean Memory 0 and store the result in Boolean Memory 0
+    /// Perform `operator` on Boolean Memory 0 and Boolean Memory 1 and store the result in Boolean Memory 0
     LogicOperation(/*operator*/ LogicOperator),
-    /// Perform `operator` on Integer Memory 1 and Integer Memory 0 and store the result in Integer Memory 0
+    /// Perform `operator` on Integer Memory 0 and Integer Memory 1 and store the result in Integer Memory 0
     ArithmeticInteger(/*operator*/ ArithmeticOperator),
-    /// Perform `operator` on Float Memory 1 and Float Memory 0 and store the result in Float Memory 0
+    /// Perform `operator` on Float Memory 0 and Float Memory 1 and store the result in Float Memory 0
     ArithmeticFloat(/*operator*/ ArithmeticOperator),
-    /// Concatenate String Memory 1 and String Memory 0 and store the result in String Memory 0
+    /// Concatenate String Memory 0 and String Memory 1 and store the result in String Memory 0
     Concatenate,
     /// Convert Float Memory 0 to an integer by rounding and store it in Integer Memory 0
     FloatToInteger,
@@ -149,7 +149,7 @@ pub enum Command {
         /*toggle*/ UberIdentifier,
         /*timer*/ UberIdentifier,
     ),
-    /// Check if Ori is in the hitbox defined by (Float Memory 1, Float Memory 2) and (Float Memory 3, Float Memory 0) and store the result in Boolean Memory 0
+    /// Check if Ori is in the hitbox defined by (Float Memory 0, Float Memory 1) and (Float Memory 2, Float Memory 3) and store the result in Boolean Memory 0
     IsInHitbox,
     /// Store whether the user wants to see random spirit light names in Boolean Memory 0
     RandomSpiritLightNames,
@@ -170,7 +170,8 @@ pub enum Command {
     SetMessageTimeout(/*id*/ usize),
     /// If `id` refers to an existing controlled message, set whether its background is enabled based on Boolean Memory 0
     SetMessageBackground(/*id*/ usize),
-    /// If `id` refers to an existing controlled message, set its position to (Float Memory 1, Float Memory 2)
+    // TODO false documentation, should be 1, 0 probably?
+    /// If `id` refers to an existing controlled message, set its position to (Float Memory 0, Float Memory 1)
     SetMessagePosition(/*id*/ usize, /*world_cordinates*/ bool),
     /// If `id` refers to an existing controlled message, set its `alignment`
     SetMessageAlignment(/*id*/ usize, /*alignment*/ Alignment),
@@ -185,7 +186,7 @@ pub enum Command {
     /// Perform a "soft" checkpoint like a boss fight checkpoint
     Checkpoint,
     // TODO preload area command
-    /// Warp the player to (Float Memory 1, Float Memory 0)
+    /// Warp the player to (Float Memory 0, Float Memory 1)
     Warp,
     /// Equip `equipment` into `slot`
     Equip(/*slot*/ EquipSlot, /*equipment*/ Equipment),
@@ -199,7 +200,7 @@ pub enum Command {
     DisableServerSync(/*uber_identifier*/ UberIdentifier),
     /// Set the map icon associated with the `location` identifier from loc_data to `icon` and the label to String Memory 0
     SetSpoilerMapIcon(/*location*/ String, /*icon*/ MapIcon),
-    /// Create a spirit well map icon with `id` that you can warp to at (Float Memory 1, Float Memory 0)
+    /// Create a spirit well map icon with `id` that you can warp to at (Float Memory 0, Float Memory 1)
     CreateWarpIcon(/*id*/ usize),
     /// If `id` refers to an existing spirit well icon, set its label to String Memory 0
     SetWarpIconLabel(/*id*/ usize),
@@ -225,7 +226,7 @@ pub enum Command {
         /*position*/ WheelItemPosition,
         /*icon*/ Icon,
     ),
-    /// Set the rgba color of the wheel item in `wheel` at `position` to Integer Memory 1, Integer Memory 2, Integer Memory 3, Integer Memory 0
+    /// Set the rgba color of the wheel item in `wheel` at `position` to Integer Memory 0, Integer Memory 1, Integer Memory 2, Integer Memory 3
     SetWheelItemColor(/*wheel*/ usize, /*position*/ WheelItemPosition),
     /// When pressing `bind` with the wheel item in `wheel` at `position` selected, execute `command`
     SetWheelItemCommand(
