@@ -1,0 +1,395 @@
+!use_icon(message_icon, "assets/icons/game/message.png")
+!use_icon(relic_icon, "assets/icons/game/relic.png")
+
+!include("bind_pointer")
+!use("bind_pointer", bind_pointer)
+!use("bind_pointer", close)
+
+!state(finished_achievement, Boolean)
+!share(finished_achievement)
+!state(true_ending_achievement, Boolean)
+!share(true_ending_achievement)
+!state(speedrun_achievement, Boolean)
+!share(speedrun_achievement)
+!state(ores_achievement, Boolean)
+!share(ores_achievement)
+!state(shiny_ores_achievement, Boolean)
+!share(shiny_ores_achievement)
+!state(time_achievement, Boolean)
+!share(time_achievement)
+!state(trials_achievement, Boolean)
+!share(trials_achievement)
+!state(cells_achievement, Boolean)
+!share(cells_achievement)
+!state(completionist_achievement, Boolean)
+!share(completionist_achievement)
+
+!let(finished_title, "#~#  @Master@  #~#")
+!share(finished_title)
+!let(finished_string, finished_title + "\nComplete the game")
+!let(true_ending_title, "#~#  *Reunited*  #~#")
+!share(true_ending_title)
+!let(true_ending_string, true_ending_title + "\nFind an old friend and get the secret ending\nCall yourself among the *best players there ever will be*!")
+!let(speedrun_title, "")
+!share(speedrun_title)
+!let(speedrun_string, speedrun_title + "???") // TODO write
+!let(ores_title, "<icon>Z</>#Excellent Miner#   <icon>Z</>")
+!share(ores_title)
+!let(ores_string, ores_title + "\nGather all ores")
+!let(shiny_ores_title, "<icon>Z</>#Gold Fever#   <icon>Z</>")
+!share(shiny_ores_title)
+!let(shiny_ores_string, shiny_ores_title + "\nGather all golden ores")
+!let(time_title, "")
+!share(time_title)
+!let(time_string, time_title + "???") // TODO write
+!let(trials_title, "@~@  #Speed Demon II#  @~@")
+!share(trials_title)
+!let(trials_string, trials_title + "\nI remembered this being easier...")
+!let(cells_title, "<icon>X</> #Relics of Nibel# <icon>X</>")
+!share(cells_title)
+!let(cells_string, cells_title + "\nGather all ability cells")
+!let(completionist_title, "")
+!share(completionist_title)
+!let(completionist_string, "???") // TODO write
+
+on reload {
+    update_wheel_unlocked()
+    update_finished_wheel()
+    update_true_ending_wheel()
+    update_speedrun_wheel()
+    update_ores_wheel()
+    update_shiny_ores_wheel()
+    update_time_wheel()
+    update_trials_wheel()
+    update_cells_wheel()
+    update_completionist_wheel()
+}
+
+on change finished_achievement update_wheel_unlocked()
+on change true_ending_achievement update_wheel_unlocked()
+on change speedrun_achievement update_wheel_unlocked()
+on change ores_achievement update_wheel_unlocked()
+on change shiny_ores_achievement update_wheel_unlocked()
+on change time_achievement update_wheel_unlocked()
+on change trials_achievement update_wheel_unlocked()
+on change cells_achievement update_wheel_unlocked()
+on change completionist_achievement update_wheel_unlocked()
+fun update_wheel_unlocked() {
+    if finished_achievement
+    || true_ending_achievement
+    || speedrun_achievement
+    || ores_achievement
+    || shiny_ores_achievement
+    || time_achievement
+    || trials_achievement
+    || cells_achievement
+    || completionist_achievement {
+        set_wheel_item_data(
+            "root",
+            WheelItemPosition::BottomLeft,
+            "Achievements",
+            "Recall your great achievements\n[Ability1] Recall",
+            message_icon,
+            switch_wheel("achievements"),
+        )
+    }
+}
+on change finished_achievement update_finished_wheel()
+fun update_finished_wheel() {
+    if finished_achievement {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::Top,
+            finished_title,
+            "[Ability1] Recall",
+            message_icon,
+            finished(),
+        )
+    }
+    if finished_achievement == false {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::Top,
+            "Undiscovered",
+            "",
+            relic_icon,
+            finished(),
+        )
+    }
+}
+on change true_ending_achievement update_true_ending_wheel()
+fun update_true_ending_wheel() {
+    if true_ending_achievement {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::TopRight,
+            true_ending_title,
+            "[Ability1] Recall",
+            message_icon,
+            true_ending(),
+        )
+    }
+    if true_ending_achievement == false {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::TopRight,
+            "Undiscovered",
+            "",
+            relic_icon,
+            true_ending(),
+        )
+    }
+}
+on change speedrun_achievement update_speedrun_wheel()
+fun update_speedrun_wheel() {
+    if speedrun_achievement {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::RightTop,
+            speedrun_title,
+            "[Ability1] Recall",
+            message_icon,
+            speedrun(),
+        )
+    }
+    if speedrun_achievement == false {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::RightTop,
+            "Undiscovered",
+            "",
+            relic_icon,
+            speedrun(),
+        )
+    }
+}
+on change ores_achievement update_ores_wheel()
+fun update_ores_wheel() {
+    if ores_achievement {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::Right,
+            ores_title,
+            "[Ability1] Recall",
+            message_icon,
+            ores(),
+        )
+    }
+    if ores_achievement == false {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::Right,
+            "Undiscovered",
+            "",
+            relic_icon,
+            ores(),
+        )
+    }
+}
+on change shiny_ores_achievement update_shiny_ores_wheel()
+fun update_shiny_ores_wheel() {
+    if shiny_ores_achievement {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::RightBottom,
+            shiny_ores_title,
+            "[Ability1] Recall",
+            message_icon,
+            shiny_ores(),
+        )
+    }
+    if shiny_ores_achievement == false {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::RightBottom,
+            "Undiscovered",
+            "",
+            relic_icon,
+            shiny_ores(),
+        )
+    }
+}
+on change time_achievement update_time_wheel()
+fun update_time_wheel() {
+    if time_achievement {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::BottomRight,
+            time_title,
+            "[Ability1] Recall",
+            message_icon,
+            time(),
+        )
+    }
+    if time_achievement == false {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::BottomRight,
+            "Undiscovered",
+            "",
+            relic_icon,
+            time(),
+        )
+    }
+}
+on change trials_achievement update_trials_wheel()
+fun update_trials_wheel() {
+    if trials_achievement {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::Bottom,
+            trials_title,
+            "[Ability1] Recall",
+            message_icon,
+            trials(),
+        )
+    }
+    if trials_achievement == false {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::Bottom,
+            "Undiscovered",
+            "",
+            relic_icon,
+            trials(),
+        )
+    }
+}
+on change cells_achievement update_cells_wheel()
+fun update_cells_wheel() {
+    if cells_achievement {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::BottomLeft,
+            cells_title,
+            "[Ability1] Recall",
+            message_icon,
+            cells(),
+        )
+    }
+    if cells_achievement == false {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::BottomLeft,
+            "Undiscovered",
+            "",
+            relic_icon,
+            cells(),
+        )
+    }
+}
+on change completionist_achievement update_completionist_wheel()
+fun update_completionist_wheel() {
+    if completionist_achievement {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::LeftBottom,
+            completionist_title, // TODO when removing this comma the error message is weird
+            "[Ability1] Recall",
+            message_icon,
+            completionist(),
+        )
+    }
+    if completionist_achievement == false {
+        set_wheel_item_data(
+            "achievements",
+            WheelItemPosition::LeftBottom,
+            "Undiscovered", // TODO find a name
+            "",
+            relic_icon,
+            completionist(),
+        )
+    }
+}
+
+// TODO list players who have completed the achievements
+on finished_achievement finished()
+fun finished() {
+    free_message(
+        "active_message",
+        "*Achievement completed*\n" +
+        finished_string +
+        "\n[Binding1] Close"
+    )
+    store(bind_pointer, close)
+}
+on true_ending_achievement true_ending()
+fun true_ending() {
+    free_message(
+        "active_message",
+        "*Achievement completed*\n" +
+        true_ending_string +
+        "\n[Binding1] Close"
+    )
+    store(bind_pointer, close)
+}
+on speedrun_achievement speedrun()
+fun speedrun() {
+    free_message(
+        "active_message",
+        "*Achievement completed*\n" +
+        speedrun_string +
+        "\n[Binding1] Close"
+    )
+    store(bind_pointer, close)
+}
+on ores_achievement ores()
+fun ores() {
+    free_message(
+        "active_message",
+        "*Achievement completed*\n" +
+        ores_string +
+        "\n[Binding1] Close"
+    )
+    store(bind_pointer, close)
+}
+on shiny_ores_achievement shiny_ores()
+fun shiny_ores() {
+    free_message(
+        "active_message",
+        "*Achievement completed*\n" +
+        shiny_ores_string +
+        "\n[Binding1] Close"
+    )
+    store(bind_pointer, close)
+}
+on time_achievement time()
+fun time() {
+    free_message(
+        "active_message",
+        "*Achievement completed*\n" +
+        time_string +
+        "\n[Binding1] Close"
+    )
+    store(bind_pointer, close)
+}
+on trials_achievement trials()
+fun trials() {
+    free_message(
+        "active_message",
+        "*Achievement completed*\n" +
+        trials_string +
+        "\n[Binding1] Close"
+    )
+    store(bind_pointer, close)
+}
+on cells_achievement cells()
+fun cells() {
+    free_message(
+        "active_message",
+        "*Achievement completed*\n" +
+        cells_string +
+        "\n[Binding1] Close"
+    )
+    store(bind_pointer, close)
+}
+on completionist_achievement completionist()
+fun completionist() {
+    free_message(
+        "active_message",
+        "*Achievement completed*\n" +
+        completionist_string +
+        "\n[Binding1] Close"
+    )
+    store(bind_pointer, close)
+}

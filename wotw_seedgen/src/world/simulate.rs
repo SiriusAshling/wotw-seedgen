@@ -1,9 +1,9 @@
 use super::{uber_states::UberStateValue, World};
 use std::ops::{Add, Div, Mul, Sub};
-use wotw_seedgen_data::{Resource, Shard, UberIdentifier, Zone};
-use wotw_seedgen_seed::{
+use wotw_seedgen_assembly::{
     ArithmeticOperator, CommandZone, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
 };
+use wotw_seedgen_data::{Resource, Shard, UberIdentifier, Zone};
 use wotw_seedgen_seed_language::output::{
     Action, ActionCondition, Command, CommandBoolean, CommandFloat, CommandIcon, CommandInteger,
     CommandString, CommandVoid, CommonItem, CompilerOutput, StringOrPlaceholder, Trigger,
@@ -239,26 +239,26 @@ impl Simulate for CommandVoid {
             CommandVoid::StoreBoolean {
                 uber_identifier,
                 value,
-                check_triggers,
+                trigger_events,
             } => {
                 let value = UberStateValue::Boolean(value.simulate(world, output));
-                set_uber_state(world, output, *uber_identifier, value, *check_triggers);
+                set_uber_state(world, output, *uber_identifier, value, *trigger_events);
             }
             CommandVoid::StoreInteger {
                 uber_identifier,
                 value,
-                check_triggers,
+                trigger_events,
             } => {
                 let value = UberStateValue::Integer(value.simulate(world, output));
-                set_uber_state(world, output, *uber_identifier, value, *check_triggers);
+                set_uber_state(world, output, *uber_identifier, value, *trigger_events);
             }
             CommandVoid::StoreFloat {
                 uber_identifier,
                 value,
-                check_triggers,
+                trigger_events,
             } => {
                 let value = UberStateValue::Float(value.simulate(world, output));
-                set_uber_state(world, output, *uber_identifier, value, *check_triggers);
+                set_uber_state(world, output, *uber_identifier, value, *trigger_events);
             }
             CommandVoid::SetBoolean { id, value } => {
                 let value = value.simulate(world, output);
@@ -394,15 +394,15 @@ fn set_uber_state(
     output: &CompilerOutput,
     uber_identifier: UberIdentifier,
     value: UberStateValue,
-    check_triggers: bool,
+    trigger_events: bool,
 ) {
     // TODO virtual uberstate simulation?
     if prevent_uber_state_change(world, uber_identifier, value) {
         return;
     }
-    if check_triggers {
+    if trigger_events {
         let events = world.uber_states.set(uber_identifier, value).collect();
-        uber_state_side_effects(world, output, uber_identifier, value, check_triggers);
+        uber_state_side_effects(world, output, uber_identifier, value, trigger_events);
         process_triggers(world, output, events);
     } else {
         world.uber_states.set(uber_identifier, value);
@@ -412,7 +412,7 @@ fn process_triggers(world: &mut World, output: &CompilerOutput, events: Vec<usiz
     for index in events {
         let event = &output.events[index];
         if match &event.trigger {
-            Trigger::Pseudo(_) => false,
+            Trigger::ClientEvent(_) => false,
             Trigger::Binding(_) => true,
             Trigger::Condition(condition) => condition.simulate(world, output),
         } {
@@ -458,7 +458,7 @@ fn uber_state_side_effects(
     output: &CompilerOutput,
     uber_identifier: UberIdentifier,
     value: UberStateValue,
-    check_triggers: bool,
+    trigger_events: bool,
 ) {
     match uber_identifier {
         LUMA_FIGHT_ARENA_2 if value == 4 => {
@@ -467,7 +467,7 @@ fn uber_state_side_effects(
                 output,
                 LUMA_FIGHT_ARENA_1,
                 UberStateValue::Integer(4),
-                check_triggers,
+                trigger_events,
             );
         }
         DIAMOND_IN_THE_ROUGH_CUTSCENE if matches!(value.as_integer(), 1 | 2) => {
@@ -476,14 +476,14 @@ fn uber_state_side_effects(
                 output,
                 DIAMOND_IN_THE_ROUGH_CUTSCENE,
                 UberStateValue::Integer(3),
-                check_triggers,
+                trigger_events,
             );
             set_uber_state(
                 world,
                 output,
                 DIAMOND_IN_THE_ROUGH_PICKUP,
                 UberStateValue::Boolean(true),
-                check_triggers,
+                trigger_events,
             );
         }
         WELLSPRING_ESCAPE_COMPLETE if value == true => {
@@ -492,7 +492,7 @@ fn uber_state_side_effects(
                 output,
                 WELLSPRING_QUEST,
                 UberStateValue::Integer(3),
-                check_triggers,
+                trigger_events,
             );
         }
         WELLSPRING_QUEST if value >= 3 => {
@@ -501,7 +501,7 @@ fn uber_state_side_effects(
                 output,
                 TULEY_IN_GLADES,
                 UberStateValue::Boolean(true),
-                check_triggers,
+                trigger_events,
             );
         }
         CAT_AND_MOUSE if value == 7 => {
@@ -510,7 +510,7 @@ fn uber_state_side_effects(
                 output,
                 CAT_AND_MOUSE,
                 UberStateValue::Integer(8),
-                check_triggers,
+                trigger_events,
             );
         }
         WILLOW_STONE_BOSS_HEART if value == true => {
@@ -519,7 +519,7 @@ fn uber_state_side_effects(
                 output,
                 WILLOW_STONE_BOSS_STATE,
                 UberStateValue::Integer(4),
-                check_triggers,
+                trigger_events,
             );
         }
         SWORD_TREE if value == true => {
@@ -528,7 +528,7 @@ fn uber_state_side_effects(
                 output,
                 RAIN_LIFTED,
                 UberStateValue::Boolean(true),
-                check_triggers,
+                trigger_events,
             );
         }
         VOICE | STRENGTH | MEMORY | EYES | HEART if value == true => {

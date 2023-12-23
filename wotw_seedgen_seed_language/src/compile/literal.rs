@@ -127,6 +127,7 @@ impl<'source> Compile<'source> for ast::Constant<'source> {
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
         let variant = self.variant.data.0;
+        // TODO sucks to have to update this manually
         let constant = match self.kind.data.0 {
             "Resource" => variant
                 .parse()
@@ -190,6 +191,14 @@ impl<'source> Compile<'source> for ast::Constant<'source> {
                 .parse()
                 .map_err(|_| Error::custom("Unknown WheelBind".to_string(), self.variant.span))
                 .map(Constant::WheelBind),
+            "Alignment" => variant
+                .parse()
+                .map_err(|_| Error::custom("Unknown Alignment".to_string(), self.variant.span))
+                .map(Constant::Alignment),
+            "ScreenPosition" => variant
+                .parse()
+                .map_err(|_| Error::custom("Unknown ScreenPosition".to_string(), self.variant.span))
+                .map(Constant::ScreenPosition),
             _ => Err(Error::custom(
                 "Unknown Constant Kind".to_string(),
                 self.kind.span,

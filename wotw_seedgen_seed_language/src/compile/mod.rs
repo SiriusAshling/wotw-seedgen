@@ -12,7 +12,9 @@ use wotw_seedgen_data::UberIdentifier;
 use self::preprocess::{Preprocessor, PreprocessorOutput};
 use crate::{
     ast::{self, UberStateType},
-    output::{self, intermediate::Literal, Command, CommandVoid, CompilerOutput},
+    output::{
+        self, intermediate::Literal, Command, CommandVoid, CompilerOutput, SnippetDebugOutput,
+    },
     token::TOKENIZER,
     types::uber_state_type,
 };
@@ -20,7 +22,7 @@ use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
-    fmt::Debug,
+    fmt::{self, Debug, Display},
     io::{self, Write},
 };
 use wotw_seedgen_assets::{SnippetAccess, Source, UberStateData};
@@ -37,6 +39,10 @@ pub struct Compiler<'snippets, 'uberstates, F: SnippetAccess> {
     compiled_snippets: FxHashSet<String>,
     errors: Vec<(Source, Vec<Error>)>,
 }
+
+/// How many memory slots to reserve for generated calculations
+// TODO how much is needed
+pub const RESERVED_MEMORY: usize = 10;
 
 pub(crate) trait Compile<'source> {
     type Output;
@@ -148,6 +154,14 @@ pub(crate) enum SharedValue {
     Function(usize),
     Literal(Literal),
 }
+impl Display for SharedValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SharedValue::Function(index) => write!(f, "function: {index}"),
+            SharedValue::Literal(literal) => write!(f, "{literal}"),
+        }
+    }
+}
 impl<'uberstates> GlobalCompilerData<'uberstates> {
     pub(crate) fn new(
         uber_state_data: &'uberstates UberStateData,
@@ -158,10 +172,10 @@ impl<'uberstates> GlobalCompilerData<'uberstates> {
             uber_state_data,
             callbacks: Default::default(),
             shared_values: Default::default(),
-            boolean_ids: IdProvider::new(2), // 2 reserved for function arguments
-            integer_ids: IdProvider::new(4), // 4 reserved for function arguments
-            float_ids: IdProvider::new(4),   // 4 reserved for function arguments
-            string_ids: IdProvider::new(3), // 2 reserved for function arguments, 1 reserved for spirit light strings
+            boolean_ids: IdProvider::new(RESERVED_MEMORY),
+            integer_ids: IdProvider::new(RESERVED_MEMORY),
+            float_ids: IdProvider::new(RESERVED_MEMORY),
+            string_ids: IdProvider::new(RESERVED_MEMORY + 1), // 1 reserved for spirit light strings
             boolean_state_id: 100,
             integer_state_id: 0,
             float_state_id: 150,
@@ -212,6 +226,7 @@ pub(crate) struct SnippetCompiler<'compiler, 'source, 'uberstates> {
 }
 const SEED_FAILED_MESSAGE: &str = "Failed to seed child RNG";
 impl<'compiler, 'source, 'uberstates> SnippetCompiler<'compiler, 'source, 'uberstates> {
+    // TODO weird api
     pub(crate) fn compile<R: Rng>(
         ast: ast::Snippet<'source>,
         rng: &mut R,
@@ -241,6 +256,21 @@ impl<'compiler, 'source, 'uberstates> SnippetCompiler<'compiler, 'source, 'ubers
             errors: Default::default(),
         };
         ast.compile(&mut compiler);
+        if let Some(debug) = &mut compiler.global.output.debug {
+            // TODO now it's inefficient that we're returning the whole compiler, could save some clones here
+            // ... on the other hand, the things we're cloning are probably supposed to be references anyway
+            debug.snippets.insert(
+                compiler.identifier.clone(),
+                SnippetDebugOutput {
+                    variables: compiler
+                        .variables
+                        .iter()
+                        .map(|(k, v)| (k.to_string(), v.to_string()))
+                        .collect(),
+                    function_indices: compiler.function_indices.clone(),
+                },
+            );
+        }
         compiler
     }
 
@@ -251,7 +281,7 @@ impl<'compiler, 'source, 'uberstates> SnippetCompiler<'compiler, 'source, 'ubers
         let literal = self.variables.get(&identifier.data);
         if literal.is_none() {
             self.errors.push(Error::custom(
-                "Unknown identifier".to_string(),
+                "unknown identifier".to_string(),
                 identifier.span(),
             ))
         }
@@ -298,6 +328,10 @@ impl<'snippets, 'uberstates, F: SnippetAccess> Compiler<'snippets, 'uberstates, 
         }
     }
 
+    pub fn debug(&mut self) {
+        self.global.output.debug = Some(Default::default());
+    }
+
     pub fn compile_snippet(&mut self, identifier: &str) -> std::result::Result<(), String> {
         if !self.compiled_snippets.insert(identifier.to_string()) {
             return Ok(());
@@ -315,6 +349,7 @@ impl<'snippets, 'uberstates, F: SnippetAccess> Compiler<'snippets, 'uberstates, 
             Err(err) => errors.push(err),
             Ok(ast) => {
                 let preprocessor = Preprocessor::preprocess(&ast);
+                errors.extend(preprocessor.errors);
 
                 for include in &preprocessor.output.includes {
                     if let Err(err) = self.compile_snippet(&include.data) {
@@ -344,6 +379,9 @@ impl<'snippets, 'uberstates, F: SnippetAccess> Compiler<'snippets, 'uberstates, 
 
     pub fn finish<W: Write>(self, write_errors: &mut W) -> io::Result<output::CompilerOutput> {
         let mut output = self.global.output;
+        if let Some(debug) = &mut output.debug {
+            debug.callbacks = self.global.callbacks;
+        }
 
         let mut error_count = 0;
 

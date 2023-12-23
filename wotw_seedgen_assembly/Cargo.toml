@@ -1,5 +1,5 @@
 [package]
-name = "wotw_seedgen_seed"
+name = "wotw_seedgen_assembly"
 version = "0.1.0"
 edition = "2021"
 
@@ -13,5 +13,7 @@ serde_json = "1.0"
 itertools = "0.11"
 rustc-hash = "1.1"
 parse-display = "0.8"
-derivative = "2.2.0"
-derive-where = "1.2.5"
+derivative = "2.2"
+derive-where = "1.2"
+brotli = "3.4"
+tar = "0.4"

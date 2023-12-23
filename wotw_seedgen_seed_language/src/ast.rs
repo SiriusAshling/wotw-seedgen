@@ -63,14 +63,15 @@ pub struct Event<'source> {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
 pub enum Trigger<'source> {
-    Pseudo(Spanned<PseudoTrigger>),
+    ClientEvent(Spanned<ClientEvent>),
     Binding(Spanned<Change>, TriggerBinding<'source>),
     Condition(Expression<'source>),
 }
+// TODO remove ability triggers because the states are more flexible for those (remain true for the duration)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ast, Display, Serialize, Deserialize)]
 #[ast(case = "snake")]
 #[display(style = "snake_case")]
-pub enum PseudoTrigger {
+pub enum ClientEvent {
     /// Trigger when starting a new file
     Spawn,
     /// Trigger when starting a new file or loading the seed into an active file
@@ -78,15 +79,15 @@ pub enum PseudoTrigger {
     /// Trigger when respawning after death, void etc.
     Respawn,
     /// Trigger on keybind
-    Bind1,
+    Binding1,
     /// Trigger on keybind
-    Bind2,
+    Binding2,
     /// Trigger on keybind
-    Bind3,
+    Binding3,
     /// Trigger on keybind
-    Bind4,
+    Binding4,
     /// Trigger on keybind
-    Bind5,
+    Binding5,
     /// Trigger on Teleport
     Teleport,
     /// Trigger on Jump
@@ -134,6 +135,22 @@ pub enum PseudoTrigger {
     ProgressMessage,
     /// Trigger every frame
     Tick,
+    /// Trigger when the Inkwater trial reward text should be updated
+    InkwaterTrialTextRequest,
+    /// Trigger when the Hollow trial reward text should be updated
+    HollowTrialTextRequest,
+    /// Trigger when the Wellspring trial reward text should be updated
+    WellspringTrialTextRequest,
+    /// Trigger when the Woods trial reward text should be updated
+    WoodsTrialTextRequest,
+    /// Trigger when the Reach trial reward text should be updated
+    ReachTrialTextRequest,
+    /// Trigger when the Depths trial reward text should be updated
+    DepthsTrialTextRequest,
+    /// Trigger when the Luma trial reward text should be updated
+    LumaTrialTextRequest,
+    /// Trigger when the Wastes trial reward text should be updated
+    WastesTrialTextRequest,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
 pub enum TriggerBinding<'source> {

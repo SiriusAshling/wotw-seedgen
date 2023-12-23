@@ -40,7 +40,7 @@ on spawn {
     store(npcsStateGroup.gromTalkedAboutMouldwoodGate, true)
     store(npcsStateGroup.gromTalkedAboutBaur, true)
     store(npcsStateGroup.gromTalkedAboutLagoon, true)
-    store(hubUberStateGroup.builderProjectHouses, 1)
+    store(hubUberStateGroup.builderProjectHouses, 1) // TODO check if this is fixed on the dev branch
     store(questUberStateGroup.luposMapQuest, 4)
     store(npcsStateGroup.talkedInHub, 2)
     store(npcsStateGroup.willowsEndSeirExitCutscene, true)

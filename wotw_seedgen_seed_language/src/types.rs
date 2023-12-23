@@ -39,6 +39,8 @@ pub enum Type {
     EquipSlot,
     WheelItemPosition,
     WheelBind,
+    Alignment,
+    ScreenPosition,
     Trigger,
     Expression,
     Void,
@@ -176,10 +178,15 @@ impl InferType for FunctionCall<'_> {
             | FunctionIdentifier::ItemMessage
             | FunctionIdentifier::ItemMessageWithTimeout
             | FunctionIdentifier::PriorityMessage
-            | FunctionIdentifier::ControlledMessage
+            | FunctionIdentifier::ControlledPriorityMessage
+            | FunctionIdentifier::FreeMessage
+            | FunctionIdentifier::DestroyMessage
             | FunctionIdentifier::SetMessageText
             | FunctionIdentifier::SetMessageTimeout
-            | FunctionIdentifier::DestroyMessage
+            | FunctionIdentifier::SetMessageBackground
+            | FunctionIdentifier::SetMessagePosition
+            | FunctionIdentifier::SetMessageAlignment
+            | FunctionIdentifier::SetMessageScreenPosition
             | FunctionIdentifier::Store
             | FunctionIdentifier::StoreWithoutTriggers
             | FunctionIdentifier::SetString
@@ -204,6 +211,7 @@ impl InferType for FunctionCall<'_> {
             | FunctionIdentifier::SetShopItemDescription
             | FunctionIdentifier::SetShopItemIcon
             | FunctionIdentifier::SetShopItemHidden
+            | FunctionIdentifier::SetShopItemLocked
             | FunctionIdentifier::SetWheelItemData
             | FunctionIdentifier::SetWheelItemName
             | FunctionIdentifier::SetWheelItemDescription
@@ -321,6 +329,8 @@ impl intermediate::Constant {
             intermediate::Constant::EquipSlot(_) => Type::EquipSlot,
             intermediate::Constant::WheelItemPosition(_) => Type::WheelItemPosition,
             intermediate::Constant::WheelBind(_) => Type::WheelBind,
+            intermediate::Constant::Alignment(_) => Type::Alignment,
+            intermediate::Constant::ScreenPosition(_) => Type::ScreenPosition,
         }
     }
 }

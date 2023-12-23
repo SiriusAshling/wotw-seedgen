@@ -1,0 +1,824 @@
+!use_icon(message_icon, "assets/icons/game/message.png")
+
+!include("difficulty_select")
+!use("difficulty_select", critical)
+
+!include("bind_pointer")
+!use("bind_pointer", bind_pointer)
+!use("bind_pointer", close)
+
+on reload {
+    update_wheel_unlocked()
+    set_shop_item_data(
+        TwillenShop.Energy,
+        350,
+        "Hint 1",
+        "",
+        message_icon,
+    )
+    if critical {
+        update_critical_shuriken_hint()
+        update_critical_deflector_hint()
+        update_critical_clean_water_hint()
+        update_critical_depths_key_hint()
+        update_critical_health_fragments_hint()
+        update_critical_double_jump_hint()
+        update_critical_flap_hint()
+        update_critical_secret_hint()
+    }
+    if critical == false {
+        update_balanced_glades_hint()
+        update_balanced_resilience_hint()
+        update_balanced_woods_hint()
+        update_balanced_double_jump_hint()
+        update_balanced_clean_water_hint()
+        update_balanced_flap_hint()
+        update_balanced_grenade_hint()
+        update_balanced_secret_hint()
+    }
+    // TODO fix the order of TwillenShop entries in loc_data
+    // TwillenShop.Energy
+    // TwillenShop.Vitality
+    // TwillenShop.Wingclip
+    // TwillenShop.Finesse
+    // TwillenShop.LightHarvest
+    // TwillenShop.Overcharge
+    // TwillenShop.Swap
+    // TwillenShop.TripleJump
+}
+
+on change TwillenShop.Overcharge update_wheel_unlocked()
+on change TwillenShop.TripleJump update_wheel_unlocked()
+on change TwillenShop.Wingclip update_wheel_unlocked()
+on change TwillenShop.Swap update_wheel_unlocked()
+on change TwillenShop.LightHarvest update_wheel_unlocked()
+on change TwillenShop.Vitality update_wheel_unlocked()
+on change TwillenShop.Energy update_wheel_unlocked()
+on change TwillenShop.Finesse update_wheel_unlocked()
+fun update_wheel_unlocked() {
+    if TwillenShop.Overcharge
+    || TwillenShop.TripleJump
+    || TwillenShop.Wingclip
+    || TwillenShop.Swap
+    || TwillenShop.LightHarvest
+    || TwillenShop.Vitality
+    || TwillenShop.Energy
+    || TwillenShop.Finesse
+    {
+        set_wheel_item_data(
+            "root",
+            WheelItemPosition::Left,
+            "Twillen's Hints",
+            "Recall Hints hard from Twillen\n[Ability1] Recall",
+            message_icon,
+            switch_wheel("twillen_hints"),
+        )
+    }
+}
+
+fun update_critical_shuriken_hint() {
+    update_critical_shuriken_hint_wheel()
+}
+// TODO mark already found things in the recall
+on change TwillenShop.Energy if critical update_critical_shuriken_hint_wheel()
+fun update_critical_shuriken_hint_wheel() {
+    if TwillenShop.Energy {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::Top,
+            "Far to the East",
+            "[Ability1] Recall",
+            message_icon,
+            critical_shuriken_hint(),
+        )
+    }
+}
+
+fun update_critical_deflector_hint() {
+    update_critical_deflector_hint_discovered()
+    update_critical_deflector_hint_wheel()
+}
+on change skills.shuriken if critical update_critical_deflector_hint_discovered()
+fun update_critical_deflector_hint_discovered() {
+    if skills.shuriken {
+        // TODO maybe do the single commands here to reduce redundancy?
+        set_shop_item_data(
+            TwillenShop.Vitality,
+            450,
+            "Hint 2",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Vitality, false)
+    }
+    if skills.shuriken == false {
+        set_shop_item_data(
+            TwillenShop.Vitality,
+            450,
+            "Undiscovered",
+            "Progress further and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Vitality, true)
+    }
+}
+on change TwillenShop.Vitality if critical update_critical_deflector_hint_wheel()
+fun update_critical_deflector_hint_wheel() {
+    if TwillenShop.Vitality {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::TopRight,
+            "Creature of the Skies",
+            "[Ability1] Recall",
+            message_icon,
+            critical_deflector_hint(),
+        )
+    }
+}
+
+fun update_critical_clean_water_hint() {
+    update_critical_clean_water_hint_discovered()
+    update_critical_clean_water_hint_wheel()
+}
+on change randoState.cleanWater if critical update_critical_clean_water_hint_discovered()
+fun update_critical_clean_water_hint_discovered() {
+    if randoState.cleanWater {
+        set_shop_item_data(
+            TwillenShop.Wingclip,
+            500,
+            "Hint 3",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Wingclip, false)
+    }
+    if randoState.cleanWater == false {
+        set_shop_item_data(
+            TwillenShop.Wingclip,
+            500,
+            "Undiscovered",
+            "Progress further and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Wingclip, true)
+    }
+}
+on change TwillenShop.Wingclip if critical update_critical_clean_water_hint_wheel()
+fun update_critical_clean_water_hint_wheel() {
+    if TwillenShop.Wingclip {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::RightTop,
+            "Climb High",
+            "[Ability1] Recall",
+            message_icon,
+            critical_clean_water_hint(),
+        )
+    }
+}
+
+fun update_critical_depths_key_hint() {
+    update_critical_depths_key_hint_discovered()
+    update_critical_depths_key_hint_wheel()
+}
+on change EastHollow.DepthsOpen if critical update_critical_depths_key_hint_discovered()
+fun update_critical_depths_key_hint_discovered() {
+    if EastHollow.DepthsOpen {
+        set_shop_item_data(
+            TwillenShop.Finesse,
+            600,
+            "Hint 4",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Finesse, false)
+    }
+    if EastHollow.DepthsOpen == false {
+        set_shop_item_data(
+            TwillenShop.Finesse,
+            600,
+            "Undiscovered",
+            "Progress further and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Finesse, true)
+    }
+}
+on change TwillenShop.Finesse if critical update_critical_depths_key_hint_wheel()
+fun update_critical_depths_key_hint_wheel() {
+    if TwillenShop.Finesse {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::Right,
+            "Challenge the Corruption",
+            "[Ability1] Recall",
+            message_icon,
+            critical_depths_key_hint(),
+        )
+    }
+}
+
+// TODO what to track here?
+fun update_critical_health_fragments_hint() {
+    update_critical_health_fragments_hint_discovered()
+    update_critical_health_fragments_hint_wheel()
+}
+// on change ??? if critical update_critical_health_fragments_hint_discovered()
+fun update_critical_health_fragments_hint_discovered() {
+//    if ??? {
+//        set_shop_item_data(
+//            TwillenShop.LightHarvest,
+//            650,
+//            "Hint 5",
+//            "",
+//            message_icon,
+//        )
+//        set_shop_item_hidden(TwillenShop.LightHarvest, false)
+//    }
+//    if ??? == false {
+//        set_shop_item_data(
+//            TwillenShop.LightHarvest,
+//            650,
+//            "Undiscovered",
+//            "Progress further and come back later",
+//            message_icon,
+//        )
+        set_shop_item_hidden(TwillenShop.LightHarvest, true)
+//    }
+}
+on change TwillenShop.LightHarvest if critical update_critical_health_fragments_hint_wheel()
+fun update_critical_health_fragments_hint_wheel() {
+    if TwillenShop.LightHarvest {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::RightBottom,
+            "Stone, Sand and Darkness",
+            "[Ability1] Recall",
+            message_icon,
+            critical_health_fragments_hint(),
+        )
+    }
+}
+
+fun update_critical_double_jump_hint() {
+    update_critical_double_jump_hint_discovered()
+    update_critical_double_jump_hint_wheel()
+}
+on change skills.doubleJump if critical update_critical_double_jump_hint_discovered()
+fun update_critical_double_jump_hint_discovered() {
+    if skills.doubleJump {
+        set_shop_item_data(
+            TwillenShop.Overcharge,
+            750,
+            "Hint 6",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Overcharge, false)
+    }
+    if skills.doubleJump == false {
+        set_shop_item_data(
+            TwillenShop.Overcharge,
+            750,
+            "Undiscovered",
+            "Progress further and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Overcharge, true)
+    }
+}
+on change TwillenShop.Overcharge if critical update_critical_double_jump_hint_wheel()
+fun update_critical_double_jump_hint_wheel() {
+    if TwillenShop.Overcharge {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::BottomRight,
+            "Sands of Cultures Past",
+            "[Ability1] Recall",
+            message_icon,
+            critical_double_jump_hint(),
+        )
+    }
+}
+
+fun update_critical_flap_hint() {
+    update_critical_flap_hint_discovered()
+    update_critical_flap_hint_wheel()
+}
+on change skills.doubleJump if critical update_critical_flap_hint_discovered()
+fun update_critical_flap_hint_discovered() {
+    if skills.doubleJump {
+        set_shop_item_data(
+            TwillenShop.Swap,
+            800,
+            "Hint 7",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Swap, false)
+    }
+    if skills.doubleJump == false {
+        set_shop_item_data(
+            TwillenShop.Swap,
+            800,
+            "Undiscovered",
+            "Progress further and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Swap, true)
+    }
+}
+on change TwillenShop.Swap if critical update_critical_flap_hint_wheel()
+fun update_critical_flap_hint_wheel() {
+    if TwillenShop.Swap {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::Bottom,
+            "Tempt the Darkness",
+            "[Ability1] Recall",
+            message_icon,
+            critical_flap_hint(),
+        )
+    }
+}
+
+// TODO what to track here
+fun update_critical_secret_hint() {
+    update_critical_secret_hint_discovered()
+    update_critical_secret_hint_wheel()
+}
+// on change ??? if critical update_critical_secret_hint_discovered()
+fun update_critical_secret_hint_discovered() {
+//    if ??? {
+//        set_shop_item_data(
+//            TwillenShop.TripleJump,
+//            1000,
+//            "Hint 8",
+//            "",
+//            message_icon,
+//        )
+//        set_shop_item_hidden(TwillenShop.TripleJump, false)
+//    }
+//    if ??? == false {
+//        set_shop_item_data(
+//            TwillenShop.TripleJump,
+//            1000,
+//            "Undiscovered",
+//            "Progress further and come back later",
+//            message_icon,
+//        )
+        set_shop_item_hidden(TwillenShop.TripleJump, true)
+//    }
+}
+on change TwillenShop.TripleJump if critical update_critical_secret_hint_wheel()
+fun update_critical_secret_hint_wheel() {
+    if TwillenShop.TripleJump {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::BottomLeft,
+            "???", // TODO write hint
+            "[Ability1] Recall",
+            message_icon,
+            critical_secret_hint(),
+        )
+    }
+}
+
+fun update_balanced_glades_hint() {
+    update_balanced_glades_hint_wheel()
+}
+on change TwillenShop.Energy if critical == false update_balanced_glades_hint_wheel()
+fun update_balanced_glades_hint_wheel() {
+    if TwillenShop.Energy {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::Top,
+            "Safe Haven",
+            "[Ability1] Recall",
+            message_icon,
+            balanced_glades_hint(),
+        )
+    }
+}
+
+fun update_balanced_resilience_hint() {
+    update_balanced_resilience_hint_discovered()
+    update_balanced_resilience_hint_wheel()
+}
+on change GladesTown.GromsWall if critical == false update_balanced_resilience_hint_discovered()
+fun update_balanced_resilience_hint_discovered() {
+    if GladesTown.GromsWall {
+        // TODO maybe do the single commands here to reduce redundancy?
+        set_shop_item_data(
+            TwillenShop.Vitality,
+            450,
+            "Hint 2",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Vitality, false)
+    }
+    if GladesTown.GromsWall == false {
+        set_shop_item_data(
+            TwillenShop.Vitality,
+            450,
+            "Undiscovered",
+            "Progress further and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Vitality, true)
+    }
+}
+on change TwillenShop.Vitality if critical == false update_balanced_resilience_hint_wheel()
+fun update_balanced_resilience_hint_wheel() {
+    if TwillenShop.Vitality {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::TopRight,
+            "Tempt the darkness",
+            "[Ability1] Recall",
+            message_icon,
+            balanced_resilience_hint(),
+        )
+    }
+}
+
+fun update_balanced_woods_hint() {
+    update_balanced_woods_hint_discovered()
+    update_balanced_woods_hint_wheel()
+}
+on change skills.glide if critical == false update_balanced_woods_hint_discovered()
+fun update_balanced_woods_hint_discovered() {
+    if skills.glide {
+        set_shop_item_data(
+            TwillenShop.Wingclip,
+            500,
+            "Hint 3",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Wingclip, false)
+    }
+    if skills.glide == false {
+        set_shop_item_data(
+            TwillenShop.Wingclip,
+            500,
+            "Undiscovered",
+            "Progress further and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Wingclip, true)
+    }
+}
+on change TwillenShop.Wingclip if critical == false update_balanced_woods_hint_wheel()
+fun update_balanced_woods_hint_wheel() {
+    if TwillenShop.Wingclip {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::RightTop,
+            "Close to Poison", // TODO this hint doesn't work
+            "[Ability1] Recall",
+            message_icon,
+            balanced_woods_hint(),
+        )
+    }
+}
+
+fun update_balanced_double_jump_hint() {
+    update_balanced_double_jump_hint_discovered()
+    update_balanced_double_jump_hint_wheel()
+}
+// TODO tp aliases would be nice
+on change 53632|18181 if critical == false update_balanced_double_jump_hint_discovered()
+fun update_balanced_double_jump_hint_discovered() {
+    if 53632|18181 {
+        set_shop_item_data(
+            TwillenShop.Finesse,
+            600,
+            "Hint 4",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Finesse, false)
+    }
+    if 53632|18181 == false {
+        set_shop_item_data(
+            TwillenShop.Finesse,
+            600,
+            "Undiscovered",
+            "Progress further and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Finesse, true)
+    }
+}
+on change TwillenShop.Finesse if critical == false update_balanced_double_jump_hint_wheel()
+fun update_balanced_double_jump_hint_wheel() {
+    if TwillenShop.Finesse {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::Right,
+            "Sands of Cultures Past",
+            "[Ability1] Recall",
+            message_icon,
+            balanced_double_jump_hint(),
+        )
+    }
+}
+
+fun update_balanced_clean_water_hint() {
+    update_balanced_clean_water_hint_discovered()
+    update_balanced_clean_water_hint_wheel()
+}
+on change 53632|18181 if critical == false update_balanced_clean_water_hint_discovered()
+fun update_balanced_clean_water_hint_discovered() {
+    if 53632|18181 {
+        set_shop_item_data(
+            TwillenShop.LightHarvest,
+            650,
+            "Hint 5",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.LightHarvest, false)
+    }
+    if 53632|18181 == false {
+        set_shop_item_data(
+            TwillenShop.LightHarvest,
+            650,
+            "Undiscovered",
+            "Progress further and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.LightHarvest, true)
+    }
+}
+on change TwillenShop.LightHarvest if critical == false update_balanced_clean_water_hint_wheel()
+fun update_balanced_clean_water_hint_wheel() {
+    if TwillenShop.LightHarvest {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::RightBottom,
+            "Wheels and Waters",
+            "[Ability1] Recall",
+            message_icon,
+            balanced_clean_water_hint(),
+        )
+    }
+}
+
+fun update_balanced_flap_hint() {
+    update_balanced_flap_hint_discovered()
+    update_balanced_flap_hint_wheel()
+}
+on change randoState.cleanWater if critical == false update_balanced_flap_hint_discovered()
+fun update_balanced_flap_hint_discovered() {
+    if randoState.cleanWater {
+        set_shop_item_data(
+            TwillenShop.Overcharge,
+            750,
+            "Hint 6",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Overcharge, false)
+    }
+    if randoState.cleanWater == false {
+        set_shop_item_data(
+            TwillenShop.Overcharge,
+            750,
+            "Undiscovered",
+            "Progress further and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Overcharge, true)
+    }
+}
+on change TwillenShop.Overcharge if critical == false update_balanced_flap_hint_wheel()
+fun update_balanced_flap_hint_wheel() {
+    if TwillenShop.Overcharge {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::BottomRight,
+            "Challenge the Corruption",
+            "[Ability1] Recall",
+            message_icon,
+            balanced_flap_hint(),
+        )
+    }
+}
+
+fun update_balanced_grenade_hint() {
+    update_balanced_grenade_hint_discovered()
+    update_balanced_grenade_hint_wheel()
+}
+on change skills.flap if critical == false update_balanced_grenade_hint_discovered()
+fun update_balanced_grenade_hint_discovered() {
+    if skills.flap {
+        set_shop_item_data(
+            TwillenShop.Swap,
+            800,
+            "Hint 7",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Swap, false)
+    }
+    if skills.flap == false {
+        set_shop_item_data(
+            TwillenShop.Swap,
+            800,
+            "Undiscovered",
+            "Progress further and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(TwillenShop.Swap, true)
+    }
+}
+on change TwillenShop.Swap if critical == false update_balanced_grenade_hint_wheel()
+fun update_balanced_grenade_hint_wheel() {
+    if TwillenShop.Swap {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::Bottom,
+            "Light within Darkness",
+            "[Ability1] Recall",
+            message_icon,
+            balanced_grenade_hint(),
+        )
+    }
+}
+
+// TODO what to track here
+fun update_balanced_secret_hint() {
+    update_balanced_secret_hint_discovered()
+    update_balanced_secret_hint_wheel()
+}
+// on change ??? if critical == false update_balanced_secret_hint_discovered()
+fun update_balanced_secret_hint_discovered() {
+//    if ??? {
+//        set_shop_item_data(
+//            TwillenShop.TripleJump,
+//            1000,
+//            "Hint 8",
+//            "",
+//            message_icon,
+//        )
+//        set_shop_item_hidden(TwillenShop.TripleJump, false)
+//    }
+//    if ??? == false {
+//        set_shop_item_data(
+//            TwillenShop.TripleJump,
+//            1000,
+//            "Undiscovered",
+//            "Progress further and come back later",
+//            message_icon,
+//        )
+        set_shop_item_hidden(TwillenShop.TripleJump, true)
+//    }
+}
+on change TwillenShop.TripleJump if critical == false update_balanced_secret_hint_wheel()
+fun update_balanced_secret_hint_wheel() {
+    if TwillenShop.TripleJump {
+        set_wheel_item_data(
+            "twillen_hints",
+            WheelItemPosition::BottomLeft,
+            "???", // TODO write hint
+            "[Ability1] Recall",
+            message_icon,
+            balanced_secret_hint(),
+        )
+    }
+}
+
+on TwillenShop.Energy if critical critical_shuriken_hint()
+on TwillenShop.Vitality if critical critical_deflector_hint()
+on TwillenShop.Wingclip if critical critical_clean_water_hint()
+on TwillenShop.Finesse if critical critical_depths_key_hint()
+on TwillenShop.LightHarvest if critical critical_health_fragments_hint()
+on TwillenShop.Overcharge if critical critical_double_jump_hint()
+on TwillenShop.Swap if critical critical_flap_hint()
+on TwillenShop.TripleJump if critical critical_secret_hint()
+
+fun critical_shuriken_hint() {
+    free_message(
+        "active_message", // TODO why isn't everything using the same message id and bind pointer for this???
+        "It is far to the east. #A Door# will block your way, but never despair!"
+    )
+    store(bind_pointer, close)
+}
+fun critical_deflector_hint() {
+    free_message(
+        "active_message",
+        "A #creature of the skies# holds a shard of power."
+    )
+    store(bind_pointer, close)
+}
+fun critical_clean_water_hint() {
+    free_message(
+        "active_message",
+        "#Climb#, up, ever higher. There is no limit to the sky. Let the #Wheels turn# and the #Waters flow#."
+    )
+    store(bind_pointer, close)
+}
+fun critical_depths_key_hint() {
+    free_message(
+        "active_message",
+        "A #Corruption Taken Form# hides the means to continue. Step ahead as the #Challenger of Light#."
+    )
+    store(bind_pointer, close)
+}
+fun critical_health_fragments_hint() {
+    free_message(
+        "active_message",
+        "Seek #Stone#, Seek #Sand#, Seek #Darkness# - Those hide what you must gain."
+    )
+    store(bind_pointer, close)
+}
+fun critical_double_jump_hint() {
+    free_message(
+        "active_message",
+        "The #Sands of Cultures Past# hold a great treasure, a #Power without Limits#."
+    )
+    store(bind_pointer, close)
+}
+fun critical_flap_hint() {
+    free_message(
+        "active_message",
+        "Draw power from your #Newest Strength#. #Tempt the Darkness# and return, unafraid of its power."
+    )
+    store(bind_pointer, close)
+}
+fun critical_secret_hint() {
+    free_message(
+        "active_message",
+        "???" // TODO write hint
+    )
+    store(bind_pointer, close)
+}
+
+on TwillenShop.Energy if critical == false balanced_glades_hint()
+on TwillenShop.Vitality if critical == false balanced_resilience_hint()
+on TwillenShop.Wingclip if critical == false balanced_woods_hint()
+on TwillenShop.Finesse if critical == false balanced_double_jump_hint()
+on TwillenShop.LightHarvest if critical == false balanced_clean_water_hint()
+on TwillenShop.Overcharge if critical == false balanced_flap_hint()
+on TwillenShop.Swap if critical == false balanced_grenade_hint()
+on TwillenShop.TripleJump if critical == false balanced_secret_hint()
+
+fun balanced_glades_hint() {
+    free_message(
+        "active_message", // TODO why isn't everything using the same message id and bind pointer for this???
+        "It is far to the east. #A Door# will block your way, but never despair!"
+    )
+    store(bind_pointer, close)
+}
+fun balanced_resilience_hint() {
+    free_message(
+        "active_message",
+        "A #creature of the skies# holds a shard of power."
+    )
+    store(bind_pointer, close)
+}
+fun balanced_woods_hint() {
+    free_message(
+        "active_message",
+        "#Climb#, up, ever higher. There is no limit to the sky. Let the #Wheels turn# and the #Waters flow#."
+    )
+    store(bind_pointer, close)
+}
+fun balanced_double_jump_hint() {
+    free_message(
+        "active_message",
+        "A #Corruption Taken Form# hides the means to continue. Step ahead as the #Challenger of Light#."
+    )
+    store(bind_pointer, close)
+}
+fun balanced_clean_water_hint() {
+    free_message(
+        "active_message",
+        "Seek #Stone#, Seek #Sand#, Seek #Darkness# - Those hide what you must gain."
+    )
+    store(bind_pointer, close)
+}
+fun balanced_flap_hint() {
+    free_message(
+        "active_message",
+        "The #Sands of Cultures Past# hold a great treasure, a #Power without Limits#."
+    )
+    store(bind_pointer, close)
+}
+fun balanced_grenade_hint() {
+    free_message(
+        "active_message",
+        "Draw power from your #Newest Strength#. #Tempt the Darkness# and return, unafraid of its power."
+    )
+    store(bind_pointer, close)
+}
+fun balanced_secret_hint() {
+    free_message(
+        "active_message",
+        "???" // TODO write hint
+    )
+    store(bind_pointer, close)
+}

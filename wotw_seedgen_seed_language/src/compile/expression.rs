@@ -986,6 +986,8 @@ impl_constants_coerce_from!(
     GromIcon,
     TuleyIcon,
     MapIcon,
+    Alignment,
+    ScreenPosition,
 );
 impl CompileIntoLiteral for StringOrPlaceholder {
     fn coerce_literal(

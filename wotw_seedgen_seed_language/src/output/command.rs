@@ -4,7 +4,8 @@ use super::{
 };
 use ordered_float::OrderedFloat;
 use wotw_seedgen_data::{
-    EquipSlot, Equipment, MapIcon, UberIdentifier, WheelBind, WheelItemPosition, Zone,
+    Alignment, EquipSlot, Equipment, MapIcon, ScreenPosition, UberIdentifier, WheelBind,
+    WheelItemPosition, Zone,
 };
 
 /// A Command, which may be used to affect the world, player or client state
@@ -71,8 +72,6 @@ pub enum CommandBoolean {
         x2: Box<CommandFloat>,
         y2: Box<CommandFloat>,
     },
-    /// Return whether the user wants to see random spirit light names
-    RandomSpiritLightNames {},
 }
 
 /// Command which returns [`i32`]
@@ -173,43 +172,69 @@ pub enum CommandVoid {
         condition: CommandBoolean,
         command: Box<CommandVoid>,
     },
-    /// Add `message` to the item message queue with a default timeout
-    ItemMessage { message: CommandString },
-    /// Add `message` to the item message queue with `timeout`
-    ItemMessageWithTimeout {
+    /// Add `message` to the queue with `timeout` or a default timeout.
+    /// If `priority` is true, it should be a priority message.
+    /// If `id` is specified, it can later be used to update the message
+    QueuedMessage {
+        id: Option<usize>,
+        priority: bool,
         message: CommandString,
-        timeout: CommandFloat,
+        timeout: Option<CommandFloat>,
     },
-    /// Show `message` immediately as a priority message with `timeout`
-    PriorityMessage {
-        message: CommandString,
-        timeout: CommandFloat,
+    // TODO
+    // /// Update the `callback` that triggers when queued message `id` is shown
+    // QueuedMessageVisibleCallback { id: usize, callback: usize },
+    // /// Update the `callback` that triggers when queued message `id` is hidden
+    // QueuedMessageHiddenCallback { id: usize, callback: usize },
+    /// Show `message` immediately independent of the queue
+    FreeMessage { id: usize, message: CommandString },
+    /// DESTROY message `id`
+    MessageDestroy { id: usize },
+    /// Update the `message` of message `id`
+    MessageText { id: usize, message: CommandString },
+    /// Update the `timeout` of message `id`
+    MessageTimeout { id: usize, timeout: CommandFloat },
+    /// Update whether message `id` has a `background`
+    MessageBackground {
+        id: usize,
+        background: CommandBoolean,
     },
-    /// Show `message` immediately as a priority message and keep `id` as a reference to it
-    ControlledMessage { id: usize, message: CommandString },
-    /// If `id` refers to an existing controlled message, change its text to `message`
-    SetMessageText { id: usize, message: CommandString },
-    /// If `id` refers to an existing controlled message, set its `timeout`
-    SetMessageTimeout { id: usize, timeout: CommandInteger },
-    /// If `id` refers to an existing controlled message, DESTROY it
-    DestroyMessage { id: usize },
+    // TODO
+    // /// Show free message `id`
+    // FreeMessageShow { id: usize },
+    // /// Hide free message `id`
+    // FreeMessageHide { id: usize },
+    // TODO world coordinates
+    /// Update the `position` of free message `id`
+    FreeMessagePosition {
+        id: usize,
+        x: CommandFloat,
+        y: CommandFloat,
+    },
+    /// Update the `alignment` of free message `id`
+    FreeMessageAlignment { id: usize, alignment: Alignment },
+    /// Update the `screen_position` of free message `id`
+    FreeMessageScreenPosition {
+        id: usize,
+        screen_position: ScreenPosition,
+    },
     /// Store `value` in `uber_identifier` and check if any events are triggered
     StoreBoolean {
         uber_identifier: UberIdentifier,
         value: CommandBoolean,
-        check_triggers: bool,
+        trigger_events: bool,
     },
     /// Store `value` in `uber_identifier` and check if any events are triggered
     StoreInteger {
         uber_identifier: UberIdentifier,
         value: CommandInteger,
-        check_triggers: bool,
+        trigger_events: bool,
     },
     /// Store `value` in `uber_identifier` and check if any events are triggered
     StoreFloat {
         uber_identifier: UberIdentifier,
         value: CommandFloat,
-        check_triggers: bool,
+        trigger_events: bool,
     },
     /// Temporarily store `value` under `id`. The value should live at least until the next tick
     SetBoolean { id: usize, value: CommandBoolean },
@@ -285,6 +310,11 @@ pub enum CommandVoid {
     SetShopItemHidden {
         uber_identifier: UberIdentifier,
         hidden: CommandBoolean,
+    },
+    /// Set the shop item at `uber_identifier` to be `locked`
+    SetShopItemLocked {
+        uber_identifier: UberIdentifier,
+        locked: CommandBoolean,
     },
     /// Set the display name of the wheel item in `wheel` at `position` to `name`
     SetWheelItemName {

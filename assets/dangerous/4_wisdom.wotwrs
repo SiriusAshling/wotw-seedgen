@@ -1,0 +1,342 @@
+!include("difficulty_select")
+!use("difficulty_select", critical)
+!include("items")
+!use("items", spirit_light_80)
+!use("items", spirit_light_120)
+!use("items", health_fragment)
+!use("items", door_leaf)
+!use("items", gorlek_ore_endgame)
+!use("items", mapstone_fragment)
+!use("items", unknown_resource)
+
+// ~ Area: Revisits ~
+
+on UpperDepths.ForestsEyes {
+    if critical {
+        item_message_with_timeout("#Flap#", 5)
+        store(skills.flap, true)
+    }
+    if critical == false {
+        item_message_with_timeout("@Light Burst@", 5)
+        store(skills.grenade, true)
+    }
+}
+
+on GladesTown.LeafPileEX {
+    item_message("@Heat@")
+    store(hubUberStateGroup.pyreA, true)
+}
+
+on GladesTown.MokiAcornQuest gorlek_ore_endgame()
+
+on EastPools.RightOre {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WoodsEntry.LeafPileEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WoodsMain.LowerLeafPileEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WoodsMain.MiddleLeafPileEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WoodsMain.UpperLeafPileEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WoodsMain.BehindDoorRoofEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WoodsMain.HiddenOre {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on GladesTown.AcornQI {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+    item_message("Acorn")
+}
+
+// ~ Area: Baur's Reach ~
+
+on LowerReach.ForestsMemory {
+    item_message_with_timeout("#Burrow#", 5)
+    store(skills.burrow, true)
+    store(_petrifiedForestGroup.petrifiedOwlState, 4)
+}
+
+on LowerReach.IcefallEX mapstone_fragment()
+on LowerReach.RightKS mapstone_fragment()
+on LowerReach.UpperLeftKS mapstone_fragment()
+on LowerReach.MiddleLeftKS mapstone_fragment()
+on LowerReach.BottomLeftKS mapstone_fragment()
+on LowerReach.CatalystShard mapstone_fragment()
+on UpperReach.TreeOre mapstone_fragment()
+
+on LowerReach.AboveBaurUpperEX {
+    item_message("@Heat@")
+    store(baursReachGroup.firePedestal, true)
+    store(LowerReach.AboveBaurLowerEX, false)
+}
+on LowerReach.AboveBaurLowerEX {
+    item_message("*Cold*")
+    store(baursReachGroup.firePedestal, false)
+    store(LowerReach.AboveBaurUpperEX, false)
+}
+on UpperReach.UpperKS {
+    item_message("@Heat@")
+    store(28895|61789, true)
+    store(UpperReach.LowerKS, false)
+}
+on UpperReach.LowerKS {
+    item_message("*Cold*")
+    store(28895|61789, false)
+    store(UpperReach.UpperKS, false)
+}
+on LowerReach.WindHiddenEX {
+    item_message("@Heat@")
+    store(LowerReach.RolledSnowball, true)
+}
+on LowerReach.RoofLeftEX {
+    item_message("@Heat@")
+    store(LowerReach.EastDoorLantern, true)
+    store(LowerReach.TPLantern, true)
+}
+on UpperReach.LightBurstTree { // TODO name...
+    if critical {
+        item_message("Far have you travelled to visit me at this mountain's foot.\nI shall #melt the frozen water# and have its barriers shatter...")
+        item_message("@Heat@")
+        store(28895|17510, true)
+        store(28895|8934, true)
+        store(baursReachGroup.breakableRocksA, true)
+    }
+}
+
+on LowerReach.BelowLupoEX gorlek_ore_endgame()
+on LowerReach.EscapeRevisitEX gorlek_ore_endgame()
+on LowerReach.TrialEX {
+    if critical gorlek_ore_endgame()
+    if critical == false {
+        set_string("name", spirit_light_string(120))
+        spirit_light_120()
+    }
+}
+
+on LowerReach.HiddenOre door_leaf()
+on UpperReach.MiddleLeftKS door_leaf()
+on UpperReach.MiddleRightKS door_leaf()
+on UpperReach.SoupOre door_leaf()
+
+on LowerReach.BelowBaurEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on LowerReach.IcefallOre {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on LowerReach.AboveDoorEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on LowerReach.MeltIceEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on LowerReach.TPLeftEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on LowerReach.BreakWallEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on LowerReach.RoofRightEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on LowerReach.FractureShard {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on UpperReach.SwingPoleEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on UpperReach.SwimEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on UpperReach.WellEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on UpperReach.HiddenEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+
+// ~ Area: Burrow Revisits ~
+
+on WestPools.BurrowOre gorlek_ore_endgame()
+
+on MarshSpawn.BurrowOre {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on GladesTown.CaveBurrowEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WestPools.BurrowEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WoodsMain.FeedingGroundsEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on LowerReach.BurrowEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on LowerReach.SnowballHC {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on UpperReach.LifeForceShard {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on UpperReach.LifeForceEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+
+// ~ Area: Windswept Wastes ~
+
+on WindtornRuins.Seir {
+    item_message_with_timeout("#Seir#", 5)
+    store(skills.seir, true)
+    item_message_with_timeout("*Chapter 5* - Return", 7.5)
+    if critical health_fragment() // TODO this happened in balanced as well. Doesn't that end you on a half health?
+}
+
+on UpperWastes.LedgeEC mapstone_fragment()
+on UpperWastes.RoofEX mapstone_fragment()
+on UpperWastes.FlowersSeed mapstone_fragment()
+on WindtornRuins.EscapeRevisitEC mapstone_fragment()
+
+on UpperWastes.TurmoilShard gorlek_ore_endgame()
+on LowerWastes.PurpleWallEX gorlek_ore_endgame()
+
+on UpperWastes.LowerKS door_leaf()
+on UpperWastes.UpperKS door_leaf()
+
+on LowerWastes.WestTPOre unknown_resource()
+on LowerWastes.EerieGemQI {
+    unknown_resource()
+    item_message("Eerie Gem")
+}
+
+on LowerWastes.MuncherTunnelEC unknown_resource()
+on LowerWastes.SandPotEX unknown_resource()
+on LowerWastes.LastStandEX unknown_resource()
+on LowerWastes.SkeetoHiveEX unknown_resource()
+on LowerWastes.BurrowTreeEX unknown_resource()
+on LowerWastes.UpperPathEC unknown_resource()
+on LowerWastes.UpperPathEX unknown_resource()
+on LowerWastes.UpperPathHiddenEX unknown_resource()
+on LowerWastes.UpperPathHC unknown_resource()
+on LowerWastes.EastTPOre unknown_resource()
+on UpperWastes.KSDoorEX unknown_resource()
+on UpperWastes.MissileSpawnEX unknown_resource()
+on UpperWastes.PurpleWallEX unknown_resource()
+on UpperWastes.PurpleWallHC unknown_resource()
+on UpperWastes.SpinLasersRightEX unknown_resource()
+on UpperWastes.SpinLasersMiddleEX unknown_resource()
+on UpperWastes.SpinLasersLowerEX unknown_resource()
+on UpperWastes.WallOre unknown_resource()
+
+on WindtornRuins.HandToHandComplete {
+    item_message_with_timeout("Reading the writings engraved in the <purple>Mapstone</>, you unveil one of this world's secrets...\nA *Light* is hiding, in search of a sanctuary. It cannot be found, but might it be lured?", 7.5)
+    store_without_triggers(MarshSpawn.DamageTree, true)
+    store_without_triggers(MarshPastOpher.LeftEyestone, true)
+    store_without_triggers(InnerWellspring.WaterSwitchEX, true)
+    store_without_triggers(PoolsApproach.MarshPathCurrentEX, true)
+    store_without_triggers(EastPools.BubbleCurrentEX, true)
+    store_without_triggers(EastPools.PurpleWallHC, true)
+    store_without_triggers(EastPools.FightRoomHC, true)
+    store_without_triggers(UpperPools.SwimDashCurrentEX, true)
+    store_without_triggers(UpperPools.WaterfallEC, true)
+    store_without_triggers(LowerReach.WindBottomEX, true)
+    store_without_triggers(raceGroup.baursReachWindTunnelRace, 2)
+    store_without_triggers(MarshSpawn.CrusherSwimEX, true)
+    store_without_triggers(LowerReach.AboveBaurUpperEX, true)
+    store_without_triggers(LowerReach.AboveBaurLowerEX, true)
+    store_without_triggers(baursReachGroup.firePedestal, true)
+    store_without_triggers(UpperReach.UpperKS, true)
+    store_without_triggers(UpperReach.LowerKS, true)
+    store_without_triggers(28895|61789, true)
+    if critical {
+        store_without_triggers(MarshPastOpher.RightEyestone, true)
+        store_without_triggers(HowlsDen.BoneOre, true)
+        store_without_triggers(HowlsDen.CombatShrine, true)
+        store_without_triggers(WestHollow.QuickshotShard, true)
+        store_without_triggers(GladesTown.LowerOre, true)
+        store_without_triggers(UpperReach.SpringSeed, true)
+    }
+    if critical == false {
+        item_message("(@Critical@ may be required)") // TODO improve this maybe
+        store_without_triggers(raceGroup.inkwaterMarshRace, 2)
+        store_without_triggers(raceGroup.wellspringRace, 2)
+        store_without_triggers(raceGroup.lumaPoolsRace, 2)
+        store_without_triggers(raceGroup.silentWoodlandRace, 2)
+        store_without_triggers(raceGroup.mouldwoodDepthsRace, 2)
+    }
+}
+
+// ~ Area: Balanced Revisits ~
+
+on HowlsDen.BoneOre {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on GladesTown.LowerOre {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on UpperReach.SpringSeed {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on LowerReach.WindBottomEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+
+// ~ Area: Weeping Ridge ~
+
+on WeepingRidge.Ore mapstone_fragment()
+on WeepingRidge.SpikeClimbEX mapstone_fragment()
+on WeepingRidge.PortalEX mapstone_fragment()
+
+on WeepingRidge.LaunchTree {
+    item_message("There is nothing more I could lend you for your #final steps#.\nMove ahead, #challenge the corruption# that befell our great tree...")
+}
+
+// ~ Area: Willow's End ~
+
+on WillowsEnd.SpikesOre mapstone_fragment()
+on WillowsEnd.EntryEX mapstone_fragment()
+on WillowsEnd.PoisonfallHC mapstone_fragment()
+on WillowsEnd.WindSpinOre mapstone_fragment()
+on WillowsEnd.RedirectEX mapstone_fragment()
+on WillowsEnd.UpperLeftEX mapstone_fragment()
+on WillowsEnd.UpperRightEX mapstone_fragment()

@@ -1,15 +1,64 @@
 use clap::Parser;
+use rustc_hash::FxHashMap;
+use serde::Serialize;
 use std::{
-    collections::HashMap,
     fmt::{self, Debug},
     fs::{self, File},
-    io::{self, ErrorKind, Write},
+    io::{self, ErrorKind},
+    mem,
     path::{Path, PathBuf},
 };
+use wotw_seedgen_assembly::{Command, SeedWorld};
 use wotw_seedgen_assets::{SnippetAccess, Source};
-use wotw_seedgen_seed::{Compile, SeedWorld, Spawn};
-use wotw_seedgen_seed_language::{compile::Compiler, output::StringOrPlaceholder};
+use wotw_seedgen_seed_language::{compile::Compiler, output::DebugOutput};
 use wotw_seedgen_static_assets::UBER_STATE_DATA;
+
+fn main() -> Result<(), Error> {
+    // TODO remove
+    // bugsalot::debugger::wait_until_attached(None)?;
+
+    fs::create_dir_all("seeds/out")?;
+
+    let folder = Cli::parse().folder;
+    let mut rng = rand::thread_rng();
+    let files = Files { folder };
+    let mut compiler: Compiler<'_, '_, Files> =
+        Compiler::new(&mut rng, &files, &UBER_STATE_DATA, Default::default());
+    compiler.debug();
+    compiler.compile_snippet("main")?;
+    let mut output = compiler.finish(&mut io::stderr())?;
+    let compiler_data = mem::take(&mut output.debug).unwrap();
+    let seed = SeedWorld::from_intermediate_output(output);
+
+    // TODO remove
+    // fs::write("seeds/out/out.intermediate", format!("{output:#?}"))?;
+
+    let file = File::create("seeds/out/out_release.wotwr")?;
+    seed.package(file)?;
+
+    let indexed_lookup = seed.command_lookup.iter().cloned().enumerate().collect();
+
+    let seed = SeedWorld {
+        flags: seed.flags,
+        spawn: seed.spawn,
+        events: seed.events,
+        command_lookup: seed.command_lookup,
+        metadata: Metadata {
+            compiler_data,
+            indexed_lookup,
+        },
+    };
+    let file = File::create("seeds/out/out.wotwr")?;
+    seed.package_pretty(file)?;
+
+    Ok(())
+}
+
+#[derive(Serialize)]
+struct Metadata {
+    compiler_data: DebugOutput,
+    indexed_lookup: FxHashMap<usize, Vec<Command>>,
+}
 
 struct Files {
     folder: PathBuf,
@@ -76,66 +125,4 @@ impl<T: ToString> From<T> for Error {
     fn from(value: T) -> Self {
         Self(value.to_string())
     }
-}
-
-fn main() -> Result<(), Error> {
-    let folder = Cli::parse().folder;
-    let mut rng = rand::thread_rng();
-    let files = Files { folder };
-    let mut compiler: Compiler<'_, '_, Files> =
-        Compiler::new(&mut rng, &files, &UBER_STATE_DATA, Default::default());
-    compiler.compile_snippet("main")?;
-    let output = compiler.finish(&mut io::stderr())?;
-
-    fs::write("seeds/out.intermediate", format!("{output:#?}"))?;
-
-    let mut flags = output
-        .flags
-        .into_iter()
-        .map(|string| match string {
-            StringOrPlaceholder::Value(value) => value,
-            _ => panic!("Unresolved string placeholder in flags"),
-        })
-        .collect::<Vec<_>>();
-    flags.sort();
-    let spawn = output
-        .spawn
-        .map(|position| Spawn {
-            position,
-            identifier: "Custom Spawn".to_string(),
-        })
-        .unwrap_or_default();
-
-    let mut command_lookup = vec![];
-    command_lookup.resize_with(output.command_lookup.len(), Default::default);
-    for (index, command) in output.command_lookup.into_iter().enumerate() {
-        command_lookup[index] = command.compile(&mut command_lookup).0;
-    }
-    let events = output
-        .events
-        .into_iter()
-        .map(|event| event.compile(&mut command_lookup))
-        .collect::<Vec<_>>();
-
-    let seed = SeedWorld {
-        flags,
-        spawn,
-        events,
-        command_lookup,
-        metadata: (),
-    };
-
-    fs::create_dir_all("seeds")?;
-    let mut file = File::create("seeds/out.wotwr")?;
-    file.write_all(b"wotwr,0.0.1,p\n")?;
-    serde_json::to_writer_pretty(file, &seed)?;
-
-    let debug_map = seed
-        .command_lookup
-        .into_iter()
-        .enumerate()
-        .collect::<HashMap<_, _>>();
-    fs::write("seeds/out.debug", serde_json::to_vec_pretty(&debug_map)?)?;
-
-    Ok(())
 }

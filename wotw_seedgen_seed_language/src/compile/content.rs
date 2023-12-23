@@ -47,7 +47,7 @@ impl<'source> Compile<'source> for ast::Trigger<'source> {
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
         match self {
-            ast::Trigger::Pseudo(pseudo) => Some(Trigger::Pseudo(pseudo.data)),
+            ast::Trigger::ClientEvent(client) => Some(Trigger::ClientEvent(client.data)),
             ast::Trigger::Binding(_, binding) => {
                 let span = binding.span();
 

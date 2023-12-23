@@ -1,7 +1,0 @@
-!include("shared_states")
-use("shared_states", critical)
-
-!state(trial_step, Integer)
-
-on WestHollow.SpiritTrial if critical store(trial_step, 1)
-on MarshPastOpher.SpiritTrial if trial_step == 2 store(trial_step, 3)

@@ -1,23 +1,45 @@
 !include("bonus_item_core")
 !use("bonus_item_core", spear_efficiency)
-!include("shared_states")
-!use("shared_states", critical)
+!include("difficulty_select")
+!use("difficulty_select", critical)
 !include("items")
+!use("items", grant_spirit_light)
 !use("items", spirit_light_60)
 !use("items", spirit_light_80)
+!use("items", spirit_light_100)
 !use("items", spirit_light_120)
+!use("items", spirit_light_100_or_120_amount)
+!use("items", spirit_light_500)
 !use("items", door_leaf)
 !use("items", gorlek_ore_pre_water)
+!use("items", mapstone_fragment)
+!include("ability_cells")
+!use("ability_cells", ability_cell)
 
 // ~ Area: East Hollow ~
 
 on EastHollow.RightKwolokEX gorlek_ore_pre_water()
 
-on EastHollow.GladesApproachOre spirit_light_60()
-on EastHollow.HornBeetleFightEX spirit_light_60()
-on EastHollow.SpikeLanternEX spirit_light_60()
-on EastHollow.BashEC spirit_light_60()
-on EastHollow.BashEX spirit_light_60()
+on EastHollow.GladesApproachOre {
+    set_string("name", spirit_light_string(60))
+    spirit_light_60()
+}
+on EastHollow.HornBeetleFightEX {
+    set_string("name", spirit_light_string(60))
+    spirit_light_60()
+}
+on EastHollow.SpikeLanternEX {
+    set_string("name", spirit_light_string(60))
+    spirit_light_60()
+}
+on EastHollow.BashEC {
+    set_string("name", spirit_light_string(60))
+    spirit_light_60()
+}
+on EastHollow.BashEX {
+    set_string("name", spirit_light_string(60))
+    spirit_light_60()
+}
 
 on EastHollow.DepthsExteriorEX {
     if critical && skills.doubleJump item_message("<purple>Withered Seed</>")
@@ -47,13 +69,17 @@ on MidnightBurrows.LeftKS {
 }
 
 on MidnightBurrows.DeflectorShard {
-    if critical spirit_light_80()
+    if critical {
+        set_string("name", spirit_light_string(80))
+        spirit_light_80()
+    }
     if critical == false {
         skill(Skill::Spear)
         spear_efficiency()
     }
 }
 on MidnightBurrows.TabletQI {
+    set_string("name", spirit_light_string(80))
     spirit_light_80()
     item_message("Curious Tablet")
 }
@@ -72,12 +98,309 @@ on MarshPastOpher.PoolsPathEC {
         item_message("@Reckless@")
         store(shards.reckless, true)
     }
-    if critical == false spirit_light_120()
+    if critical == false {
+        set_string("name", spirit_light_string(120))
+        spirit_light_120()
+    }
 }
 
 on MarshSpawn.BurrowsApproachLedgeEX gorlek_ore_pre_water()
 on MarshPastOpher.CeilingEX gorlek_ore_pre_water()
 
-on MarshSpawn.FangEC spirit_light_60()
+on MarshSpawn.FangEC {
+    set_string("name", spirit_light_string(60))
+    spirit_light_60()
+}
 
-// TODO next: Sela Flower
+// TODO could there be a generic function for seeds?
+on MarshSpawn.PoolsPathEX {
+    if critical && randoState.cleanWater item_message("<purple>Withered Seed</>")
+    if critical == false || randoState.cleanWater == false {
+        item_message("$Mysterious Seed$")
+        store_without_triggers(hubUberStateGroup.gardenerProjectFlowers, 1)
+    }
+    if critical == false {
+        teleporter(Teleporter::WoodsEntrance) // TODO some cool color maybe?
+        item_message_with_timeout("*Chapter 3* - Wisdom", 7.5) // TODO invent something to account for the alternate paths
+    }
+}
+on MarshPastOpher.PoolsPathEX {
+    if critical && randoState.cleanWater item_message("<purple>Withered Seed</>")
+    if critical == false || randoState.cleanWater == false {
+        item_message("$Mysterious Seed$")
+        store_without_triggers(hubUberStateGroup.gardenerProjectSpringPlants, 1)
+    }
+}
+
+on MarshSpawn.CrusherSwimEX {
+    if skills.shuriken {
+        item_message("So close, yet so far...")
+    }
+    if skills.shuriken == false {
+        warp(-13, -4267)
+        store(kwolokGroupDescriptor.stompableFloorB, true)
+        // TODO there was a delayed autosave here
+        save()
+        item_message_with_timeout("This sure wasn't the easiest way to get here... RIP Autosaves on pickups", 5)
+    }
+}
+
+// ~ Area: Wellspring Glades ~
+
+on GladesTown.TwillenGemQuest mapstone_fragment()
+
+on GladesTown.HoleHutEC {
+    item_message("*Energy (Shard)*")
+    store(shards.energy, true)
+}
+on GladesTown.BraveMokiHutEX {
+    item_message("#Overcharge#")
+    store(shards.overcharge, true)
+}
+
+on GladesTown.DamageTree {
+    // TODO how did I do trees?
+    item_message("As this sanctuary grows, the world starts to remember.\nI shall lend you a #remnant of the past# which I preserved to last...")
+    ability_cell()
+}
+on GladesTown.RebuildTheGlades ability_cell()
+on GladesTown.RegrowTheGlades ability_cell()
+on GladesTown.RebuildTheGlades && GladesTown.RegrowTheGlades if critical {
+    item_message_with_timeout("A *small light* was drawn by the sanctuary you helped shape! It seems rather familiar...", 5)
+    skill(Skill::SpiritFlame) // TODO make this super fancy
+}
+
+on GladesTown.AboveGromHC gorlek_ore_pre_water()
+on GladesTown.UpperOre gorlek_ore_pre_water()
+on GladesTown.BountyShard gorlek_ore_pre_water()
+on WestGlades.LeftOre {
+    if critical gorlek_ore_pre_water()
+    if critical == false {
+        skill(Skill::Glide)
+        if skills.hammer remove_skill(Skill::Hammer)
+    }
+}
+on WestGlades.ShrineHC gorlek_ore_pre_water()
+on WestGlades.CombatShrine {
+    if critical gorlek_ore_pre_water()
+    if critical == false resource(Resource::ShardSlot)
+}
+
+on GladesTown.FamilyReunionKey {
+    {
+        set_string("name", spirit_light_string(80))
+        spirit_light_80()
+    }
+    item_message("Hut Key")
+}
+on GladesTown.BelowHoleHutEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on GladesTown.HoleHutEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on GladesTown.ArcingShard {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on GladesTown.MotayHutEX {
+    if critical {
+        set_string("name", spirit_light_string(80))
+        spirit_light_80()
+    }
+    if critical == false skill(Skill::Regenerate)
+}
+on GladesTown.UpperLeftEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on GladesTown.AboveTpEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on GladesTown.AboveCaveEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on GladesTown.UpdraftCeilingEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WestGlades.GrappleEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WestGlades.AbovePlantEX {
+    set_string("name", spirit_light_string(100))
+    spirit_light_100()
+}
+on WestGlades.LowerPoolEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WestGlades.RightOre {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on GladesTown.KeyMokiHutEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80() // TODO ??? Isn't this the kill quest? Surely something must happen there
+}
+
+// ~ Area: Wellspring ~
+
+on InnerWellspring.WaterEscape {
+    item_message_with_timeout(clean_water_string(), 5) // TODO make sure message length of progressions are consistent
+    if critical item_message_with_timeout("*Chapter 3* - Courage", 7.5)
+    if critical == false item_message_with_timeout("*Chapter 4* - Courage", 7.5)
+}
+
+on InnerWellspring.RotateRoomOre {
+    if critical {
+        item_message("*Catalyst*")
+        store(shards.catalyst, true)
+    }
+    if critical == false gorlek_ore_pre_water()
+}
+on OuterWellspring.UltraGrappleShard gorlek_ore_pre_water()
+on OuterWellspring.EntranceRoofEX gorlek_ore_pre_water()
+on InnerWellspring.ShortcutWheelEX gorlek_ore_pre_water()
+
+on OuterWellspring.RightWallOre {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on OuterWellspring.RightWallEC {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on OuterWellspring.RightWallEX {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on OuterWellspring.TrialOre {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on OuterWellspring.HiddenHC {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on OuterWellspring.WheelEX {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on OuterWellspring.BasementEC {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on OuterWellspring.LifeHarvestShard {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on OuterWellspring.TheLostCompass {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.ThornShard {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.ThornEX {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.ThreeWheelsEX {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.DrainHC {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.DrainEX {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.LaserOre {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.LeverEC {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.LupoEX {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.GrappleTreeEX {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.AboveSpinArenaEX {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.RotateRoomEX {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.NeedleQI {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+    item_message("Iron Needle")
+}
+on InnerWellspring.LibraryEX {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.AboveTpEX {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.BlueMoonSeed {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on InnerWellspring.EscapeRevisitEX {
+    spirit_light_100_or_120_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+
+on InnerWellspring.GrappleTree {
+    if critical item_message("You are stuck...")
+    if critical == false {
+        item_message_with_timeout("Many paths have led to this place, and many paths lead further.\nI shall lend you this #shard shaped within my roots# to aid your path through the woods...", 10) // TODO 10??
+        item_message("#Overflow#")
+        store(shards.overflow, true)
+    }
+}

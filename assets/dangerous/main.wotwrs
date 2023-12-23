@@ -3,27 +3,30 @@
 // Created by SiriusAshling
 // v4.0
 
-// TODO include seed core
-
-!include("shared_states")
-!use("shared_states", critical)
-!include("wisps") // TODO this adds in the goal mode helpers which sucks
+!include("seed_core")
+!include("wisps") // TODO not sure I want the progress helper commands in the rando wheel
 !include("no_cutscenes")
 !include("better_stomp")
 !include("fragment_overflow")
 !include("knowledge_hints")
 !include("spawn_tuley")
 !include("tp_refill")
+!include("difficulty_select")
+!use("difficulty_select", critical)
+!use("difficulty_select", difficulty_menu)
 !include("corruption_check")
 !include("custom_seeds")
 !include("hand_to_hand")
-!include("hints")
+!include("opher_lessons")
+!include("twillen_hints")
 !include("lupo_secrets")
+!include("trials")
 !include("easter_eyestone")
-!include("difficulty_select")
-!use("difficulty_select", difficulty_menu)
 !include("1_lost")
 !include("2_strength")
+!include("3_courage")
+!include("4_wisdom")
+!include("credits")
 
 !spawn(-3537, -5881)
 on spawn difficulty_menu()
@@ -51,14 +54,6 @@ on lagoonStateGroup.kwolokBossState == 3 {
     if critical store(gameStateGroup.gameDifficultyMode, 2)
     if critical == false && was_on_easy == false
         store(gameStateGroup.gameDifficultyMode, 1)
-}
-
-// ~~ Disable Reach Trial ~~
-
-on LowerReach.TrialActivation {
-    priority_message("You try to activate the Trial Pedestal, but it #seems to be broken#.", 3)
-    store(raceGroup.baursReachWindTunnelRace, 0)
-    store(raceGroup.baursReachWindTunnelRaceIcon, true)
 }
 
 // TODO easter egg for doing the seeds on balanced
@@ -192,6 +187,7 @@ on LowerReach.TrialActivation {
 // 1 in Pools                   | 7
 // 2 in Wastes                  /
 
+// TODO do I want this?
 // Trivia
 // spawn: take opher notes
 // spawn: spirit trials

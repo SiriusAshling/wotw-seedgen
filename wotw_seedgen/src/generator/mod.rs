@@ -15,9 +15,9 @@ use rand::{seq::IteratorRandom, Rng};
 use rand_pcg::Pcg64Mcg;
 use rand_seeder::Seeder;
 use std::io;
+use wotw_seedgen_assembly::SeedWorld;
 use wotw_seedgen_assets::{SnippetAccess, UberStateData};
 use wotw_seedgen_logic_language::output::Graph;
-use wotw_seedgen_seed::SeedWorld;
 use wotw_seedgen_seed_language::{compile::Compiler, output::CompilerOutput};
 use wotw_seedgen_settings::{Spawn, UniverseSettings, WorldSettings};
 

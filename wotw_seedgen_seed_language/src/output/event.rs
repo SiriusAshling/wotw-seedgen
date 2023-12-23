@@ -1,4 +1,4 @@
-pub use crate::ast::PseudoTrigger;
+pub use crate::ast::ClientEvent;
 
 use super::{Command, CommandBoolean};
 use wotw_seedgen_data::UberIdentifier;
@@ -16,8 +16,8 @@ pub struct Event {
 /// Trigger for an [`Event`]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Trigger {
-    /// Pseudo triggers are tied to specific events
-    Pseudo(PseudoTrigger),
+    /// Specific client events
+    ClientEvent(ClientEvent),
     /// Trigger on every change to an UberIdentifier
     Binding(UberIdentifier),
     /// Trigger when the condition changes from `false` to `true`

@@ -1,5 +1,7 @@
-!include("shared_states")
-!use("shared_states", critical)
+!include("difficulty_select")
+!use("difficulty_select", critical)
+!include("achievements")
+!use("achievements", time_achievement)
 
 !include("items")
 !use("items", spirit_light_40)
@@ -8,7 +10,6 @@
 !use("items", door_leaf)
 !use("items", eyestone)
 !use("items", gorlek_ore_pre_shuriken)
-!use("items", trial_reward)
 !use("items", ability_cell)
 
 // ~ Area: Cave ~
@@ -16,7 +17,7 @@
 // TODO point out the torch?
 
 on swampStateGroup.torchHolded store(swampStateGroup.torchHolded, false)
-on MarshSpawn.RockHC || MarshSpawn.LogBroken store(hubUberStateGroup.builderProjectSpiritWell, 3)
+on MarshSpawn.RockHC || MarshSpawn.LogBroken store(gladesProjects.spiritWellBuilt, true)
 
 on MarshSpawn.RockHC energy_fragment()
 on MarshSpawn.ResilienceShard energy_fragment()
@@ -26,12 +27,27 @@ on MarshSpawn.CaveKS {
     item_message("Tokk's Keystone")
 }
 
-on MarshSpawn.FirstPickupEX spirit_light_40()
-on MarshSpawn.BridgeEX spirit_light_40()
-on MarshSpawn.PreLupoEX spirit_light_40()
-on MarshSpawn.LeftTokkEX spirit_light_40()
+on MarshSpawn.FirstPickupEX {
+    set_string("name", spirit_light_string(40))
+    spirit_light_40()
+}
+on MarshSpawn.BridgeEX {
+    set_string("name", spirit_light_string(40))
+    spirit_light_40()
+}
+on MarshSpawn.PreLupoEX {
+    set_string("name", spirit_light_string(40))
+    spirit_light_40()
+}
+on MarshSpawn.LeftTokkEX {
+    set_string("name", spirit_light_string(40))
+    spirit_light_40()
+}
 on MarshSpawn.TokkKeystoneQuest {
-    if critical spirit_light_40()
+    if critical {
+        set_string("name", spirit_light_string(40))
+        spirit_light_40()
+    }
     if critical == false door_leaf()
 }
 
@@ -59,10 +75,18 @@ on MarshPastOpher.TrialEC energy_fragment()
 on MarshPastOpher.TrialHC energy_fragment()
 on MarshPastOpher.TrialLeftEX energy_fragment()
 
-on MarshPastOpher.SwingPoleEX spirit_light_40()
-on MarshPastOpher.TrialOre spirit_light_40()
-on MarshPastOpher.SpiritTrial trial_reward()
-on MarshPastOpher.RightEyestone spirit_light_40()
+on MarshPastOpher.SwingPoleEX {
+    set_string("name", spirit_light_string(40))
+    spirit_light_40()
+}
+on MarshPastOpher.TrialOre {
+    set_string("name", spirit_light_string(40))
+    spirit_light_40()
+}
+on MarshPastOpher.RightEyestone {
+    set_string("name", spirit_light_string(40))
+    spirit_light_40()
+}
 
 // ~ Area: Den ~
 
@@ -103,7 +127,10 @@ on HowlsDen.AboveDoorKS energy_fragment()
 on HowlsDen.DoubleJumpEX energy_fragment()
 on HowlsDen.StickyShard energy_fragment()
 
-on HowlsDen.AboveTPEX spirit_light_40()
+on HowlsDen.AboveTPEX {
+    set_string("name", spirit_light_string(40))
+    spirit_light_40()
+}
 
 on HowlsDen.SwordTree {
     priority_message(
@@ -133,11 +160,18 @@ on MarshSpawn.LifepactShard {
 on MarshSpawn.CaveOre energy_fragment()
 
 on MarshSpawn.FangQI {
+    set_string("name", spirit_light_string(40))
     spirit_light_40()
     item_message("Howl Fang")
 }
-on MarshSpawn.MokkFangQuest spirit_light_40()
-on MarshPastOpher.TrialRightEX spirit_light_40()
+on MarshSpawn.MokkFangQuest {
+    set_string("name", spirit_light_string(40))
+    spirit_light_40()
+}
+on MarshPastOpher.TrialRightEX {
+    set_string("name", spirit_light_string(40))
+    spirit_light_40()
+}
 
 // ~ Area: West Hollow ~
 
@@ -149,17 +183,33 @@ on WestHollow.AboveDashEX {
     if skills.sword == false item_message(". . .")
 }
 
-on WestHollow.FarLeftEX spirit_light_60()
-on WestHollow.RockPuzzleEX spirit_light_60()
-on WestHollow.HiddenEC spirit_light_60()
-on WestHollow.TrialHC spirit_light_60()
+on WestHollow.FarLeftEX {
+    set_string("name", spirit_light_string(60))
+    spirit_light_60()
+}
+on WestHollow.RockPuzzleEX {
+    set_string("name", spirit_light_string(60))
+    spirit_light_60()
+}
+on WestHollow.HiddenEC {
+    set_string("name", spirit_light_string(60))
+    spirit_light_60()
+}
+on WestHollow.TrialHC {
+    set_string("name", spirit_light_string(60))
+    spirit_light_60()
+}
 on WestHollow.CrusherEX {
-    if skills.sword spirit_light_60()
+    if skills.sword {
+        set_string("name", spirit_light_string(60))
+        spirit_light_60()
+    }
     if skills.sword == false item_message(". . .")
 }
-on WestHollow.QuickshotShard spirit_light_60()
-
-on WestHollow.SpiritTrial trial_reward()
+on WestHollow.QuickshotShard {
+    set_string("name", spirit_light_string(60))
+    spirit_light_60()
+}
 
 on WestHollow.DashRightEX {
     if skills.sword {
@@ -189,10 +239,13 @@ on WestHollow.DashTree {
             store(shards.deflector, true)
         }
     }
-    if skills.sword == false priority_message(
-        "3131113231\nThis code may be helpful... #in time#.",
-        10
-    )
+    if skills.sword == false {
+        priority_message(
+            "3131113231\nThis code may be helpful... #in time#.",
+            10
+        )
+        store(time_achievement, true)
+    }
 }
 
 // ~ Area: East Hollow ~
@@ -226,7 +279,10 @@ on EastHollow.SecretRoofEX gorlek_ore_pre_shuriken()
 on EastHollow.MortarEX gorlek_ore_pre_shuriken()
 
 on EastHollow.SplinterShard {
-    if critical spirit_light_60()
+    if critical {
+        set_string("name", spirit_light_string(60))
+        spirit_light_60()
+    }
     if critical == false shuriken()
 }
 

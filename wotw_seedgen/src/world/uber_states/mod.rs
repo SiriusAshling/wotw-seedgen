@@ -3,9 +3,9 @@
 use crate::log;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cmp::Ordering;
+use wotw_seedgen_assembly::{CommandZone, Operation};
 use wotw_seedgen_assets::UberStateData;
 use wotw_seedgen_data::UberIdentifier;
-use wotw_seedgen_seed::{CommandZone, Operation};
 use wotw_seedgen_seed_language::output::{
     CommandBoolean, CommandFloat, CommandIcon, CommandInteger, CommandString, CommandVoid, Trigger,
 };
@@ -201,7 +201,7 @@ trait ContainedUberIdentifiers {
 impl ContainedUberIdentifiers for Trigger {
     fn contained_uber_identifiers(&self, output: &mut Vec<UberIdentifier>) {
         match self {
-            Trigger::Pseudo(_) => {}
+            Trigger::ClientEvent(_) => {}
             Trigger::Binding(uber_identifier) => output.push(*uber_identifier),
             Trigger::Condition(condition) => condition.contained_uber_identifiers(output),
         }

@@ -19,9 +19,9 @@ use rand::{
 use rand_pcg::Pcg64Mcg;
 use rustc_hash::FxHashMap;
 use std::{iter, mem, ops::RangeFrom};
+use wotw_seedgen_assembly::{ClientEvent, Icon};
 use wotw_seedgen_data::{Equipment, MapIcon, OpherIcon, Resource, Skill, UberIdentifier};
 use wotw_seedgen_logic_language::output::{Node, Requirement};
-use wotw_seedgen_seed::{Icon, PseudoTrigger};
 use wotw_seedgen_seed_language::output::{
     Action, Command, CommandBoolean, CommandFloat, CommandIcon, CommandInteger, CommandString,
     CommandVoid, CommonItem, CompilerOutput, Event, StringOrPlaceholder, Trigger,
@@ -243,7 +243,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                 if origin_world.spawn_slots > 0 {
                     origin_world.spawn_slots -= 1;
                     self.push_action(
-                        Trigger::Pseudo(PseudoTrigger::Spawn),
+                        Trigger::ClientEvent(ClientEvent::Spawn),
                         action,
                         name,
                         origin_world_index,
@@ -421,28 +421,26 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             .collect::<Vec<_>>();
         // TODO filter out unreachable locations
 
-        let on_load_index = match output
-            .events
-            .iter_mut()
-            .enumerate()
-            .find(|(_, event)| matches!(event.trigger, Trigger::Pseudo(PseudoTrigger::Reload)))
-        {
-            None => {
-                let index = output.events.len();
-                output.events.push(Event {
-                    trigger: Trigger::Pseudo(PseudoTrigger::Reload),
-                    action: Action::Multi(vec![]),
-                });
-                index
-            }
-            Some((index, event)) => {
-                let action = mem::replace(&mut event.action, Action::Multi(vec![]));
-                if let Action::Multi(actions) = &mut event.action {
-                    actions.push(action);
+        let on_load_index =
+            match output.events.iter_mut().enumerate().find(|(_, event)| {
+                matches!(event.trigger, Trigger::ClientEvent(ClientEvent::Reload))
+            }) {
+                None => {
+                    let index = output.events.len();
+                    output.events.push(Event {
+                        trigger: Trigger::ClientEvent(ClientEvent::Reload),
+                        action: Action::Multi(vec![]),
+                    });
+                    index
                 }
-                index
-            }
-        };
+                Some((index, event)) => {
+                    let action = mem::replace(&mut event.action, Action::Multi(vec![]));
+                    if let Action::Multi(actions) = &mut event.action {
+                        actions.push(action);
+                    }
+                    index
+                }
+            };
 
         Self {
             rng: Pcg64Mcg::from_rng(&mut *rng).expect(SEED_FAILED_MESSAGE),

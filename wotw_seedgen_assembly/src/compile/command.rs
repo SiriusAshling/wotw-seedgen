@@ -1,16 +1,9 @@
-use super::{args::Args, compile_into_lookup, Compile};
+use super::{args::Args, compile_into_lookup, unwrap_string_placeholder, Compile};
 use crate::Command;
 use wotw_seedgen_data::UberIdentifier;
 use wotw_seedgen_seed_language::output::{
-    self as input, CommandVoid, Comparator, EqualityComparator, StringOrPlaceholder,
+    self as input, CommandFloat, CommandVoid, Comparator, EqualityComparator,
 };
-
-fn unwrap_string_placeholder(value: StringOrPlaceholder) -> String {
-    match value {
-        StringOrPlaceholder::Value(value) => value,
-        _ => panic!("Unresolved string placeholder during compilation"),
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MemoryUsed {
@@ -39,6 +32,8 @@ impl Compile for input::Command {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
+        // dbg!(&self);
+
         match self {
             Self::Boolean(command) => command.compile(command_lookup),
             Self::Integer(command) => command.compile(command_lookup),
@@ -54,6 +49,8 @@ impl Compile for input::CommandBoolean {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
+        // dbg!(&self);
+
         match self {
             Self::Constant { value } => (vec![Command::SetBoolean(value)], MemoryUsed::ZERO),
             Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
@@ -95,9 +92,6 @@ impl Compile for input::CommandBoolean {
                 .float(*x2)
                 .float(*y2)
                 .call(Command::IsInHitbox),
-            Self::RandomSpiritLightNames {} => {
-                (vec![Command::RandomSpiritLightNames], MemoryUsed::ZERO)
-            }
         }
     }
 }
@@ -106,6 +100,8 @@ impl Compile for input::CommandInteger {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
+        // dbg!(&self);
+
         match self {
             Self::Constant { value } => (vec![Command::SetInteger(value)], MemoryUsed::ZERO),
             Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
@@ -118,9 +114,14 @@ impl Compile for input::CommandInteger {
                 MemoryUsed::ZERO,
             ),
             Self::GetInteger { id } => (vec![Command::CopyInteger(id, 0)], MemoryUsed::ZERO),
-            Self::FromFloat { float } => Args::new(1, command_lookup)
-                .float(*float)
-                .call(Command::FloatToInteger),
+            // TODO don't implicitely round
+            Self::FromFloat { float } => {
+                let mut commands = Args::new(1, command_lookup)
+                    .float(*float)
+                    .call(Command::Round);
+                commands.0.push(Command::FloatToInteger);
+                commands
+            }
         }
     }
 }
@@ -129,6 +130,8 @@ impl Compile for input::CommandFloat {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
+        // dbg!(&self);
+
         match self {
             Self::Constant { value } => (vec![Command::SetFloat(value.into())], MemoryUsed::ZERO),
             Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
@@ -151,6 +154,8 @@ impl Compile for input::CommandString {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
+        // dbg!(&self);
+
         match self {
             Self::Constant { value } => (
                 vec![Command::SetString(unwrap_string_placeholder(value))],
@@ -180,6 +185,8 @@ impl Compile for input::CommandZone {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
+        // dbg!(&self);
+
         match self {
             Self::Constant { value } => (vec![Command::SetInteger(value as i32)], MemoryUsed::ZERO),
             Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
@@ -198,6 +205,8 @@ impl Compile for input::CommandVoid {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
+        // dbg!(&self);
+
         match self {
             Self::Multi { commands } => multi(commands, command_lookup),
             Self::Lookup { index } => (vec![Command::Execute(index)], MemoryUsed::ZERO),
@@ -207,56 +216,69 @@ impl Compile for input::CommandVoid {
                     .boolean(condition)
                     .call(Command::ExecuteIf(index))
             }
-            Self::ItemMessage { message } => Args::new(1, command_lookup)
+            Self::QueuedMessage {
+                id,
+                priority,
+                message,
+                timeout,
+            } => Args::new(2, command_lookup)
                 .string(message)
-                .call(Command::ItemMessage),
-            Self::ItemMessageWithTimeout { message, timeout } => Args::new(2, command_lookup)
-                .string(message)
-                .float(timeout)
-                .call(Command::ItemMessageWithTimeout),
-            Self::PriorityMessage { message, timeout } => Args::new(2, command_lookup)
-                .string(message)
-                .float(timeout)
-                .call(Command::PriorityMessage),
-            Self::ControlledMessage { id, message } => {
-                let mut commands = Vec::with_capacity(5);
-                commands.push(Command::ControlledMessage(id));
-                let (message, memory_used) = Args::new(1, command_lookup)
+                .float(timeout.unwrap_or(CommandFloat::Constant { value: (4.).into() })) // TODO what's the default timeout
+                .call(Command::QueuedMessage(id, priority)),
+            Self::FreeMessage { id, message } => {
+                let mut commands = Args::new(1, command_lookup)
                     .string(message)
-                    .call(Command::SetMessageText(id));
-                commands.extend(message);
-                commands.push(Command::SetBoolean(true));
-                commands.push(Command::ShowMessage(id));
-                (commands, memory_used)
+                    .call(Command::FreeMessage(id));
+                commands.0.push(Command::FreeMessageShow(id));
+                commands.0.push(Command::MessageText(id));
+                commands
             }
-            Self::SetMessageText { id, message } => Args::new(1, command_lookup)
+            Self::MessageDestroy { id } => (vec![Command::MessageDestroy(id)], MemoryUsed::ZERO),
+            Self::MessageText { id, message } => Args::new(1, command_lookup)
                 .string(message)
-                .call(Command::SetMessageText(id)),
-            Self::SetMessageTimeout { id, timeout } => Args::new(1, command_lookup)
-                .integer(timeout)
-                .call(Command::SetMessageTimeout(id)),
-            Self::DestroyMessage { id } => (vec![Command::DestroyMessage(id)], MemoryUsed::ZERO),
+                .call(Command::MessageText(id)),
+            Self::MessageTimeout { id, timeout } => Args::new(1, command_lookup)
+                .float(timeout)
+                .call(Command::MessageTimeout(id)),
+            Self::MessageBackground { id, background } => Args::new(1, command_lookup)
+                .boolean(background)
+                .call(Command::MessageBackground(id)),
+            Self::FreeMessagePosition { id, x, y } => Args::new(2, command_lookup)
+                .float(x)
+                .float(y)
+                .call(Command::FreeMessagePosition(id, false)),
+            Self::FreeMessageAlignment { id, alignment } => (
+                vec![Command::FreeMessageAlignment(id, alignment)],
+                MemoryUsed::ZERO,
+            ),
+            Self::FreeMessageScreenPosition {
+                id,
+                screen_position,
+            } => (
+                vec![Command::FreeMessageScreenPosition(id, screen_position)],
+                MemoryUsed::ZERO,
+            ),
             Self::StoreBoolean {
                 uber_identifier,
                 value,
-                check_triggers,
+                trigger_events,
             } => Args::new(1, command_lookup)
                 .boolean(value)
-                .call(Command::StoreBoolean(uber_identifier, check_triggers)),
+                .call(Command::StoreBoolean(uber_identifier, trigger_events)),
             Self::StoreInteger {
                 uber_identifier,
                 value,
-                check_triggers,
+                trigger_events,
             } => Args::new(1, command_lookup)
                 .integer(value)
-                .call(Command::StoreInteger(uber_identifier, check_triggers)),
+                .call(Command::StoreInteger(uber_identifier, trigger_events)),
             Self::StoreFloat {
                 uber_identifier,
                 value,
-                check_triggers,
+                trigger_events,
             } => Args::new(1, command_lookup)
                 .float(value)
-                .call(Command::StoreFloat(uber_identifier, check_triggers)),
+                .call(Command::StoreFloat(uber_identifier, trigger_events)),
             Self::SetBoolean { id, value } => Args::new(1, command_lookup)
                 .boolean(value)
                 .call(Command::CopyBoolean(0, id)),
@@ -340,6 +362,12 @@ impl Compile for input::CommandVoid {
             } => Args::new(1, command_lookup)
                 .boolean(hidden)
                 .call(Command::SetShopItemHidden(uber_identifier)),
+            Self::SetShopItemLocked {
+                uber_identifier,
+                locked,
+            } => Args::new(1, command_lookup)
+                .boolean(locked)
+                .call(Command::SetShopItemLocked(uber_identifier)),
             Self::SetWheelItemName {
                 wheel,
                 position,

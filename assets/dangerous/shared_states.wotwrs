@@ -1,4 +1,0 @@
-!state(critical, Boolean)
-!share(critical)
-
-// TODO rename this if there aren't any more uses

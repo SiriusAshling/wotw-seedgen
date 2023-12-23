@@ -22,9 +22,9 @@ use crate::inventory::Inventory;
 use self::reached::ReachContext;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::smallvec;
+use wotw_seedgen_assembly::{ArithmeticOperator, Operation};
 use wotw_seedgen_data::{Resource, Shard, Skill, Teleporter, UberIdentifier, WeaponUpgrade};
 use wotw_seedgen_logic_language::output::{Graph, Node};
-use wotw_seedgen_seed::{ArithmeticOperator, Operation};
 use wotw_seedgen_seed_language::output::{
     CommandBoolean, CommandFloat, CommandInteger, CommandVoid, CompilerOutput,
 };

@@ -31,6 +31,18 @@ pub struct CompilerOutput {
     pub logical_state_sets: FxHashSet<String>,
     pub preplacements: Vec<(Command, wotw_seedgen_data::Zone)>,
     pub success: bool,
+    pub debug: Option<DebugOutput>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct DebugOutput {
+    pub snippets: FxHashMap<String, SnippetDebugOutput>,
+    pub callbacks: FxHashMap<String, FxHashMap<String, usize>>,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct SnippetDebugOutput {
+    pub variables: FxHashMap<String, String>,
+    pub function_indices: FxHashMap<String, usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -57,7 +69,7 @@ pub enum StringOrPlaceholder {
 impl Display for StringOrPlaceholder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            StringOrPlaceholder::Value(string) => string.fmt(f),
+            StringOrPlaceholder::Value(string) => write!(f, "\"{string}\""),
             StringOrPlaceholder::ZoneOfPlaceholder(action) => write!(f, "zone_of({action})"),
             StringOrPlaceholder::ItemOnPlaceholder(trigger) => write!(f, "item_on({trigger})"),
             StringOrPlaceholder::CountInZonePlaceholder(actions, zone) => {

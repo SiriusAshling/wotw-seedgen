@@ -219,12 +219,22 @@ impl<'source> Compile<'source> for ast::UseArgs<'source> {
             .global
             .shared_values
             .get(self.snippet_name.data)
-            .ok_or_else(|| Error::custom("Unknown snippet".to_string(), self.snippet_name.span))
+            .ok_or_else(|| {
+                Error::custom("unknown snippet".to_string(), self.snippet_name.span)
+                    .with_help(format!("try !include(\"{}\")", self.snippet_name.data))
+            })
             .and_then(|snippet_shared_values| {
                 snippet_shared_values
                     .get(self.identifier.data.0)
                     .ok_or_else(|| {
-                        Error::custom("Unknown identifier".to_string(), self.identifier.span)
+                        Error::custom(
+                            "identifier not found in snippet".to_string(),
+                            self.identifier.span,
+                        )
+                        .with_help(format!(
+                            "if it exists in {}, you have to share it there: !share({})",
+                            self.snippet_name.data, self.identifier.data
+                        ))
                     })
             });
 

@@ -3,34 +3,27 @@
 !include("bind_pointer")
 !use("bind_pointer", bind_pointer)
 !use("bind_pointer", shops_explanation_next)
-!use("bind_pointer", shops_explanation_finish)
-!use("bind_pointer", downswing_lift_finish)
-!use("bind_pointer", spring_plant_boost_finish)
-!use("bind_pointer", upslash_turnaround_finish)
-!use("bind_pointer", slash_acceleration_finish)
-!use("bind_pointer", projectile_range_finish)
-!use("bind_pointer", projectile_pogo_finish)
-!use("bind_pointer", multi_pogo_finish)
-!use("bind_pointer", shuriken_hop_finish)
-!use("bind_pointer", shuriken_acceleration_finish)
-!use("bind_pointer", shuriken_slashes_finish)
-!use("bind_pointer", shuriken_clip_finish)
-!use("bind_pointer", shuriken_pogo_finish)
-!use("bind_pointer", wall_shuriken_pogo_finish)
-!use("bind_pointer", ground_shuriken_pogo_finish)
-!use("bind_pointer", air_shuriken_pogo_finish)
-!use("bind_pointer", shuriken_leak_finish)
-!use("bind_pointer", double_shuriken_finish)
-!use("bind_pointer", deflector_refresh_finish)
+!use("bind_pointer", close)
 
 !state(sword_lesson, Integer)
 !state(enemy_lesson, Integer)
 !state(shuriken_lesson, Integer)
 
-// TODO hide as appropriate
 // TODO cost scaling can be done better now
-// TODO handle unused slots
-// TODO twillen
+// TODO custom icons that show the message thing with a weapon in the corner?
+
+// Unlocked on spawn:
+// Shops Explanation
+// Unlocked by Sword:
+// Sword 1-2
+// Enemies 1
+// Unlocked by Shuriken:
+// Sword 3
+// Enemies 2-3
+// Shuriken 1-10
+// Unlocked by Double Jump:
+// Sword 4
+// Deflector 1
 
 on spawn {
     store(sword_lesson, 1)
@@ -39,55 +32,75 @@ on spawn {
 }
 
 on reload {
+    update_wheel_unlocked()
     set_shop_item_data(
         OpherShop.Sentry,
         1,
         "Shops Explanation",
-        "",
+        "", // TODO empty string doesn't behave well, client is supposed to fix this
         message_icon,
     )
-    set_shop_item_data(
-        OpherShop.SpiritSmash,
-        25,
-        "Mastery of the *Sword* (" + sword_lesson + "/4)",
-        "",
-        Equipment::Sword,
-    )
-    set_shop_item_data(
-        OpherShop.SpiritStar, // TODO naming?
-        50,
-        "Mastery of cooperating with #Enemies# (" + enemy_lesson + "/3)",
-        "",
-        Shard::Wingclip,
-    )
-    set_shop_item_data(
-        OpherShop.Spike,
-        50,
-        "Mastery of the *Shuriken* (" + shuriken_lesson + "/10)",
-        "",
-        Equipment::Shuriken,
-    )
-    set_shop_item_data(
-        OpherShop.Blaze,
-        500,
-        "Mastery of the #Deflector#",
-        "",
-        Shard::Deflector,
-    )
+    update_shop_explanations_wheel()
+    update_sword_lesson()
+    update_enemy_lesson()
+    update_shuriken_lesson()
+    update_deflector_lesson()
+    set_shop_item_name(OpherShop.WaterBreath, "")
+    set_shop_item_description(OpherShop.WaterBreath, "")
+    set_shop_item_hidden(OpherShop.WaterBreath, true)
+    set_shop_item_name(OpherShop.Teleport, "")
+    set_shop_item_description(OpherShop.Teleport, "")
+    set_shop_item_hidden(OpherShop.Teleport, true)
+    set_shop_item_name(OpherShop.ExplodingSpike, "")
+    set_shop_item_description(OpherShop.ExplodingSpike, "")
+    set_shop_item_hidden(OpherShop.ExplodingSpike, true)
+    set_shop_item_name(OpherShop.ShockSmash, "")
+    set_shop_item_description(OpherShop.ShockSmash, "")
+    set_shop_item_hidden(OpherShop.ShockSmash, true)
+    set_shop_item_name(OpherShop.StaticStar, "")
+    set_shop_item_description(OpherShop.StaticStar, "")
+    set_shop_item_hidden(OpherShop.StaticStar, true)
+    set_shop_item_name(OpherShop.ChargeBlaze, "")
+    set_shop_item_description(OpherShop.ChargeBlaze, "")
+    set_shop_item_hidden(OpherShop.ChargeBlaze, true)
+    set_shop_item_name(OpherShop.RapidSentry, "")
+    set_shop_item_description(OpherShop.RapidSentry, "")
+    set_shop_item_hidden(OpherShop.RapidSentry, true)
+}
 
+on binding_1 {
+    if bind_pointer == shops_explanation_next {
+        set_message_text(
+            "active_message",
+            "You can recall everything you have been told in the [RandoWheel] #randomizer wheel#\n" +
+            "[Binding1] Ok"
+        )
+        store(bind_pointer, close)
+    }
+}
+
+on change OpherShop.Sentry update_wheel_unlocked()
+on change sword_lesson update_wheel_unlocked()
+on change enemy_lesson update_wheel_unlocked()
+on change shuriken_lesson update_wheel_unlocked()
+on change OpherShop.Blaze update_wheel_unlocked()
+fun update_wheel_unlocked() {
     if OpherShop.Sentry || sword_lesson > 1 || enemy_lesson > 1 || shuriken_lesson > 1 || OpherShop.Blaze {
         set_wheel_item_data(
             "root",
-            WheelItemPosition::Top,
-            "Opher Dialogue",
-            "Recall unlocked Opher Dialogues\n[Ability1] Recall",
+            WheelItemPosition::LeftTop,
+            "Opher's Lessons",
+            "Recall Lessons heard from Opher\n[Ability1] Recall",
             message_icon,
-            switch_wheel("opher_dialogues"),
+            switch_wheel("opher_lessons"),
         )
     }
+}
+
+fun update_shop_explanations_wheel() {
     if OpherShop.Sentry {
         set_wheel_item_data(
-            "opher_dialogues",
+            "opher_lessons",
             WheelItemPosition::Top,
             "Shops Explanation",
             "[Ability1] Recall",
@@ -95,9 +108,50 @@ on reload {
             shops_explanation(),
         )
     }
+}
+
+fun update_sword_lesson() {
+    update_sword_lesson_discovered()
+    update_sword_lesson_locked()
+    update_sword_lesson_wheel()
+}
+on change skills.sword update_sword_lesson_discovered()
+fun update_sword_lesson_discovered() {
+    if skills.sword {
+        set_shop_item_data(
+            OpherShop.SpiritSmash,
+            25,
+            "Mastery of the *Sword* (" + sword_lesson + "/4)",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(OpherShop.SpiritSmash, false)
+    }
+    if skills.sword == false {
+        set_shop_item_data(
+            OpherShop.SpiritSmash,
+            25,
+            "Undiscovered",
+            "Find more weapons and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(OpherShop.SpiritSmash, true)
+    }
+}
+on change sword_lesson update_sword_lesson_locked()
+on change skills.shuriken update_sword_lesson_locked()
+on change skills.doubleJump update_sword_lesson_locked()
+fun update_sword_lesson_locked() {
+    set_shop_item_locked(OpherShop.SpiritSmash,
+        sword_lesson == 3 && skills.shuriken == false
+        || sword_lesson == 4 && skills.doubleJump == false
+    )
+}
+on change sword_lesson update_sword_lesson_wheel()
+fun update_sword_lesson_wheel() {
     if sword_lesson > 1 {
         set_wheel_item_data(
-            "opher_dialogues",
+            "opher_lessons",
             WheelItemPosition::TopRight,
             "Mastery of the *Sword*",
             "[Ability1] Recall",
@@ -143,9 +197,46 @@ on reload {
             slash_acceleration(),
         )
     }
+}
+
+fun update_enemy_lesson() {
+    update_enemy_lesson_discovered()
+    update_enemy_lesson_locked()
+    update_enemy_lesson_wheel()
+}
+on change skills.sword update_enemy_lesson_discovered()
+fun update_enemy_lesson_discovered() {
+    if skills.sword {
+        set_shop_item_data(
+            OpherShop.SpiritStar, // TODO naming?
+            50,
+            "Mastery of cooperating with #Enemies# (" + enemy_lesson + "/3)",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(OpherShop.SpiritStar, false)
+    }
+    if skills.sword == false {
+        set_shop_item_data(
+            OpherShop.SpiritStar,
+            50,
+            "Undiscovered",
+            "Find more weapons and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(OpherShop.SpiritStar, true)
+    }
+}
+on change enemy_lesson update_enemy_lesson_locked()
+on change skills.shuriken update_enemy_lesson_locked()
+fun update_enemy_lesson_locked() {
+    set_shop_item_locked(OpherShop.SpiritStar, enemy_lesson == 2 && skills.shuriken == false)
+}
+on change enemy_lesson update_enemy_lesson_wheel()
+fun update_enemy_lesson_wheel() {
     if enemy_lesson > 1 {
         set_wheel_item_data(
-            "opher_dialogues",
+            "opher_lessons",
             WheelItemPosition::RightTop,
             "Mastery of cooperating with #Enemies#",
             "[Ability1] Recall",
@@ -181,10 +272,41 @@ on reload {
             multi_pogo(),
         )
     }
+}
+
+on change skills.shuriken update_shuriken_lesson_discovered()
+fun update_shuriken_lesson() {
+    update_shuriken_lesson_discovered()
+    update_shuriken_lesson_wheel()
+}
+fun update_shuriken_lesson_discovered() {
+    if skills.shuriken {
+        set_shop_item_data(
+            OpherShop.Spike,
+            50,
+            "Mastery of the *Shuriken* (" + shuriken_lesson + "/10)",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(OpherShop.Spike, false)
+    }
+    if skills.shuriken == false {
+        set_shop_item_data(
+            OpherShop.Spike,
+            50,
+            "Undiscovered",
+            "Find more weapons and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(OpherShop.Spike, true)
+    }
+}
+on change shuriken_lesson update_shuriken_lesson_wheel()
+fun update_shuriken_lesson_wheel() {
     // TODO edge pogo?
     if shuriken_lesson > 1 {
         set_wheel_item_data(
-            "opher_dialogues",
+            "opher_lessons",
             WheelItemPosition::Right,
             "Mastery of the *Shuriken*",
             "[Ability1] Recall",
@@ -290,9 +412,40 @@ on reload {
             double_shuriken(),
         )
     }
+}
+
+fun update_deflector_lesson() {
+    update_deflector_lesson_discovered()
+    update_deflector_lesson_wheel()
+}
+on change shards.deflector update_deflector_lesson_discovered()
+fun update_deflector_lesson_discovered() {
+    if shards.deflector {
+        set_shop_item_data(
+            OpherShop.Blaze,
+            500,
+            "Mastery of the #Deflector#",
+            "",
+            message_icon,
+        )
+        set_shop_item_hidden(OpherShop.Blaze, false)
+    }
+    if shards.deflector == false {
+        set_shop_item_data(
+            OpherShop.Blaze,
+            50,
+            "Undiscovered",
+            "Find more weapons and come back later",
+            message_icon,
+        )
+        set_shop_item_hidden(OpherShop.Blaze, true)
+    }
+}
+on change OpherShop.Blaze update_deflector_lesson_wheel()
+fun update_deflector_lesson_wheel() {
     if OpherShop.Blaze {
         set_wheel_item_data(
-            "opher_dialogues",
+            "opher_lessons",
             WheelItemPosition::RightBottom,
             "Deflector Refresh",
             "[Ability1] Recall",
@@ -394,248 +547,164 @@ on OpherShop.Spike {
     }
     set_shop_item_name(OpherShop.SpiritStar, "Mastery of the *Shuriken* (" + shuriken_lesson + "/10)")
 }
-on OpherShop.Sentry deflector_refresh()
+on OpherShop.Blaze deflector_refresh()
 
 // TODO invent all kinds of variants for Ok so Ori doesn't just always say Ok
 fun shops_explanation() {
-    controlled_message(
+    free_message(
         "shops_explanation",
         "Niwen's people will help you on your way.\n" +
         "#Opher# can teach you how to use your weapons,\n" +
         "*Twillen* knows where to search in the world if you're stuck.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
     store(bind_pointer, shops_explanation_next)
 }
-on bind_1 if bind_pointer == shops_explanation_next {
-    set_message_text(
-        "shops_explanation",
-        "You can recall everything you have been told in the [RandoWheel] #randomizer wheel#\n" +
-        "[Bind1] Ok"
-    )
-    store(bind_pointer, shops_explanation_finish)
-}
-on bind_1 if bind_pointer == shops_explanation_finish {
-    destroy_message("shops_explanation")
-    store(bind_pointer, 0)
-}
 
 fun downswing_lift() {
-    controlled_message(
-        "downswing_lift",
+    free_message(
+        "active_message",
         "Before a #downwards swing# forces you to drop, it lifts you upwards - it gives #far more height#\nthan an upswing. This is especially useful to get #on a semisolid# or #over a ledge#.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, downswing_lift_finish)
-}
-on bind_1 if bind_pointer == downswing_lift_finish {
-    destroy_message("downswing_lift")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun spring_plant_boost() {
-    controlled_message(
-        "spring_plant_boost",
+    free_message(
+        "active_message",
         "You can get #higher jumps# off Spring Plants in a variety of ways. One of them is to upslash\n#the moment you touch# the spring plant - this gets much easier with #low vertical momentum#.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, spring_plant_boost_finish)
-}
-on bind_1 if bind_pointer == spring_plant_boost_finish {
-    destroy_message("spring_plant_boost")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun upslash_turnaround() {
-    controlled_message(
-        "upslash_turnaround",
+    free_message(
+        "active_message",
         "You'll find yourself using an #upslash to reach a wall above you# sometimes. To make this easier, upslash #facing away from the wall# and then do a #forward slash in the other direction#.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, upslash_turnaround_finish)
-}
-on bind_1 if bind_pointer == upslash_turnaround_finish {
-    destroy_message("upslash_turnaround")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun slash_acceleration() {
-    controlled_message(
-        "slash_acceleration",
+    free_message(
+        "active_message",
         "If you #jump out of a swordslash# holding a direction, it will immediately accelerate you to max speed. This is especially useful in the air, using an #upslash into Double Jump# to perform a #rapid turnaround#.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, slash_acceleration_finish)
-}
-on bind_1 if bind_pointer == slash_acceleration_finish {
-    destroy_message("slash_acceleration")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 
 fun projectile_range() {
-    controlled_message(
-        "projectile_range",
+    free_message(
+        "active_message",
         "Shooting enemies have an #enormous range# - if you have enough distance from them.\nWith sufficient movement, you can guide them to #break barriers#.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, projectile_range_finish)
-}
-on bind_1 if bind_pointer == projectile_range_finish {
-    destroy_message("projectile_range")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun projectile_pogo() {
-    controlled_message(
-        "projectile_pogo",
+    free_message(
+        "active_message",
         "Sword's downslash can #pogo off enemies# - but #also their projectiles#. A projectile pogo is less powerful than an enemy pogo, but still provides additional height and mobility.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, projectile_pogo_finish)
-}
-on bind_1 if bind_pointer == projectile_pogo_finish {
-    destroy_message("projectile_pogo")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun multi_pogo() {
-    controlled_message(
-        "multi_pogo",
+    free_message(
+        "active_message",
         "If you align them properly, you can pogo off #multiple targets in quick succession#. You will get the full upwards momentum #on each of them#, resulting in much more height.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, multi_pogo_finish)
-}
-on bind_1 if bind_pointer == multi_pogo_finish {
-    destroy_message("multi_pogo")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 
 fun shuriken_hop() {
-    controlled_message(
-        "shuriken_hop",
+    free_message(
+        "active_message",
         "Throwing a Shuriken #gives you a bit of height#. Unlike Sword it also #accelerates your horizontal speed# instead of slowing it down. Throwing a Shuriken #after an upslash# can make it easier to get up ledges.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, shuriken_hop_finish)
-}
-on bind_1 if bind_pointer == shuriken_hop_finish {
-    destroy_message("shuriken_hop")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun shuriken_acceleration() {
-    controlled_message(
-        "shuriken_acceleration",
+    free_message(
+        "active_message",
         "You can use Shuriken's acceleration to #cancel spike knockback#. This is possible with sword as well but #easier and stronger with Shuriken#.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, shuriken_acceleration_finish)
-}
-on bind_1 if bind_pointer == shuriken_acceleration_finish {
-    destroy_message("shuriken_acceleration")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun shuriken_slashes() {
-    controlled_message(
-        "shuriken_slashes",
+    free_message(
+        "active_message",
         "You can #throw a Shuriken horizontally# and then #hit it multiple times with your Sword combo#. Normally, you can only sword hover once in the air, but this way it can be #repeated endlessly#.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, shuriken_slashes_finish)
-}
-on bind_1 if bind_pointer == shuriken_slashes_finish {
-    destroy_message("shuriken_slashes")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun shuriken_clip() {
-    controlled_message(
-        "shuriken_clip",
+    free_message(
+        "active_message",
         "By touching a wall, floor or ceiling and throwing #multiple Shuriken# at it, some\nof them will #pass through#. This can break #one-way walls# from the other side.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, shuriken_clip_finish)
-}
-on bind_1 if bind_pointer == shuriken_clip_finish {
-    destroy_message("shuriken_clip")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun shuriken_pogo() {
-    controlled_message(
-        "shuriken_pogo",
+    free_message(
+        "active_message",
         "A Shuriken #is a projectile#. This means all rules of enemy projectiles apply, and you can #pogo off your Shuriken#.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, shuriken_pogo_finish)
-}
-on bind_1 if bind_pointer == shuriken_pogo_finish {
-    destroy_message("shuriken_pogo")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun wall_shuriken_pogo() {
-    controlled_message(
-        "wall_shuriken_pogo",
+    free_message(
+        "active_message",
         "To Shuriken pogo #off a wall#, sit on the wall, throw it #diagonally down#, then wall jump and pogo.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, wall_shuriken_pogo_finish)
-}
-on bind_1 if bind_pointer == wall_shuriken_pogo_finish {
-    destroy_message("wall_shuriken_pogo")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun ground_shuriken_pogo() {
-    controlled_message(
-        "ground_shuriken_pogo",
+    free_message(
+        "active_message",
         "To Shuriken pogo #off the ground#, jump with neutral movement, throw it #vertically down#, then pogo.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, ground_shuriken_pogo_finish)
-}
-on bind_1 if bind_pointer == ground_shuriken_pogo_finish {
-    destroy_message("ground_shuriken_pogo")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun air_shuriken_pogo() {
-    controlled_message(
-        "air_shuriken_pogo",
+    free_message(
+        "active_message",
         "To Shuriken pogo #in the air#, throw it #diagonally down#, forward slash to stall, then pogo.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, air_shuriken_pogo_finish)
-}
-on bind_1 if bind_pointer == air_shuriken_pogo_finish {
-    destroy_message("air_shuriken_pogo")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun shuriken_leak() {
-    controlled_message(
-        "shuriken_leak",
+    free_message(
+        "active_message",
         "Shuriken has a #memory leak#: If you throw a couple hundred of them, the game may start lagging.\nIf you notice this, restarting the game will fix it.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, shuriken_leak_finish)
-}
-on bind_1 if bind_pointer == shuriken_leak_finish {
-    destroy_message("shuriken_leak")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 fun double_shuriken() {
-    controlled_message(
-        "double_shuriken",
+    free_message(
+        "active_message",
         "Usually you can only have one *Shuriken* at a time. If you clip one out of bounds however, you can follow up with two *Shurikens*, and keep juggling them until you catch both again.\nThis is much easier to utilize #without the Shuriken Upgrade#.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, double_shuriken_finish)
-}
-on bind_1 if bind_pointer == double_shuriken_finish {
-    destroy_message("double_shuriken")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }
 
 fun deflector_refresh() {
-    controlled_message(
-        "deflector_refresh",
+    free_message(
+        "active_message",
         "Deflector is #more than it seems#. The sound of striking your Shuriken changes - with Deflector equipped projectile slashes #count like enemy slashes#, refreshing Double Jump and all other abilities on each contact.\n" +
-        "[Bind1] Ok"
+        "[Binding1] Ok"
     )
-    store(bind_pointer, deflector_refresh_finish)
-}
-on bind_1 if bind_pointer == deflector_refresh_finish {
-    destroy_message("deflector_refresh")
-    store(bind_pointer, 0)
+    store(bind_pointer, close)
 }

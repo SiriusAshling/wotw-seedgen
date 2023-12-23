@@ -1,0 +1,46 @@
+!include("difficulty_select")
+!use("difficulty_select", critical)
+!include("items")
+!use("items", spirit_trial_reward)
+!include("achievements")
+!use("achievements", trials_achievement)
+
+!state(trial_sequence, Integer)
+
+on LowerReach.TrialActivation {
+    priority_message("You try to activate the Trial Pedestal, but it #seems to be broken#.", 3)
+    store(raceGroup.baursReachWindTunnelRace, 0)
+    store(raceGroup.baursReachWindTunnelRaceIcon, true)
+}
+
+on WestHollow.SpiritTrial {
+    spirit_trial_reward()
+    if trial_sequence == 0 if critical store(trial_sequence, 1)
+}
+on LowerWastes.SpiritTrial {
+    spirit_trial_reward()
+    if trial_sequence == 1 {
+        store(trial_sequence, 2)
+        skill(Skill::Grapple) // TODO cool message pls
+    }
+}
+on MarshPastOpher.SpiritTrial {
+    spirit_trial_reward()
+    if trial_sequence == 2 store(trial_sequence, 3)
+}
+on OuterWellspring.SpiritTrial {
+    spirit_trial_reward()
+    if trial_sequence == 3 store(trial_sequence, 4)
+}
+on EastPools.SpiritTrial {
+    spirit_trial_reward()
+    if trial_sequence == 4 store(trial_sequence, 5)
+}
+on WoodsMain.SpiritTrial {
+    spirit_trial_reward()
+    if trial_sequence == 5 store(trial_sequence, 6)
+}
+on LowerDepths.SpiritTrial {
+    spirit_trial_reward()
+    if trial_sequence == 6 store(trials_achievement, true)
+}

@@ -9,7 +9,7 @@ By default those are bound to
 - Ctrl+Alt+3 (quests)
 ")
 
-// TODO there's a regression here because currently progress messages are in a consistent order
+// TODO there's a regression here because previously progress messages were in a consistent order
 // To add a progress message from your header, use the write_progress_message callback
 // On callback, append your progress message to the string with id progress_message
 // Usually, you'll want to start with a newline so you have your own line
@@ -19,11 +19,14 @@ By default those are bound to
 
 !use_icon(progress_summary_icon, "assets/icons/wheel/progress_summary.blue.png") // TODO inconsistent casing in the icon filenames
 !use_icon(tree_progress_icon, "assets/icons/wheel/tree_progress.blue.png")
-!use_icon(wisp_progress_icon, "assets/icons/wheel/wisp_progress.blue.png")
-!use_icon(quest_progress_icon, "assets/icons/wheel/quest_progress.blue.png")
+!use_icon(wisp_progress_icon, "assets/icons/wheel/wisps_progress.png") // TODO why do others have blue and this one not
+!use_icon(quest_progress_icon, "assets/icons/wheel/quests_progress.blue.png") // TODO some filenames are singular, some plural...
 !use_icon(teleporter_icon, "assets/icons/game/teleporter.png")
 
 !callback(write_progress_message)
+
+!state(disable_keybinds, Boolean)
+!share(disable_keybinds)
 
 on reload {
     set_wheel_item_data(
@@ -90,7 +93,7 @@ on progress_message {
 }
 // TODO map progress message
 
-on bind_1 {
+on binding_1 if disable_keybinds == false {
     write_tree_progress()
     write_wisp_progress()
     priority_message(
@@ -98,8 +101,8 @@ on bind_1 {
         4.0
     )
 }
-on bind_2 show_quest_progress()
-on bind_3 show_teleporter_progress()
+on binding_2 if disable_keybinds == false show_quest_progress()
+on binding_3 if disable_keybinds == false show_teleporter_progress()
 
 fun write_tree_progress() {
     set_string("tree_progress", "#Trees found#: ")

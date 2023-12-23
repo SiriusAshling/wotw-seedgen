@@ -28,7 +28,7 @@ impl Display for Event {
 impl Display for Trigger {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Trigger::Pseudo(pseudo) => pseudo.fmt(f),
+            Trigger::ClientEvent(client) => client.fmt(f),
             // TODO not sure I decided on this syntax yet
             Trigger::Binding(uber_identifier) => write!(f, "[{uber_identifier}]"),
             Trigger::Condition(condition) => condition.fmt(f),
@@ -75,7 +75,6 @@ impl Display for CommandBoolean {
             CommandBoolean::IsInHitbox { x1, y1, x2, y2 } => {
                 write!(f, "is_in_hitbox({x1}, {y1}, {x2}, {y2})")
             }
-            CommandBoolean::RandomSpiritLightNames {} => write!(f, "random_spirit_light_names()"),
         }
     }
 }
@@ -147,31 +146,61 @@ impl Display for CommandVoid {
             CommandVoid::Multi { commands } => write!(f, "{{ {} }}", commands.iter().format(" ")),
             CommandVoid::Lookup { index } => write!(f, "lookup({index})"),
             CommandVoid::If { condition, command } => write!(f, "if ({condition}) {{ {command} }}"),
-            CommandVoid::ItemMessage { message } => write!(f, "item_message({message})"),
-            CommandVoid::ItemMessageWithTimeout { message, timeout } => {
-                write!(f, "item_message_with_timeout({message}, {timeout})")
+            // TODO this logic depends on implementation details of compilation
+            CommandVoid::QueuedMessage {
+                id,
+                priority,
+                message,
+                timeout,
+            } => match timeout {
+                None => write!(f, "item_message({message})"),
+                Some(timeout) => match id {
+                    None => {
+                        let function = if *priority {
+                            "priority_message"
+                        } else {
+                            "item_message_with_timeout"
+                        };
+                        write!(f, "{function}({message}, {timeout})")
+                    }
+                    Some(id) => {
+                        write!(f, "free_message({id}, {message}, {timeout})")
+                    }
+                },
+            },
+            CommandVoid::FreeMessage { id, message } => {
+                write!(f, "free_message({id}, {message})")
             }
-            CommandVoid::PriorityMessage { message, timeout } => {
-                write!(f, "priority_message({message}, {timeout})")
+            CommandVoid::MessageDestroy { id } => {
+                write!(f, "destroy_message({id})")
             }
-            CommandVoid::ControlledMessage { id, message } => {
-                write!(f, "controlled_message({id}, {message})")
-            }
-            CommandVoid::SetMessageText { id, message } => {
+            CommandVoid::MessageText { id, message } => {
                 write!(f, "set_message_text({id}, {message})")
             }
-            CommandVoid::SetMessageTimeout { id, timeout } => {
+            CommandVoid::MessageTimeout { id, timeout } => {
                 write!(f, "set_message_timeout({id}, {timeout})")
             }
-            CommandVoid::DestroyMessage { id } => write!(f, "destroy_message({id})"),
+            CommandVoid::MessageBackground { id, background } => {
+                write!(f, "set_message_background({id}, {background})")
+            }
+            CommandVoid::FreeMessagePosition { id, x, y } => {
+                write!(f, "set_message_position({id}, {x}, {y})")
+            }
+            CommandVoid::FreeMessageAlignment { id, alignment } => {
+                write!(f, "set_message_alignment({id}, {alignment})")
+            }
+            CommandVoid::FreeMessageScreenPosition {
+                id,
+                screen_position,
+            } => write!(f, "set_message_screen_position({id}, {screen_position})"),
             CommandVoid::StoreBoolean {
                 uber_identifier,
                 value,
-                check_triggers,
+                trigger_events,
             } => write!(
                 f,
                 "store_boolean{}({uber_identifier}, {value})",
-                if *check_triggers {
+                if *trigger_events {
                     ""
                 } else {
                     "_without_triggers"
@@ -180,11 +209,11 @@ impl Display for CommandVoid {
             CommandVoid::StoreInteger {
                 uber_identifier,
                 value,
-                check_triggers,
+                trigger_events,
             } => write!(
                 f,
                 "store_integer{}({uber_identifier}, {value})",
-                if *check_triggers {
+                if *trigger_events {
                     ""
                 } else {
                     "_without_triggers"
@@ -193,11 +222,11 @@ impl Display for CommandVoid {
             CommandVoid::StoreFloat {
                 uber_identifier,
                 value,
-                check_triggers,
+                trigger_events,
             } => write!(
                 f,
                 "store_float{}({uber_identifier}, {value})",
-                if *check_triggers {
+                if *trigger_events {
                     ""
                 } else {
                     "_without_triggers"
@@ -257,6 +286,10 @@ impl Display for CommandVoid {
                 uber_identifier,
                 hidden,
             } => write!(f, "set_shop_item_hidden({uber_identifier}, {hidden})"),
+            CommandVoid::SetShopItemLocked {
+                uber_identifier,
+                locked,
+            } => write!(f, "set_shop_item_locked({uber_identifier}, {locked})"),
             CommandVoid::SetWheelItemName {
                 wheel,
                 position,

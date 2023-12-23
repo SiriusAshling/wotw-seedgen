@@ -1,4 +1,4 @@
-use super::{expression::CompileInto, Compile, SnippetCompiler};
+use super::{expression::CompileInto, Compile, SnippetCompiler, RESERVED_MEMORY};
 use crate::{
     ast::{self, UberStateType},
     output::{
@@ -45,12 +45,12 @@ fn spanned_arg<T: CompileInto>(context: &mut ArgContext) -> Option<(T, Range<usi
 fn boxed_arg<T: CompileInto>(context: &mut ArgContext) -> Option<Box<T>> {
     arg(context).map(Box::new)
 }
-fn string_literal(context: &mut ArgContext) -> Option<String> {
+fn spanned_string_literal(context: &mut ArgContext) -> Option<(String, Range<usize>)> {
     let (arg, span) = spanned_arg(context)?;
     match arg {
         CommandString::Constant {
             value: StringOrPlaceholder::Value(value),
-        } => Some(value),
+        } => Some((value, span)),
         _ => {
             context.compiler.errors.push(Error::custom(
                 "Only literals are allowed in this position".to_string(),
@@ -59,6 +59,9 @@ fn string_literal(context: &mut ArgContext) -> Option<String> {
             None
         }
     }
+}
+fn string_literal(context: &mut ArgContext) -> Option<String> {
+    spanned_string_literal(context).map(|(value, _)| value)
 }
 fn boolean_id(context: &mut ArgContext) -> Option<usize> {
     string_literal(context).map(|id| context.compiler.global.boolean_ids.id(id))
@@ -126,10 +129,15 @@ pub(crate) enum FunctionIdentifier {
     ItemMessage,
     ItemMessageWithTimeout,
     PriorityMessage,
-    ControlledMessage,
+    ControlledPriorityMessage,
+    FreeMessage,
+    DestroyMessage,
     SetMessageText,
     SetMessageTimeout,
-    DestroyMessage,
+    SetMessageBackground,
+    SetMessagePosition,
+    SetMessageAlignment,
+    SetMessageScreenPosition,
     Store,
     StoreWithoutTriggers,
     SetBoolean,
@@ -154,6 +162,7 @@ pub(crate) enum FunctionIdentifier {
     SetShopItemDescription,
     SetShopItemIcon,
     SetShopItemHidden,
+    SetShopItemLocked,
     SetWheelItemData,
     SetWheelItemName,
     SetWheelItemDescription,
@@ -348,13 +357,11 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 let amount = arg::<CommandInteger>(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
-                        CommandVoid::ItemMessage {
-                            message: spirit_light_string(
-                                amount.clone(),
-                                &mut context.compiler.rng,
-                                false,
-                            ),
-                        },
+                        item_message(spirit_light_string(
+                            amount.clone(),
+                            &mut context.compiler.rng,
+                            false,
+                        )),
                         add(UberIdentifier::SPIRIT_LIGHT, amount),
                     ],
                 })
@@ -375,9 +382,7 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 };
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
-                        CommandVoid::ItemMessage {
-                            message: spirit_light_string(amount, &mut context.compiler.rng, true),
-                        },
+                        item_message(spirit_light_string(amount, &mut context.compiler.rng, true)),
                         add(UberIdentifier::SPIRIT_LIGHT, negative),
                     ],
                 })
@@ -386,9 +391,7 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 let resource = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
-                        CommandVoid::ItemMessage {
-                            message: resource_string(resource, false),
-                        },
+                        item_message(resource_string(resource, false)),
                         add(
                             resource.uber_identifier(),
                             CommandInteger::Constant { value: 1 },
@@ -400,9 +403,7 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 let resource = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
-                        CommandVoid::ItemMessage {
-                            message: resource_string(resource, true),
-                        },
+                        item_message(resource_string(resource, true)),
                         add(
                             resource.uber_identifier(),
                             CommandInteger::Constant { value: -1 },
@@ -414,9 +415,7 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 let skill = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
-                        CommandVoid::ItemMessage {
-                            message: skill_string(skill, false),
-                        },
+                        item_message(skill_string(skill, false)),
                         set(skill.uber_identifier(), true),
                     ],
                 })
@@ -425,10 +424,11 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 let skill = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
-                        CommandVoid::ItemMessage {
-                            message: skill_string(skill, true),
-                        },
+                        item_message(skill_string(skill, true)),
                         set(skill.uber_identifier(), false),
+                        CommandVoid::Unequip {
+                            equipment: skill.equipment(),
+                        },
                     ],
                 })
             }
@@ -436,9 +436,7 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 let shard = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
-                        CommandVoid::ItemMessage {
-                            message: shard_string(shard, false),
-                        },
+                        item_message(shard_string(shard, false)),
                         set(shard.uber_identifier(), true),
                     ],
                 })
@@ -447,9 +445,7 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 let shard = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
-                        CommandVoid::ItemMessage {
-                            message: shard_string(shard, true),
-                        },
+                        item_message(shard_string(shard, true)),
                         set(shard.uber_identifier(), false),
                     ],
                 })
@@ -458,9 +454,7 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 let teleporter = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
-                        CommandVoid::ItemMessage {
-                            message: teleporter_string(teleporter, false),
-                        },
+                        item_message(teleporter_string(teleporter, false)),
                         set(teleporter.uber_identifier(), true),
                     ],
                 })
@@ -469,26 +463,20 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 let teleporter = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
-                        CommandVoid::ItemMessage {
-                            message: teleporter_string(teleporter, true),
-                        },
+                        item_message(teleporter_string(teleporter, true)),
                         set(teleporter.uber_identifier(), false),
                     ],
                 })
             }
             FunctionIdentifier::CleanWater => Command::Void(CommandVoid::Multi {
                 commands: vec![
-                    CommandVoid::ItemMessage {
-                        message: clean_water_string(false),
-                    },
+                    item_message(clean_water_string(false)),
                     set(UberIdentifier::CLEAN_WATER, true),
                 ],
             }),
             FunctionIdentifier::RemoveCleanWater => Command::Void(CommandVoid::Multi {
                 commands: vec![
-                    CommandVoid::ItemMessage {
-                        message: clean_water_string(true),
-                    },
+                    item_message(clean_water_string(true)),
                     set(UberIdentifier::CLEAN_WATER, false),
                 ],
             }),
@@ -496,9 +484,7 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 let weapon_upgrade = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
-                        CommandVoid::ItemMessage {
-                            message: weapon_upgrade_string(weapon_upgrade, false),
-                        },
+                        item_message(weapon_upgrade_string(weapon_upgrade, false)),
                         set(weapon_upgrade.uber_identifier(), true),
                     ],
                 })
@@ -507,45 +493,76 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 let weapon_upgrade = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
-                        CommandVoid::ItemMessage {
-                            message: weapon_upgrade_string(weapon_upgrade, true),
-                        },
+                        item_message(weapon_upgrade_string(weapon_upgrade, true)),
                         set(weapon_upgrade.uber_identifier(), false),
                     ],
                 })
             }
-            FunctionIdentifier::ItemMessage => Command::Void(CommandVoid::ItemMessage {
-                message: arg(&mut context)?,
-            }),
+            FunctionIdentifier::ItemMessage => Command::Void(item_message(arg(&mut context)?)),
             FunctionIdentifier::ItemMessageWithTimeout => {
-                Command::Void(CommandVoid::ItemMessageWithTimeout {
+                Command::Void(CommandVoid::QueuedMessage {
+                    id: None,
+                    priority: false,
                     message: arg(&mut context)?,
-                    timeout: arg(&mut context)?,
+                    timeout: Some(arg(&mut context)?),
                 })
             }
-            FunctionIdentifier::PriorityMessage => Command::Void(CommandVoid::PriorityMessage {
+            FunctionIdentifier::PriorityMessage => Command::Void(CommandVoid::QueuedMessage {
+                id: None,
+                priority: true,
                 message: arg(&mut context)?,
+                timeout: Some(arg(&mut context)?),
+            }),
+            FunctionIdentifier::ControlledPriorityMessage => {
+                Command::Void(CommandVoid::QueuedMessage {
+                    id: Some(message_id(&mut context)?),
+                    priority: true,
+                    message: arg(&mut context)?,
+                    timeout: Some(arg(&mut context)?),
+                })
+            }
+            FunctionIdentifier::FreeMessage => Command::Void(CommandVoid::FreeMessage {
+                id: message_id(&mut context)?,
+                message: arg(&mut context)?,
+            }),
+            FunctionIdentifier::DestroyMessage => Command::Void(CommandVoid::MessageDestroy {
+                id: message_id(&mut context)?,
+            }),
+            FunctionIdentifier::SetMessageText => Command::Void(CommandVoid::MessageText {
+                id: message_id(&mut context)?,
+                message: arg(&mut context)?,
+            }),
+            FunctionIdentifier::SetMessageTimeout => Command::Void(CommandVoid::MessageTimeout {
+                id: message_id(&mut context)?,
                 timeout: arg(&mut context)?,
             }),
-            FunctionIdentifier::ControlledMessage => {
-                Command::Void(CommandVoid::ControlledMessage {
+            FunctionIdentifier::SetMessageBackground => {
+                Command::Void(CommandVoid::MessageBackground {
                     id: message_id(&mut context)?,
-                    message: arg(&mut context)?,
+                    background: arg(&mut context)?,
                 })
             }
-            FunctionIdentifier::SetMessageText => Command::Void(CommandVoid::SetMessageText {
-                id: message_id(&mut context)?,
-                message: arg(&mut context)?,
-            }),
-            FunctionIdentifier::SetMessageTimeout => {
-                Command::Void(CommandVoid::SetMessageTimeout {
+            // TODO should check on these whether the message is a type of message that you can set the position of
+            // maybe also make
+            FunctionIdentifier::SetMessagePosition => {
+                Command::Void(CommandVoid::FreeMessagePosition {
                     id: message_id(&mut context)?,
-                    timeout: arg(&mut context)?,
+                    x: arg(&mut context)?,
+                    y: arg(&mut context)?,
                 })
             }
-            FunctionIdentifier::DestroyMessage => Command::Void(CommandVoid::DestroyMessage {
-                id: message_id(&mut context)?,
-            }),
+            FunctionIdentifier::SetMessageAlignment => {
+                Command::Void(CommandVoid::FreeMessageAlignment {
+                    id: message_id(&mut context)?,
+                    alignment: arg(&mut context)?,
+                })
+            }
+            FunctionIdentifier::SetMessageScreenPosition => {
+                Command::Void(CommandVoid::FreeMessageScreenPosition {
+                    id: message_id(&mut context)?,
+                    screen_position: arg(&mut context)?,
+                })
+            }
             FunctionIdentifier::Store => store(true, &mut context)?,
             FunctionIdentifier::StoreWithoutTriggers => store(false, &mut context)?,
             FunctionIdentifier::SetBoolean => Command::Void(CommandVoid::SetBoolean {
@@ -651,6 +668,12 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                     hidden: arg(&mut context)?,
                 })
             }
+            FunctionIdentifier::SetShopItemLocked => {
+                Command::Void(CommandVoid::SetShopItemLocked {
+                    uber_identifier: arg(&mut context)?,
+                    locked: arg(&mut context)?,
+                })
+            }
             FunctionIdentifier::SetWheelItemData => {
                 let wheel = wheel_id(&mut context)?;
                 let position = arg(&mut context)?;
@@ -746,13 +769,28 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
     }
 }
 
+fn item_message(message: CommandString) -> CommandVoid {
+    CommandVoid::QueuedMessage {
+        id: None,
+        priority: false,
+        message,
+        timeout: None,
+    }
+}
+
 fn spirit_light_string(amount: CommandInteger, rng: &mut Pcg64Mcg, remove: bool) -> CommandString {
+    const SPIRIT_LIGHT_STRING_ID: usize = RESERVED_MEMORY + 1;
     CommandString::Multi {
         commands: vec![
             CommandVoid::If {
-                condition: CommandBoolean::RandomSpiritLightNames {},
+                condition: CommandBoolean::FetchBoolean {
+                    uber_identifier: UberIdentifier {
+                        group: 26,
+                        member: 0,
+                    },
+                },
                 command: Box::new(CommandVoid::SetString {
-                    id: 2,
+                    id: SPIRIT_LIGHT_STRING_ID,
                     value: CommandString::Constant {
                         value: (*SPIRIT_LIGHT_NAMES.choose(rng).unwrap()).into(),
                     },
@@ -761,13 +799,18 @@ fn spirit_light_string(amount: CommandInteger, rng: &mut Pcg64Mcg, remove: bool)
             CommandVoid::If {
                 condition: CommandBoolean::CompareBoolean {
                     operation: Box::new(Operation {
-                        left: CommandBoolean::RandomSpiritLightNames {},
+                        left: CommandBoolean::FetchBoolean {
+                            uber_identifier: UberIdentifier {
+                                group: 26,
+                                member: 0,
+                            },
+                        },
                         operator: EqualityComparator::Equal,
                         right: CommandBoolean::Constant { value: false },
                     }),
                 },
                 command: Box::new(CommandVoid::SetString {
-                    id: 2,
+                    id: SPIRIT_LIGHT_STRING_ID,
                     value: CommandString::Constant {
                         value: "Spirit Light".into(),
                     },
@@ -793,7 +836,9 @@ fn spirit_light_string(amount: CommandInteger, rng: &mut Pcg64Mcg, remove: bool)
                     },
                 }),
                 right: Box::new(CommandString::Concatenate {
-                    left: Box::new(CommandString::GetString { id: 2 }),
+                    left: Box::new(CommandString::GetString {
+                        id: SPIRIT_LIGHT_STRING_ID,
+                    }),
                     right: Box::new(CommandString::Constant { value: "@".into() }),
                 }),
             }
@@ -810,7 +855,9 @@ fn spirit_light_string(amount: CommandInteger, rng: &mut Pcg64Mcg, remove: bool)
                         right: Box::new(CommandString::Constant { value: " ".into() }),
                     },
                 }),
-                right: Box::new(CommandString::GetString { id: 2 }),
+                right: Box::new(CommandString::GetString {
+                    id: SPIRIT_LIGHT_STRING_ID,
+                }),
             }
         }),
     }
@@ -921,34 +968,34 @@ fn add(uber_identifier: UberIdentifier, amount: CommandInteger) -> CommandVoid {
                 right: amount,
             }),
         },
-        check_triggers: true,
+        trigger_events: true,
     }
 }
 fn set(uber_identifier: UberIdentifier, value: bool) -> CommandVoid {
     CommandVoid::StoreBoolean {
         uber_identifier,
         value: CommandBoolean::Constant { value },
-        check_triggers: true,
+        trigger_events: true,
     }
 }
 
-fn store(check_triggers: bool, context: &mut ArgContext) -> Option<Command> {
+fn store(trigger_events: bool, context: &mut ArgContext) -> Option<Command> {
     let (uber_identifier, span) = spanned_arg::<UberIdentifier>(context)?;
     let command = match context.compiler.uber_state_type(uber_identifier, &span)? {
         UberStateType::Boolean => CommandVoid::StoreBoolean {
             uber_identifier,
             value: arg(context)?,
-            check_triggers,
+            trigger_events,
         },
         UberStateType::Integer => CommandVoid::StoreInteger {
             uber_identifier,
             value: arg(context)?,
-            check_triggers,
+            trigger_events,
         },
         UberStateType::Float => CommandVoid::StoreFloat {
             uber_identifier,
             value: arg(context)?,
-            check_triggers,
+            trigger_events,
         },
     };
     if context

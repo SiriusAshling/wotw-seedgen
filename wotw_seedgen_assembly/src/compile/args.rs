@@ -1,10 +1,13 @@
 use super::command::MemoryUsed;
 use crate::{Command, Compile};
 use rustc_hash::FxHashMap;
-use wotw_seedgen_seed_language::output::{
-    CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandZone,
+use wotw_seedgen_seed_language::{
+    compile::RESERVED_MEMORY,
+    output::{CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandZone},
 };
 
+// TODO remove debug
+#[derive(Debug)]
 pub struct Args<'a> {
     command_lookup: &'a mut Vec<Vec<Command>>,
     commands: Vec<(usize, ArgType, (Vec<Command>, MemoryUsed))>,
@@ -21,8 +24,10 @@ impl<'a> Args<'a> {
     // TODO once deduplication exists, check if moving commands out into function calls is ever worth it
     fn arg<T>(mut self, arg: T, arg_type: ArgType) -> Self
     where
-        T: Compile<Output = (Vec<Command>, MemoryUsed)>,
+        T: Compile<Output = (Vec<Command>, MemoryUsed)> + std::fmt::Debug, // TODO remove debug bound
     {
+        // dbg!(&arg, arg_type);
+
         self.commands.push((
             self.commands.len(),
             arg_type,
@@ -81,10 +86,12 @@ impl<'a> Args<'a> {
             },
         );
 
+        // dbg!(&command, &self.commands, &total_memory_used);
+
         while !self.commands.is_empty() {
             let args_except_last = &self.commands[..self.commands.len() - 1];
             let prioritized_arg_index = args_except_last.iter().enumerate().rev().find_map(
-                |(index, (memory_destination, _, (_, memory_used)))| {
+                |(index, (_memory_destination, _, (_, memory_used)))| {
                     let args_after = &self.commands[index + 1..];
                     let mut args_which_this_overwrites =
                         args_after
@@ -92,8 +99,11 @@ impl<'a> Args<'a> {
                             .filter(|(memory_destination, other_arg_type, _)| {
                                 other_arg_type.memory_used(memory_used) >= *memory_destination
                             });
-                    let is_first_arg = *memory_destination == 0;
-                    let overwrite_threshold = if is_first_arg { 2 } else { 1 };
+                    // dbg!(args_which_this_overwrites.clone().collect::<Vec<_>>());
+                    // TODO implement strategy to avoid copies on the first arg
+                    // let is_first_arg = *memory_destination == 0;
+                    // let overwrite_threshold = if is_first_arg { 1 } else { 0 };
+                    let overwrite_threshold = 0;
                     let should_prioritize = args_which_this_overwrites
                         .nth(overwrite_threshold)
                         .is_some();
@@ -104,6 +114,8 @@ impl<'a> Args<'a> {
                     }
                 },
             );
+            // TODO remove dbg logging
+            // dbg!(prioritized_arg_index);
             match prioritized_arg_index {
                 None => {
                     for (memory_destination, arg_type, (commands, _)) in
@@ -131,11 +143,17 @@ impl<'a> Args<'a> {
                         })
                         .max()
                         .unwrap_or_default();
+                    // dbg!(max_memory_used);
                     let occupied_intermediate_locations =
                         occupied_intermediate_locations.entry(arg_type).or_default();
                     let intermediate_location = ((max_memory_used + 1)..)
                         .find(|location| !occupied_intermediate_locations.contains(location))
                         .unwrap();
+                    // dbg!(intermediate_location);
+                    assert!(
+                        intermediate_location < RESERVED_MEMORY,
+                        "insufficient memory to perform calculation"
+                    );
                     occupied_intermediate_locations.push(intermediate_location);
                     let copy_command = arg_type.copy_command();
                     output.push(copy_command(0, intermediate_location));
@@ -149,11 +167,14 @@ impl<'a> Args<'a> {
         output.extend(back_copies);
         output.push(command);
 
+        // dbg!(&output, &total_memory_used);
+
         (output, total_memory_used)
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+// TODO remove debug
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum ArgType {
     Boolean,
     Integer,

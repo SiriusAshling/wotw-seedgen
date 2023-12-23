@@ -1,0 +1,91 @@
+!include("difficulty_select")
+!use("difficulty_select", critical)
+!include("achievements")
+!use("achievements", finished_achievement)
+!use("achievements", finished_title)
+!use("achievements", true_ending_achievement)
+!use("achievements", true_ending_title)
+!use("achievements", speedrun_achievement)
+!use("achievements", speedrun_title)
+!use("achievements", ores_achievement)
+!use("achievements", ores_title)
+!use("achievements", shiny_ores_achievement)
+!use("achievements", shiny_ores_title)
+!use("achievements", time_achievement)
+!use("achievements", time_title)
+!use("achievements", trials_achievement)
+!use("achievements", trials_title)
+!use("achievements", cells_achievement)
+!use("achievements", cells_title)
+!use("achievements", completionist_achievement)
+!use("achievements", completionist_title)
+!include("timer")
+!use("timer", timer_active)
+!use("timer", timer)
+!use("timer", start_timer)
+!use("timer", credits_timer)
+
+on willowsEndGroup.petrifiedOwlBossState == 5 {
+    store(finished_achievement, true)
+    store(gameStateGroup.gameFinished, false)
+}
+
+on gameStateGroup.gameFinished {
+    set_integer("timer", credits_timer)
+    start_timer()
+    // TODO disable ability cell menu
+}
+// TODO have to explicitely compare to a float here
+on timer > 20. if get_integer("timer") == credits_timer {
+    if skills.spiritFlame {
+        priority_message(
+            "Well fought, master of the *Shuriken*\n" +
+            "You planted all $Mysterious Seeds$ and *reunited* with an old friend",
+            20
+        )
+    }
+    if skills.spiritFlame == false {
+        count_seeds()
+        set_string("seeds", "")
+        if critical set_string("seeds", "\nYou planted " + get_integer("seeds") + " out of 6 $Mysterious Seeds$")
+        priority_message("Well fought, wielder of the *Shuriken*" + get_string("seeds"), 20)
+    }
+}
+on timer > 40. if get_integer("timer") == credits_timer {
+    set_string("achievements", "*Achievements*\n#~#  @Master@  #~# - $Complete$")
+    if true_ending_achievement set_string("achievements", get_string("achievements") + "\n" + true_ending_title + " - $Complete$")
+    if speedrun_achievement set_string("achievements", get_string("achievements") + "\n" + speedrun_title + " - $Complete$")
+    if ores_achievement set_string("achievements", get_string("achievements") + "\n" + ores_title + " - $Complete$")
+    if shiny_ores_achievement set_string("achievements", get_string("achievements") + "\n" + shiny_ores_title + " - $Complete$")
+    if time_achievement set_string("achievements", get_string("achievements") + "\n" + time_title + " - $Complete$")
+    if trials_achievement set_string("achievements", get_string("achievements") + "\n" + trials_title + " - $Complete$")
+    if cells_achievement set_string("achievements", get_string("achievements") + "\n" + cells_title + " - $Complete$")
+    if completionist_achievement set_string("achievements", get_string("achievements") + "\n" + completionist_title + " - $Complete$")
+    priority_message(get_string("achievements"), 20)
+}
+on timer > 60. if get_integer("timer") == credits_timer {
+    set_string("s", "s")
+    if time_achievement set_string("s", "")
+    priority_message("*Inspirations from*\nspinesheath\n$Co" + get_string("s") + "micAngel$", 10)
+}
+on timer > 70. if get_integer("timer") == credits_timer {
+    // TODO zre color? check credits I guess
+    priority_message("*oriHugs* to\n*EikoTheBlue*, $BadWolf$ and zre\nfor making this insanity reality", 10)
+}
+on timer > 80. if get_integer("timer") == credits_timer {
+    priority_message("more *oriHugs* to\nXemsys, Dr. Tuen, Guard, Jaychalke, yoburg, Bastixx, deeperpurple\n...and every other Ori out there", 10)
+}
+on timer > 90. if get_integer("timer") == credits_timer {
+    priority_message("Thank *you* for playing!", 5)
+    store(timer_active, false)
+}
+
+fun count_seeds() {
+    set_integer("seeds", 0)
+    if hubUberStateGroup.gardenerProjectGrapplePlants == 3 set_integer("seeds", get_integer("seeds") + 1)
+    if hubUberStateGroup.gardenerProjectTree == 3 set_integer("seeds", get_integer("seeds") + 1)
+    if hubUberStateGroup.gardenerProjectBashPlants == 3 set_integer("seeds", get_integer("seeds") + 1)
+    if hubUberStateGroup.gardenerProjectFlowers == 3 set_integer("seeds", get_integer("seeds") + 1)
+    if hubUberStateGroup.gardenerProjectSpringPlants == 3 set_integer("seeds", get_integer("seeds") + 1)
+    if hubUberStateGroup.gardenerProjectGrass == 3 set_integer("seeds", get_integer("seeds") + 1)
+}

@@ -1,6 +1,5 @@
 use crate::ast::{self, RecoverContent};
 use rustc_hash::FxHashSet;
-use std::{hash::Hash, ops::Range};
 use wotw_seedgen_parse::{Error, Recoverable, Span, Spanned};
 
 #[derive(Default)]
@@ -10,8 +9,8 @@ pub(crate) struct Preprocessor {
 }
 #[derive(Default)]
 pub(crate) struct PreprocessorOutput {
-    pub includes: FxHashSet<Spanned<String>>, // TODO can these be references?
-    pub functions: FxHashSet<String>,         // TODO can these be references?
+    pub includes: Vec<Spanned<String>>, // TODO can these be references?
+    pub functions: FxHashSet<String>,   // TODO can these be references?
 }
 impl Preprocessor {
     pub(crate) fn preprocess(ast: &ast::Snippet) -> Self {
@@ -32,29 +31,29 @@ impl Preprocessor {
                             ast::Command::Include(_, command) => {
                                 if let Ok(command) = &command.result {
                                     if let Ok(args) = &command.content {
-                                        insert_unique(
-                                            &mut self.output.includes,
-                                            &mut self.errors,
-                                            Spanned::new(
+                                        if self
+                                            .output
+                                            .includes
+                                            .iter()
+                                            .any(|include| include.data == args.0 .0.data)
+                                        {
+                                            self.errors.push(Error::custom(
+                                                "Snippet already included".to_string(),
+                                                args.0 .0.span(),
+                                            ));
+                                        } else {
+                                            self.output.includes.push(Spanned::new(
                                                 args.0 .0.data.to_string(),
                                                 args.0 .0.span(),
-                                            ),
-                                            args.0 .0.span(),
-                                            "Snippet already included".to_string(),
-                                        );
+                                            ));
+                                        }
                                     }
                                 }
                             }
                             ast::Command::Callback(_, command) => {
                                 if let Ok(command) = &command.result {
                                     if let Ok(args) = &command.content {
-                                        insert_unique(
-                                            &mut self.output.functions,
-                                            &mut self.errors,
-                                            args.0 .0.data.0.to_string(),
-                                            args.0 .0.span(),
-                                            "Function already defined".to_string(),
-                                        );
+                                        self.add_function(args.0 .0.data.0.to_string(), &args.0 .0);
                                     }
                                 }
                             }
@@ -71,12 +70,9 @@ impl Preprocessor {
                 }
                 ast::Content::Function(_, content) => {
                     if let Ok(function) = &content.result {
-                        insert_unique(
-                            &mut self.output.functions,
-                            &mut self.errors,
+                        self.add_function(
                             function.identifier.data.0.to_string(),
-                            function.identifier.span(),
-                            "Function already defined".to_string(),
+                            &function.identifier,
                         );
                     }
                 }
@@ -84,16 +80,13 @@ impl Preprocessor {
             }
         }
     }
-}
 
-fn insert_unique<T: Hash + Eq>(
-    set: &mut FxHashSet<T>,
-    errors: &mut Vec<Error>,
-    value: T,
-    span: Range<usize>,
-    message: String,
-) {
-    if !set.insert(value) {
-        errors.push(Error::custom(message, span))
+    fn add_function<S: Span>(&mut self, value: String, span: S) {
+        if !self.output.functions.insert(value) {
+            self.errors.push(Error::custom(
+                "Function already defined".to_string(),
+                span.span(),
+            ))
+        }
     }
 }

@@ -1,5 +1,5 @@
-!include("shared_states")
-!use("shared_states", critical)
+!include("difficulty_select")
+!use("difficulty_select", critical)
 
 !include("items")
 !use("items", mapstone_fragment)

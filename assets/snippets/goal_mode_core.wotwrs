@@ -2,6 +2,8 @@
 #name("Goal Mode Core")
 #description("Manages access to Shriek")
 
+// TODO manage randoState.shriekBarrier state
+
 !include("progress_helper")
 
 !callback(write_goal_progress_message)

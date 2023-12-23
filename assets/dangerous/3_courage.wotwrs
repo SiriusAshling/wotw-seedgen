@@ -1,0 +1,409 @@
+!include("difficulty_select")
+!use("difficulty_select", critical)
+!include("items")
+!use("items", grant_spirit_light)
+!use("items", spirit_light_1)
+!use("items", spirit_light_80)
+!use("items", spirit_light_100)
+!use("items", spirit_light_120_or_100_amount)
+!use("items", spirit_light_120)
+!use("items", health_fragment)
+!use("items", energy_fragment)
+!use("items", door_leaf)
+!use("items", gorlek_ore_pre_double_jump)
+!use("items", mapstone_fragment)
+!include("bonus_item_core")
+!use("bonus_item_core", shuriken_efficiency)
+
+// ~ Area: Swim Revisits ~
+
+on MarshSpawn.ResilienceOre {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on MarshSpawn.LongSwimEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WestHollow.SwimEC {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on EastHollow.KwolokSwimOre {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on EastHollow.KwolokSwimLeftEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on EastHollow.KwolokSwimRightEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on GladesTown.LupoSwimHC {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on GladesTown.LupoSoupEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on GladesTown.LupoSwimMiddleEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on GladesTown.LupoSwimLeftEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WestGlades.UpperPoolEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on WestGlades.SwimEC {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on OuterWellspring.SwimEX {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on OuterWellspring.SwimOre {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+on InnerWellspring.SwimOre {
+    set_string("name", spirit_light_string(80))
+    spirit_light_80()
+}
+
+// ~ Area: Silent Woods ~
+
+on WoodsMain.OverflowShard {
+    if critical health_fragment()
+    if critical == false gorlek_ore_pre_double_jump()
+}
+
+on WoodsMain.HiddenEX energy_fragment()
+on WoodsMain.PetrifiedHowlEX energy_fragment()
+
+on WoodsMain.YellowWallEX {
+    if critical gorlek_ore_pre_double_jump()
+    if critical == false {
+        set_string("name", spirit_light_string(100))
+        spirit_light_100()
+    }
+}
+on WoodsMain.CombatShrine {
+    if critical gorlek_ore_pre_double_jump()
+    if critical == false resource(Resource::ShardSlot)
+}
+
+on WoodsEntry.LedgeOre door_leaf()
+on WoodsEntry.LowerKS door_leaf()
+on WoodsMain.RightKS door_leaf()
+on WoodsMain.UpperKS door_leaf()
+on WoodsMain.LeftKS door_leaf()
+on WoodsMain.LowerKS door_leaf()
+
+on EastHollow.SilentSwimEC {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on WoodsEntry.MudPitEX {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on WoodsEntry.TpEX {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on WoodsEntry.TreeSeed {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on WoodsEntry.DollQI {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+    item_message("Petrified Doll")
+}
+on WoodsEntry.UpperKS {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on WoodsMain.BehindWallOre {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on WoodsMain.BelowKeystonesEX {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on WoodsMain.ShrineEX {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+
+// ~ Area: Windswept Wastes ~
+
+on LowerWastes.LastStandShard {
+    if critical health_fragment()
+    if critical == false teleporter(Teleporter::Wellspring)
+}
+
+on LowerWastes.SunsetViewEX {
+    if critical {
+        item_message("*Overflow*")
+        store(shards.overflow, true)
+    }
+    if critical == false {
+        set_string("name", spirit_light_string(100))
+        spirit_light_100()
+    }
+}
+
+on LowerWastes.SandBridgeOre {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on LowerWastes.SandPotHC {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on LowerWastes.MuncherPitEX {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on LowerWastes.BottomRightEX {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on LowerWastes.BottomRightHC {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+
+// ~ Area: Luma Pools ~
+
+on WestPools.ForestsStrength {
+    if critical {
+        item_message_with_timeout("The #Doors to Darkness# have opened", 5)
+        store(EastHollow.DepthsOpen, true)
+    }
+    if critical == false {
+        item_message_with_timeout("#Flap#", 5)
+        store(skills.flap, true)
+    }
+}
+
+on EastHollow.KwolokAmuletQuest mapstone_fragment()
+
+on UpperPools.FishPoolOre shard(Shard::LifeHarvest)
+
+on PoolsApproach.MillPathHC gorlek_ore_pre_double_jump()
+on EastPools.AboveDoorOre gorlek_ore_pre_double_jump()
+on EastPools.AboveTpEX gorlek_ore_pre_double_jump()
+on UpperPools.RoofEX gorlek_ore_pre_double_jump()
+
+on UpperPools.LowerKS door_leaf()
+on UpperPools.UpperLeftKS door_leaf()
+on UpperPools.UpperMidKS door_leaf()
+on UpperPools.UpperRightKS door_leaf()
+
+on PoolsApproach.AboveWheelEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on PoolsApproach.MillPathEC {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on PoolsApproach.MillPathEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on EastPools.KwolokAmuletQI {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+    item_message("Amulet")
+}
+on EastPools.BelowLeverEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on EastPools.LupoOre {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on EastPools.UltraBashShard {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on EastPools.EnergyHarvestShard {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on EastPools.LupoEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on EastPools.BehindCrusherEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on EastPools.GrassSeed {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on UpperPools.FishPoolEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on UpperPools.BubblesEC {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on UpperPools.LeftBubblesEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on UpperPools.RightBubblesEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on WestPools.TpEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+on WestPools.EscapeRevisitEX {
+    set_string("name", spirit_light_string(120))
+    spirit_light_120()
+}
+
+on UpperPools.SwimDashTree {
+    item_message("With joy we see you moving freely now through the world of Niwen.\nI shall teach you a #deeper understanding# of your spinning star, so you can use it wide and far...")
+    shuriken_efficiency()
+}
+
+on EastPools.TwoCrushersEX {
+    set_string("name", spirit_light_string(1))
+    spirit_light_1()
+}
+
+// ~ Area: Mouldwood Depths ~
+
+on LowerDepths.FlashTree {
+    if critical health_fragment()
+    if critical == false gorlek_ore_pre_double_jump()
+}
+
+on UpperDepths.LightcatcherSeed gorlek_ore_pre_double_jump()
+on UpperDepths.HiveEX gorlek_ore_pre_double_jump()
+on LowerDepths.RaceStartHC gorlek_ore_pre_double_jump()
+on LowerDepths.CombatShrine gorlek_ore_pre_double_jump()
+on LowerDepths.SwimEC gorlek_ore_pre_double_jump()
+on LowerDepths.RightEX {
+    if critical gorlek_ore_pre_double_jump()
+    if critical == false {
+        set_string("name", spirit_light_string(100))
+        spirit_light_100()
+    }
+}
+
+on UpperDepths.EntryRoofEX door_leaf()
+on UpperDepths.EntryOre {
+    if critical door_leaf()
+    if critical == false gorlek_ore_pre_double_jump()
+}
+on UpperDepths.LeftHealthKS door_leaf()
+on UpperDepths.RightHealthKS door_leaf()
+
+on UpperDepths.EntrySpikesEX {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on UpperDepths.RightEntryKS {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on UpperDepths.LeftEntryKS {
+    if critical {
+        set_string("name", spirit_light_string(120))
+        spirit_light_120()
+    }
+    if critical == false door_leaf()
+}
+on UpperDepths.SwimEC {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on UpperDepths.TeleporterEX {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on UpperDepths.KeystoneHC {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on LowerDepths.BelowDoorOre {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on LowerDepths.SpiritSurgeShard {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+on LowerDepths.LeftEX {
+    spirit_light_120_or_100_amount()
+    set_string("name", spirit_light_string(get_integer("amount")))
+    grant_spirit_light()
+}
+
+on UpperDepths.BossPathEX {
+    if critical && skills.doubleJump item_message("<purple>Withered Seed</>")
+    if critical == false || skills.doubleJump == false {
+        item_message("$Mysterious Seed$")
+        store_without_triggers(hubUberStateGroup.gardenerProjectBashPlants, 1)
+    }
+}
+
+// ~ Area: Revisits ~
+
+on LowerWastes.BurrowTree {
+    item_message("You have crossed these dangerous sands, proving yourself ready.\nI shall lend you a #limitless power#...")
+    item_message_with_timeout("#Double Jump#", 5)
+    store(skills.doubleJump, true)
+    if critical item_message_with_timeout("*Chapter 4* - Wisdom", 7.5) // TODO I think chapters should simply increment whenever you collect a progression
+}
+
+on LowerWastes.MuncherClimbEX gorlek_ore_pre_double_jump()
+
+on MarshSpawn.GrappleHC {
+    if critical && skills.doubleJump item_message("<purple>Withered Seed</>")
+    if critical == false || skills.doubleJump == false {
+        item_message("$Mysterious Seed$")
+        store_without_triggers(hubUberStateGroup.gardenerProjectGrass, 1)
+    }
+}

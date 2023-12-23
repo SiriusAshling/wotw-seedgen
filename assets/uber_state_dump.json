@@ -194,35 +194,35 @@
           "name": "explodingSpearCost",
           "readonly": false,
           "type": "SerializedIntUberState",
-          "value": 300.0,
+          "value": 0.0,
           "value_type": "Integer"
         },
         "11098": {
           "name": "hammerShockwaveCost",
           "readonly": false,
           "type": "SerializedIntUberState",
-          "value": 300.0,
+          "value": 0.0,
           "value_type": "Integer"
         },
         "11106": {
           "name": "staticShurikenCost",
           "readonly": false,
           "type": "SerializedIntUberState",
-          "value": 300.0,
+          "value": 0.0,
           "value_type": "Integer"
         },
         "11115": {
           "name": "chargeBlazeCost",
           "readonly": false,
           "type": "SerializedIntUberState",
-          "value": 300.0,
+          "value": 0.0,
           "value_type": "Integer"
         },
         "11116": {
           "name": "rapidSentryCost",
           "readonly": false,
           "type": "SerializedIntUberState",
-          "value": 300.0,
+          "value": 0.0,
           "value_type": "Integer"
         },
         "1115": {
@@ -19485,7 +19485,7 @@
           "name": "savePedestalSwampIntroTop",
           "readonly": false,
           "type": "SavePedestalUberState",
-          "value": 1.0,
+          "value": 0.0,
           "value_type": "Boolean"
         },
         "10295": {
@@ -20792,7 +20792,7 @@
           "name": "segment12701",
           "readonly": false,
           "type": "VirtualUberState",
-          "value": 2.0,
+          "value": 1.0,
           "value_type": "Byte"
         },
         "12712": {
@@ -27898,15 +27898,15 @@
       "states": {
         "500": {
           "name": "totalRelicCount",
-          "readonly": true,
-          "type": "VirtualUberState",
+          "readonly": false,
+          "type": "SerializedByteUberState",
           "value": 0.0,
           "value_type": "Byte"
         },
         "501": {
           "name": "currentRelicCount",
-          "readonly": true,
-          "type": "VirtualUberState",
+          "readonly": false,
+          "type": "SerializedByteUberState",
           "value": 0.0,
           "value_type": "Byte"
         },
@@ -27933,8 +27933,8 @@
         },
         "505": {
           "name": "currentAreaHasUncollectedRelic",
-          "readonly": true,
-          "type": "VirtualUberState",
+          "readonly": false,
+          "type": "SerializedBooleanUberState",
           "value": 0.0,
           "value_type": "Boolean"
         }
@@ -28152,7 +28152,7 @@
           "value_type": "Boolean"
         },
         "108": {
-          "name": "sein",
+          "name": "seir",
           "readonly": false,
           "type": "VirtualUberState",
           "value": 0.0,
@@ -28831,6 +28831,18 @@
           "readonly": false,
           "type": "VirtualUberState",
           "value": 0.0,
+          "value_type": "Boolean"
+        }
+      }
+    },
+    "26": {
+      "name": "settings",
+      "states": {
+        "0": {
+          "name": "randomSpiritLight",
+          "readonly": true,
+          "type": "VirtualUberState",
+          "value": 1.0,
           "value_type": "Boolean"
         }
       }
@@ -30358,20 +30370,6 @@
     "3": {
       "name": "randoEvents",
       "states": {
-        "0": {
-          "name": "onNewGame",
-          "readonly": true,
-          "type": "VirtualUberState",
-          "value": 1.0,
-          "value_type": "Boolean"
-        },
-        "1": {
-          "name": "onLoadSeed",
-          "readonly": true,
-          "type": "VirtualUberState",
-          "value": 1.0,
-          "value_type": "Boolean"
-        },
         "100": {
           "name": "onRequestInkwaterTrialText",
           "readonly": true,
@@ -30428,25 +30426,11 @@
           "value": 1.0,
           "value_type": "Boolean"
         },
-        "2": {
-          "name": "onBinding1",
-          "readonly": true,
-          "type": "VirtualUberState",
-          "value": 1.0,
-          "value_type": "Boolean"
-        },
         "20": {
           "name": "onTeleport",
           "readonly": false,
           "type": "BooleanUberState",
           "value": 0.0,
-          "value_type": "Boolean"
-        },
-        "3": {
-          "name": "onBinding2",
-          "readonly": true,
-          "type": "VirtualUberState",
-          "value": 1.0,
           "value_type": "Boolean"
         },
         "30": {
@@ -30519,13 +30503,6 @@
           "value": 0.0,
           "value_type": "Boolean"
         },
-        "4": {
-          "name": "onBinding3",
-          "readonly": true,
-          "type": "VirtualUberState",
-          "value": 1.0,
-          "value_type": "Boolean"
-        },
         "40": {
           "name": "onBow",
           "readonly": false,
@@ -30594,34 +30571,6 @@
           "readonly": false,
           "type": "BooleanUberState",
           "value": 0.0,
-          "value_type": "Boolean"
-        },
-        "5": {
-          "name": "onBinding4",
-          "readonly": true,
-          "type": "VirtualUberState",
-          "value": 1.0,
-          "value_type": "Boolean"
-        },
-        "6": {
-          "name": "onBinding5",
-          "readonly": true,
-          "type": "VirtualUberState",
-          "value": 1.0,
-          "value_type": "Boolean"
-        },
-        "7": {
-          "name": "onRestoreCheckpoint",
-          "readonly": true,
-          "type": "VirtualUberState",
-          "value": 1.0,
-          "value_type": "Boolean"
-        },
-        "8": {
-          "name": "onProgressHint",
-          "readonly": true,
-          "type": "VirtualUberState",
-          "value": 1.0,
           "value_type": "Boolean"
         }
       }
@@ -34978,6 +34927,13 @@
           "value": 30.0,
           "value_type": "Integer"
         },
+        "1000": {
+          "name": "inputLocked",
+          "readonly": false,
+          "type": "BooleanUberState",
+          "value": 0.0,
+          "value_type": "Boolean"
+        },
         "11": {
           "name": "health",
           "readonly": false,
@@ -35010,7 +34966,7 @@
           "name": "currentArea",
           "readonly": true,
           "type": "VirtualUberState",
-          "value": 0.0,
+          "value": 13.0,
           "value_type": "Byte"
         },
         "51": {
@@ -37005,6 +36961,13 @@
     "6": {
       "name": "randoState",
       "states": {
+        "0": {
+          "name": "shriekBarrier",
+          "readonly": false,
+          "type": "SerializedBooleanUberState",
+          "value": 0.0,
+          "value_type": "Boolean"
+        },
         "2000": {
           "name": "cleanWater",
           "readonly": false,

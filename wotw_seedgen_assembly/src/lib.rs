@@ -1,4 +1,5 @@
 mod compile;
+mod package;
 
 pub use compile::*;
 use wotw_seedgen_data::{Alignment, ScreenPosition};
@@ -6,16 +7,17 @@ pub use wotw_seedgen_data::{
     EquipSlot, Equipment, MapIcon, Position, UberIdentifier, WheelBind, WheelItemPosition,
 };
 pub use wotw_seedgen_seed_language::output::{
-    ArithmeticOperator, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
-    PseudoTrigger,
+    ArithmeticOperator, ClientEvent, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
 };
 pub use wotw_seedgen_settings::UniverseSettings;
 use wotw_seedgen_settings::DEFAULT_SPAWN;
 
 use serde::{Deserialize, Serialize};
 
+pub const VERSION: &str = "0.0.1";
+
 /// Seed data for one World
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SeedWorld<Metadata = ()> {
     /// String to display when loading the seed; usually a summary of the settings
     pub flags: Vec<String>,
@@ -37,7 +39,7 @@ pub struct SeedWorld<Metadata = ()> {
 // - generator version
 
 /// Spawn location for a [`SeedWorld`]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Spawn {
     /// Where to spawn in world coordinates
     pub position: Position,
@@ -56,14 +58,14 @@ impl Default for Spawn {
 /// The main event (:badumtsss:)
 ///
 /// The Trigger defines when to execute the command at the index
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Event(Trigger, usize);
 
 /// Trigger for an [`Event`]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Trigger {
-    /// Pseudo triggers are tied to specific events
-    Pseudo(PseudoTrigger),
+    /// Specific client events
+    ClientEvent(ClientEvent),
     /// Trigger on every change to an UberIdentifier
     Binding(UberIdentifier),
     /// Index into `command_lookup`
@@ -75,7 +77,7 @@ pub enum Trigger {
 }
 
 /// A Command, which may be used to affect the world, player or client state
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Command {
     /// Execute the commands at `index` in command_lookup
     Execute(/*index*/ usize),
@@ -106,17 +108,17 @@ pub enum Command {
     /// Copy the value of Boolean Memory 0 into `uber_identifier`
     StoreBoolean(
         /*uber_identifier*/ UberIdentifier,
-        /*check_triggers*/ bool,
+        /*trigger_events*/ bool,
     ),
     /// Copy the value of Integer Memory 0 into `uber_identifier`
     StoreInteger(
         /*uber_identifier*/ UberIdentifier,
-        /*check_triggers*/ bool,
+        /*trigger_events*/ bool,
     ),
     /// Copy the value of Float Memory 0 into `uber_identifier`
     StoreFloat(
         /*uber_identifier*/ UberIdentifier,
-        /*check_triggers*/ bool,
+        /*trigger_events*/ bool,
     ),
     /// Perform `operator` on Boolean Memory 0 and Boolean Memory 1 and store the result in Boolean Memory 0
     CompareBoolean(/*operator*/ EqualityComparator),
@@ -132,9 +134,11 @@ pub enum Command {
     ArithmeticInteger(/*operator*/ ArithmeticOperator),
     /// Perform `operator` on Float Memory 0 and Float Memory 1 and store the result in Float Memory 0
     ArithmeticFloat(/*operator*/ ArithmeticOperator),
+    /// Round Float Memory 0
+    Round,
     /// Concatenate String Memory 0 and String Memory 1 and store the result in String Memory 0
     Concatenate,
-    /// Convert Float Memory 0 to an integer by rounding and store it in Integer Memory 0
+    /// Convert Float Memory 0 to an integer and store it in Integer Memory 0
     FloatToInteger,
     /// Convert Integer Memory 0 to a float and store it in Float Memory 0
     IntegerToFloat,
@@ -151,36 +155,35 @@ pub enum Command {
     ),
     /// Check if Ori is in the hitbox defined by (Float Memory 0, Float Memory 1) and (Float Memory 2, Float Memory 3) and store the result in Boolean Memory 0
     IsInHitbox,
-    /// Store whether the user wants to see random spirit light names in Boolean Memory 0
-    RandomSpiritLightNames,
     /// Store the name of world number `index` in String Memory 0
     WorldName(/*index*/ usize),
     // TODO control whether messages play sound
-    /// Queue String Memory 0 as item message with a default timeout
-    ItemMessage,
-    /// Queue String Memory 0 as item message with Float Memory 0 as timeout
-    ItemMessageWithTimeout,
-    /// Show String Memory 0 as priority message with Float Memory 0 as timeout
-    PriorityMessage,
-    /// Create a controlled message with `id`
-    ControlledMessage(/*id*/ usize),
-    /// If `id` refers to an existing controlled message, set its text to String Memory 0
-    SetMessageText(/*id*/ usize),
-    /// If `id` refers to an existing controlled message, set its timeout to Float Memory 0
-    SetMessageTimeout(/*id*/ usize),
-    /// If `id` refers to an existing controlled message, set whether its background is enabled based on Boolean Memory 0
-    SetMessageBackground(/*id*/ usize),
-    // TODO false documentation, should be 1, 0 probably?
-    /// If `id` refers to an existing controlled message, set its position to (Float Memory 0, Float Memory 1)
-    SetMessagePosition(/*id*/ usize, /*world_cordinates*/ bool),
-    /// If `id` refers to an existing controlled message, set its `alignment`
-    SetMessageAlignment(/*id*/ usize, /*alignment*/ Alignment),
-    /// If `id` refers to an existing controlled message, set its `screen_position`
-    SetMessageScreenPosition(/*id*/ usize, /*screen_position*/ ScreenPosition),
-    /// If `id` refers to an existing controlled message, show it and play a sound if Boolean Memory 0 is `true`
-    ShowMessage(/*id*/ usize),
-    /// If `id` refers to an existing controlled message, DESTROY, OBLITERATE and ANNIHILATE it
-    DestroyMessage(/*id*/ usize),
+    /// Create a queued message with String Memory 0 as content and Float Memory 0 as timeout
+    QueuedMessage(/*index*/ Option<usize>, /*priority*/ bool),
+    /// Create a free message with `id`
+    FreeMessage(/*id*/ usize),
+    /// DESTROY, OBLITERATE and ANNIHILATE message `id`
+    MessageDestroy(/*id*/ usize),
+    /// Update the content of message `id` with String Memory 0
+    MessageText(/*id*/ usize),
+    /// Update the timeout of message `id` with Float Memory 0
+    MessageTimeout(/*id*/ usize),
+    /// Update whether the background of message `id` is enabled based on Boolean Memory 0
+    MessageBackground(/*id*/ usize),
+    /// If queued message `id` get shown, execute `command`
+    QueuedMessageVisibleCallback(/*id*/ usize, /*command*/ usize),
+    /// If queued message `id` get hidden, execute `command`
+    QueuedMessageHiddenCallback(/*id*/ usize, /*command*/ usize),
+    /// Show free message `id` and play a sound if Boolean Memory 0 is `true`
+    FreeMessageShow(/*id*/ usize),
+    /// Hide free message `id`
+    FreeMessageHide(/*id*/ usize),
+    /// Set the position of free message `id` to (Float Memory 0, Float Memory 1)
+    FreeMessagePosition(/*id*/ usize, /*world_cordinates*/ bool),
+    /// Set the `alignment` of free message `id`
+    FreeMessageAlignment(/*id*/ usize, /*alignment*/ Alignment),
+    /// Set the `screen_position` of free message `id`
+    FreeMessageScreenPosition(/*id*/ usize, /*screen_position*/ ScreenPosition),
     /// Perform a "hard" save like an autosave
     Save,
     /// Perform a "soft" checkpoint like a boss fight checkpoint
@@ -216,6 +219,8 @@ pub enum Command {
     SetShopItemIcon(/*uber_identifier*/ UberIdentifier, Icon),
     /// Set whether the shop item at `uber_identifier` is hidden based on Boolean Memory 0
     SetShopItemHidden(/*uber_identifier*/ UberIdentifier),
+    /// Set whether the shop item at `uber_identifier` is locked based on Boolean Memory 0
+    SetShopItemLocked(/*uber_identifier*/ UberIdentifier),
     /// Set the display name of the wheel item in `wheel` at `position` to String Memory 0
     SetWheelItemName(/*wheel*/ usize, /*position*/ WheelItemPosition),
     /// Set the description of the wheel item in `wheel` at `position` to String Memory 0

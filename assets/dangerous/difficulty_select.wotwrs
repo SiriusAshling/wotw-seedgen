@@ -4,87 +4,97 @@
 !use("bind_pointer", select_difficulty)
 !use("bind_pointer", confirm_balanced)
 !use("bind_pointer", confirm_critical)
+!include("timer")
+!use("timer", timer_active)
+!use("timer", timer)
+!use("timer", start_timer)
+!use("timer", spawn_timer)
 
-!include("shared_states")
-!use("shared_states", critical)
+!state(critical, Boolean)
+!share(critical)
 
 !share(difficulty_menu)
 fun difficulty_menu() {
-    controlled_message(
-        "select_difficulty",
+    free_message(
+        "active_message",
         "$Select a difficulty$\n" +
         "#Balanced#                   @Critical@\n" +
-        "[Bind1]        [Bind2]"
+        "[Binding1]        [Binding2]"
     )
     store(bind_pointer, select_difficulty)
 }
-on bind_1 if bind_pointer == select_difficulty {
-    destroy_message("select_difficulty")
-    controlled_message(
-        "confirm_balanced",
-        "#Balanced#\n" +
-        "There will be a difficulty curve and multiple paths to progress.\n" +
-        "$Confirm$                   @Go back@\n" +
-        "[Bind1]        [Bind2]"
-    )
-    store(bind_pointer, confirm_balanced)
+// TODO there were ordering issues here, check other menues if they have the same problem
+on binding_1 {
+    set_integer("bind_pointer", bind_pointer)
+    if get_integer("bind_pointer") == select_difficulty {
+        destroy_message("active_message")
+        free_message(
+            "active_message",
+            "#Balanced#\n" +
+            "There will be a difficulty curve and multiple paths to progress.\n" +
+            "$Confirm$                   @Go back@\n" +
+            "[Binding1]        [Binding2]"
+        )
+        store(bind_pointer, confirm_balanced)
+    }
+    if get_integer("bind_pointer") == confirm_balanced {
+        destroy_message("active_message")
+        start()
+    }
+    if get_integer("bind_pointer") == confirm_critical {
+        destroy_message("active_message")
+        store(critical, true)
+        start()
+    }
 }
-on bind_2 if bind_pointer == select_difficulty {
-    destroy_message("select_difficulty")
-    controlled_message(
-        "confirm_critical",
-        "@Critical@\n" +
-        "A challenge with no restraints. Few have survived.\n" +
-        "$Confirm$                   @Go back@\n" +
-        "[Bind1]        [Bind2]"
-    )
-    store(bind_pointer, confirm_critical)
-}
-on bind_1 if bind_pointer == confirm_balanced {
-    destroy_message("confirm_balanced")
-    store(bind_pointer, 0)
-    start()
-}
-on bind_2 if bind_pointer == confirm_balanced {
-    destroy_message("confirm_balanced")
-    difficulty_menu()
-}
-on bind_1 if bind_pointer == confirm_critical {
-    destroy_message("confirm_critical")
-    store(bind_pointer, 0)
-    store(critical, true)
-    start()
-}
-on bind_2 if bind_pointer == confirm_critical {
-    destroy_message("confirm_critical")
-    difficulty_menu()
+on binding_2 {
+    set_integer("bind_pointer", bind_pointer)
+    if get_integer("bind_pointer") == select_difficulty {
+        destroy_message("active_message")
+        free_message(
+            "active_message",
+            "@Critical@\n" +
+            "A challenge with no restraints. It is recommended to finish Balanced first\n" +
+            "$Confirm$                   @Go back@\n" +
+            "[Binding1]        [Binding2]"
+        )
+        store(bind_pointer, confirm_critical)
+    }
+    if get_integer("bind_pointer") == confirm_balanced {
+        destroy_message("active_message")
+        difficulty_menu()
+    }
+    if get_integer("bind_pointer") == confirm_critical {
+        destroy_message("active_message")
+        difficulty_menu()
+    }
 }
 
-// TODO convenience command to make a timer?
-!state(message_timer, Float)
-!state(message_timer_active, Boolean)
-on reload define_timer(message_timer_active, message_timer)
+// TODO check the exact message timing again
 
 fun start() {
+    store(bind_pointer, 0)
     store(LowerReach.KeystoneDoor, true)
     store_without_triggers(MarshSpawn.LupoMap, true)
     store(inkwaterMarshStateGroup.mokiTorchPlayed, false)
     store(swampStateGroup.torchHolded, false)
     store(randoConfig.allowOpeningEyestoneDoor, false)
     store(WestHollow.PurpleDoorOpen, true)
-    store(hubUberStateGroup.builderProjectSpiritWell, 0)
+    store(gladesProjects.spiritWellBuilt, false)
     // TODO how to make it available, but not completed?
-    store(hubUberStateGroup.builderProjectBeautify, 0)
+    store(gladesProjects.beautifyBuilt, false)
     // TODO weird that these aren't used...
+    // they should probably at least be hidden then
     store(LupoShop.ShardMapIcon, 1)
     store(LupoShop.ECMapIcon, 1)
     store(LupoShop.HCMapIcon, 1)
     store(swampStateGroup.finishedIntroTop, false)
-    warp(-799, -4310)
-    store(message_timer_active, true)
+    warp(-799, -4310) // TODO preload
     priority_message("@It's Dangerous to go Alone@\nby SiriusAshling", 10.33)
+    set_integer("timer", spawn_timer)
+    start_timer()
 }
-on message_timer > 10.33 {
+on timer > 10.33 if get_integer("timer") == spawn_timer {
     set_string("difficulty_change", "")
     if critical && gameStateGroup.gameDifficultyMode < 2 {
         store(gameStateGroup.gameDifficultyMode, 2)
@@ -102,7 +112,7 @@ on message_timer > 10.33 {
         10.33
     )
 }
-on message_timer > 20.67 {
-    item_message_with_timeout("*Chapter 1* - Lost", 7.67)
-    store(message_timer_active, false)
+on timer > 20.67 if get_integer("timer") == spawn_timer {
+    item_message_with_timeout("*Chapter 1* - Lost", 7.5)
+    store(timer_active, false)
 }

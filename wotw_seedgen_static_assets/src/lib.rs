@@ -7,6 +7,8 @@ use wotw_seedgen_assets::*;
 #[cfg(feature = "presets")]
 use wotw_seedgen_settings::{PresetAccess, UniversePreset, WorldPreset};
 
+// TODO compare bincode with other binary formats
+
 #[cfg(feature = "loc_data")]
 lazy_static! {
     pub static ref LOC_DATA: LocData =
