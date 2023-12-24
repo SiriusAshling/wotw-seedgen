@@ -1,7 +1,3 @@
-// warplock in a broken seed
-!state(warplock, Boolean)
-on tick if warplock warp(-3537, -5881)
-
 on spawn store(minesUberStateGroup.gateState, 2) // fixed state to guarantee consistency across compilations
 on reload if minesUberStateGroup.gateState != 2 {
     if minesUberStateGroup.gateState < 2 {
@@ -16,5 +12,5 @@ on reload if minesUberStateGroup.gateState != 2 {
             10,
         )
     }
-    store(warplock, true)
+    store(player.inputLocked, true)
 }

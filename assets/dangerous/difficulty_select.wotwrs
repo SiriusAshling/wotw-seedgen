@@ -4,14 +4,12 @@
 !use("bind_pointer", select_difficulty)
 !use("bind_pointer", confirm_balanced)
 !use("bind_pointer", confirm_critical)
-!include("timer")
-!use("timer", timer_active)
-!use("timer", timer)
-!use("timer", start_timer)
-!use("timer", spawn_timer)
 
 !state(critical, Boolean)
 !share(critical)
+
+!state(timer, Float)
+!state(timer_active, Boolean)
 
 !share(difficulty_menu)
 fun difficulty_menu() {
@@ -91,10 +89,10 @@ fun start() {
     store(swampStateGroup.finishedIntroTop, false)
     warp(-799, -4310) // TODO preload
     priority_message("@It's Dangerous to go Alone@\nby SiriusAshling", 10.33)
-    set_integer("timer", spawn_timer)
-    start_timer()
+    store(timer, 0)
+    store(timer_active, true)
 }
-on timer > 10.33 if get_integer("timer") == spawn_timer {
+on timer > 10.33 {
     set_string("difficulty_change", "")
     if critical && gameStateGroup.gameDifficultyMode < 2 {
         store(gameStateGroup.gameDifficultyMode, 2)
@@ -112,7 +110,7 @@ on timer > 10.33 if get_integer("timer") == spawn_timer {
         10.33
     )
 }
-on timer > 20.67 if get_integer("timer") == spawn_timer {
+on timer > 20.67 {
     item_message_with_timeout("*Chapter 1* - Lost", 7.5)
     store(timer_active, false)
 }

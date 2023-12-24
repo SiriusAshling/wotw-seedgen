@@ -1,3 +1,5 @@
+!include("pendant")
+
 !include("difficulty_select")
 !use("difficulty_select", critical)
 !include("items")
@@ -6,6 +8,9 @@
 !use("achievements", trials_achievement)
 
 !state(trial_sequence, Integer)
+
+!include("reset")
+!on_callback("reset", reset, store(trial_sequence, 0))
 
 on LowerReach.TrialActivation {
     priority_message("You try to activate the Trial Pedestal, but it #seems to be broken#.", 3)

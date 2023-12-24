@@ -1,7 +1,7 @@
 !include("difficulty_select")
 !use("difficulty_select", critical)
-!include("achievements")
-!use("achievements", time_achievement)
+!include("easter_eyestone")
+!use("easter_eyestone", time_message_seen)
 
 !include("items")
 !use("items", spirit_light_40)
@@ -244,7 +244,7 @@ on WestHollow.DashTree {
             "3131113231\nThis code may be helpful... #in time#.",
             10
         )
-        store(time_achievement, true)
+        store(time_message_seen, true)
     }
 }
 

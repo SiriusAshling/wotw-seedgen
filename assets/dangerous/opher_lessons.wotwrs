@@ -9,6 +9,13 @@
 !state(enemy_lesson, Integer)
 !state(shuriken_lesson, Integer)
 
+!include("reset")
+!on_callback("reset", reset, {
+    store(sword_lesson, 0)
+    store(enemy_lesson, 0)
+    store(shuriken_lesson, 0)
+})
+
 // TODO cost scaling can be done better now
 // TODO custom icons that show the message thing with a weapon in the corner?
 

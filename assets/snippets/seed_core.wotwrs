@@ -3,7 +3,6 @@
 #description("Essentials for the randomizer to function")
 
 // TODO test
-// TODO fill in names
 // TODO check over these, for instance why risingPedestals?
 // TODO add comments
 on spawn {
@@ -37,6 +36,7 @@ on spawn {
     store(swampStateGroup.interactedWithOpher, true)
 }
 
+// TODO fully support random grom shop and remove this
 on reload {
     set_shop_item_data(
         gromShop.spiritWellBought,
@@ -89,3 +89,13 @@ on reload {
     )
     // TODO Tuley
 }
+
+on EastPools.FightArenas store(lumaPoolsStateGroup.arenaByteStateSerialized, 4)
+on hubUberStateGroup.craftCutsceneState == 1 || hubUberStateGroup.craftCutsceneState == 2 {
+    store(hubUberStateGroup.craftCutsceneState, 3)
+    store(GladesTown.TwillenGemQuest, true)
+}
+on InnerWellspring.WaterEscape store(kwolokGroupDescriptor.cleanseWellspringQuestUberState, 3)
+on kwolokGroupDescriptor.cleanseWellspringQuestUberState >= 3 store(GladesTown.TuleySpawned, true)
+on _petrifiedForestGroup.chaseState == 7 store(_petrifiedForestGroup.chaseState, 8)
+on WillowsEnd.MinibossHeart store(willowsEndGroup.laserShooterBossState, 4)

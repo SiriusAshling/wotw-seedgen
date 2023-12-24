@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::{
     fmt::{self, Debug},
     fs::{self, File},
-    io::{self, ErrorKind},
+    io::{self, ErrorKind, Write},
     mem,
     path::{Path, PathBuf},
 };
@@ -16,6 +16,8 @@ use wotw_seedgen_static_assets::UBER_STATE_DATA;
 fn main() -> Result<(), Error> {
     // TODO remove
     // bugsalot::debugger::wait_until_attached(None)?;
+
+    TEMP()?;
 
     fs::create_dir_all("seeds/out")?;
 
@@ -50,6 +52,25 @@ fn main() -> Result<(), Error> {
     };
     let file = File::create("seeds/out/out.wotwr")?;
     seed.package_pretty(file)?;
+
+    Ok(())
+}
+
+fn TEMP() -> Result<(), Error> {
+    // let mut file = File::create("dangerous/reset.wotwrs")?;
+
+    // writeln!(file, "!callback(reset)")?;
+    // writeln!(file, "!on_callback(reset, world_reset())")?;
+    // writeln!(file, "")?;
+    // writeln!(file, "fun world_reset() {{")?;
+
+    // for (uber_identifier, data) in &UBER_STATE_DATA.id_lookup {
+    //     if !(uber_identifier.group == 9 || data.readonly) {
+    //         writeln!(file, "    store({uber_identifier}, {})", data.default_value)?;
+    //     }
+    // }
+
+    // writeln!(file, "}}")?;
 
     Ok(())
 }

@@ -1,29 +1,27 @@
 !include("difficulty_select")
 !use("difficulty_select", critical)
+!include("easter_eyestone")
+!use("easter_eyestone", time_message_seen)
 !include("achievements")
 !use("achievements", finished_achievement)
 !use("achievements", finished_title)
 !use("achievements", true_ending_achievement)
 !use("achievements", true_ending_title)
-!use("achievements", speedrun_achievement)
-!use("achievements", speedrun_title)
 !use("achievements", ores_achievement)
 !use("achievements", ores_title)
 !use("achievements", shiny_ores_achievement)
 !use("achievements", shiny_ores_title)
-!use("achievements", time_achievement)
-!use("achievements", time_title)
 !use("achievements", trials_achievement)
 !use("achievements", trials_title)
 !use("achievements", cells_achievement)
 !use("achievements", cells_title)
-!use("achievements", completionist_achievement)
-!use("achievements", completionist_title)
-!include("timer")
-!use("timer", timer_active)
-!use("timer", timer)
-!use("timer", start_timer)
-!use("timer", credits_timer)
+!include("bind_pointer")
+!use("bind_pointer", bind_pointer)
+
+// TODO this probably breaks horribly if the user skips the final cutscene
+
+!state(timer, Float)
+!state(timer_active, Boolean)
 
 on willowsEndGroup.petrifiedOwlBossState == 5 {
     store(finished_achievement, true)
@@ -31,12 +29,13 @@ on willowsEndGroup.petrifiedOwlBossState == 5 {
 }
 
 on gameStateGroup.gameFinished {
-    set_integer("timer", credits_timer)
-    start_timer()
-    // TODO disable ability cell menu
+    // disable ability cell shop
+    store(bind_pointer, -1) // TODO check whether this gets saved
+    store(timer, 0)
+    store(timer_active, true)
 }
 // TODO have to explicitely compare to a float here
-on timer > 20. if get_integer("timer") == credits_timer {
+on timer > 20. {
     if skills.spiritFlame {
         priority_message(
             "Well fought, master of the *Shuriken*\n" +
@@ -51,32 +50,32 @@ on timer > 20. if get_integer("timer") == credits_timer {
         priority_message("Well fought, wielder of the *Shuriken*" + get_string("seeds"), 20)
     }
 }
-on timer > 40. if get_integer("timer") == credits_timer {
+on timer > 40. {
     set_string("achievements", "*Achievements*\n#~#  @Master@  #~# - $Complete$")
     if true_ending_achievement set_string("achievements", get_string("achievements") + "\n" + true_ending_title + " - $Complete$")
-    if speedrun_achievement set_string("achievements", get_string("achievements") + "\n" + speedrun_title + " - $Complete$")
     if ores_achievement set_string("achievements", get_string("achievements") + "\n" + ores_title + " - $Complete$")
     if shiny_ores_achievement set_string("achievements", get_string("achievements") + "\n" + shiny_ores_title + " - $Complete$")
-    if time_achievement set_string("achievements", get_string("achievements") + "\n" + time_title + " - $Complete$")
     if trials_achievement set_string("achievements", get_string("achievements") + "\n" + trials_title + " - $Complete$")
     if cells_achievement set_string("achievements", get_string("achievements") + "\n" + cells_title + " - $Complete$")
-    if completionist_achievement set_string("achievements", get_string("achievements") + "\n" + completionist_title + " - $Complete$")
     priority_message(get_string("achievements"), 20)
 }
-on timer > 60. if get_integer("timer") == credits_timer {
+on timer > 60. {
     set_string("s", "s")
-    if time_achievement set_string("s", "")
+    if time_message_seen set_string("s", "")
     priority_message("*Inspirations from*\nspinesheath\n$Co" + get_string("s") + "micAngel$", 10)
 }
-on timer > 70. if get_integer("timer") == credits_timer {
+on timer > 70. {
     // TODO zre color? check credits I guess
     priority_message("*oriHugs* to\n*EikoTheBlue*, $BadWolf$ and zre\nfor making this insanity reality", 10)
 }
-on timer > 80. if get_integer("timer") == credits_timer {
+on timer > 80. {
     priority_message("more *oriHugs* to\nXemsys, Dr. Tuen, Guard, Jaychalke, yoburg, Bastixx, deeperpurple\n...and every other Ori out there", 10)
 }
-on timer > 90. if get_integer("timer") == credits_timer {
-    priority_message("Thank *you* for playing!", 5)
+on timer > 90. {
+    priority_message("Thank *you* for playing!", 10)
+}
+on timer > 100. {
+    priority_message("You can start a new playthrough without losing your achievements from the [RandoWheel] Rando Wheel", 10)
     store(timer_active, false)
 }
 

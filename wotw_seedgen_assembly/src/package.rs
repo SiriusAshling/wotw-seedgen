@@ -20,9 +20,10 @@ impl<Metadata: Serialize> SeedWorld<Metadata> {
         W: Write,
         F: Formatter,
     {
-        // TODO enable compression
+        // TODO choose compression
+        let mut builder = tar::Builder::new(xz2::write::XzEncoder::new(w, 9));
         // let mut builder = tar::Builder::new(brotli::CompressorWriter::new(w, 4096, 11, 22));
-        let mut builder = tar::Builder::new(w);
+        // let mut builder = tar::Builder::new(w);
         let mut header = base_header();
 
         header.set_path("format_version")?;
@@ -38,7 +39,7 @@ impl<Metadata: Serialize> SeedWorld<Metadata> {
         header.set_cksum();
         builder.append(&mut header, seed.as_slice())?;
 
-        builder.into_inner()?.flush()?;
+        builder.into_inner()?.finish()?.flush()?;
 
         Ok(())
     }

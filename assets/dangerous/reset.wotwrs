@@ -1,1 +1,35 @@
-// TODO
+!use_icon(reset_icon, "assets/icons/wheel/force_exit.blue.png") // TODO what use here
+
+!include("achievements")
+!use("achievements", finished_achievement)
+
+!callback(reset)
+
+!state(unlocked, Boolean)
+
+on finished_achievement {
+    store(unlocked, true)
+    update_wheel()
+}
+on reload update_wheel()
+
+fun update_wheel() {
+    if unlocked {
+        set_wheel_item_data(
+            "root",
+            WheelItemPosition::Bottom,
+            "Start a new playthrough",
+            "Reset your progress and start a new playthrough",
+            reset_icon,
+            switch_wheel("confirm_reset"),
+        ) // TODO make fancy color maybe?
+        set_wheel_item_data(
+            "confirm_reset",
+            WheelItemPosition::Top,
+            "Confirm",
+            "All your progress except achievments will be lost!",
+            reset_icon,
+            reset(),
+        )
+    }
+}

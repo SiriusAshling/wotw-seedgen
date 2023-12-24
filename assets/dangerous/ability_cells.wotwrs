@@ -13,10 +13,22 @@
 !state(shuriken_upgrade_purchased, Boolean)
 !state(ancestral_light_purchased, Boolean)
 !state(pendant_purchased, Boolean)
+!share(pendant_purchased)
+!state(explained, Boolean)
+
+!include("reset")
+!on_callback("reset", reset, {
+    store(owned, 0)
+    store(selected, 0)
+    store(shuriken_efficiency_purchased, false)
+    store(shuriken_upgrade_purchased, false)
+    store(ancestral_light_purchased, false)
+    store(pendant_purchased, false)
+    store(explained, false)
+})
 
 // TODO wheel menu for ability cells
 
-!state(explained, Boolean)
 !share(ability_cell)
 fun ability_cell() {
     if explained set_string("explanation", "")
@@ -28,7 +40,7 @@ fun ability_cell() {
     store(owned, owned + 1)
 }
 
-on binding_4 show_shop()
+on binding_4 if bind_pointer == 0 show_shop()
 on change selected show_shop()
 fun show_shop() {
     // TODO but what if the player hasn't found any ability cells?

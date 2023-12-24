@@ -333,6 +333,7 @@ pub struct Variant;
 
 #[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
 pub enum Command<'source> {
+    // TODO have include be able to change the default config?
     Include(Spanned<Include>, CommandArgs<IncludeArgs<'source>>),
     UseIcon(Spanned<UseIcon>, CommandArgs<UseIconArgs<'source>>),
     Callback(Spanned<Callback>, CommandArgs<CallbackArgs<'source>>),

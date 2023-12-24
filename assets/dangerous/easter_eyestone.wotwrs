@@ -1,3 +1,9 @@
+!state(time_message_seen, Boolean)
+!share(time_message_seen)
+
+!include("reset")
+!on_callback("reset", reset, store(time_message_seen, false))
+
 on spawn store(swampStateGroup.doorAState, true)
 on skills.sword store(swampStateGroup.doorAState, false)
 

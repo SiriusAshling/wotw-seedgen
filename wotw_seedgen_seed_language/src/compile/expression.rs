@@ -724,8 +724,6 @@ impl CompileInto for Command {
         span: Range<usize>,
         compiler: &mut SnippetCompiler,
     ) -> Option<Self> {
-        // TODO this is currently only used for ToString where not everything has to compile successfully, but of course we really shouldn't assume where this is used from
-        // Actually it's also used in the CommandString implementation now
         let command = match literal {
             Literal::UberIdentifier(UberStateAlias {
                 uber_identifier,
@@ -1074,9 +1072,16 @@ fn alias_type_error(
 }
 #[inline]
 fn return_type_error(expected: Type, span: Range<usize>) -> Error {
-    Error::custom(format!("Expected function returning {expected}"), span)
+    Error::custom(format!("expected function returning {expected}"), span)
 }
 #[inline]
 fn uber_state_type_error(found: UberStateType, expected: Type, span: Range<usize>) -> Error {
-    Error::custom(format!("Cannot use {found} UberState as {expected}"), span)
+    let mut error = Error::custom(format!("cannot use {found} UberState as {expected}"), span);
+    if matches!(expected, Type::Boolean) {
+        error.help = Some(
+            "if you want to trigger on every change of the state, use \"on change <UberIdentifier>\""
+                .to_string(),
+        )
+    }
+    error
 }

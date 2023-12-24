@@ -7,7 +7,6 @@
 !include("wisps") // TODO not sure I want the progress helper commands in the rando wheel
 !include("no_cutscenes")
 !include("better_stomp")
-!include("fragment_overflow")
 !include("knowledge_hints")
 !include("spawn_tuley")
 !include("tp_refill")
@@ -27,6 +26,7 @@
 !include("3_courage")
 !include("4_wisdom")
 !include("credits")
+!include("world_reset")
 
 !spawn(-3537, -5881)
 on spawn difficulty_menu()
@@ -45,14 +45,13 @@ on InnerWellspring.WaterEscape
     if critical store(gameStateGroup.gameDifficultyMode, 2)
 
 // Kwolok Escape
-!state(was_on_easy, Boolean)
 on lagoonStateGroup.kwolokBossState == 1 {
-    if gameStateGroup.gameDifficultyMode == 0 store(was_on_easy, true)
+    if gameStateGroup.gameDifficultyMode == 0 set_boolean("was_on_easy", true)
     store(gameStateGroup.gameDifficultyMode, 0)
 }
 on lagoonStateGroup.kwolokBossState == 3 {
     if critical store(gameStateGroup.gameDifficultyMode, 2)
-    if critical == false && was_on_easy == false
+    if critical == false && get_boolean("was_on_easy") == false
         store(gameStateGroup.gameDifficultyMode, 1)
 }
 

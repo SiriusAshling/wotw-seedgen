@@ -2,6 +2,9 @@ use crate::ast::{self, RecoverContent};
 use rustc_hash::FxHashSet;
 use wotw_seedgen_parse::{Error, Recoverable, Span, Spanned};
 
+// TODO our preprocessing is a bit weird. For instance if you want to use a callback
+// from a parent file, it fails to resolve with an odd error message
+
 #[derive(Default)]
 pub(crate) struct Preprocessor {
     pub output: PreprocessorOutput,

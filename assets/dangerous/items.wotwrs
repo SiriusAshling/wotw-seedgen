@@ -9,10 +9,20 @@
 !use("mapstone_fragments", mapstone_fragment)
 !share(mapstone_fragment)
 
+!state(door_leaf_explained, Boolean)
+!state(eyestone_collected, Boolean)
+!state(shiny_ore_collected, Integer)
+
+!include("reset")
+!on_callback("reset", reset, {
+    store(eyestone_collected, false)
+    store(shiny_ore_collected, 0)
+})
+
 // TODO great use case for function arguments
 !share(grant_spirit_light)
 fun grant_spirit_light() {
-    item_message("#" + get_string("name") + "#") // TODO this means every spirit light message will be the same instead of different random ones everywhere
+    item_message("#" + get_string("name") + "#")
     store(player.spiritLight, fetch(player.spiritLight) + get_integer("amount"))
 }
 !share(spirit_light_1)
@@ -64,14 +74,15 @@ fun spirit_light_120_or_100_amount() {
 fun energy_fragment() {
     item_message("*Energy Fragment*")
     store(player.maxEnergy, fetch(player.maxEnergy) + 0.5)
+    store(player.energy, player.maxEnergy)
 }
 !share(health_fragment)
 fun health_fragment() {
     item_message("$Health Fragment$")
     store(player.maxHealth, fetch(player.maxHealth) + 5)
+    store(player.health, player.maxHealth)
 }
 
-!state(door_leaf_explained, Boolean)
 !share(door_leaf)
 fun door_leaf() {
     if door_leaf_explained set_string("door_leaf_explanation", "")
@@ -83,7 +94,6 @@ fun door_leaf() {
     store(player.keystones, fetch(player.keystones) + 1)
 }
 
-!state(eyestone_collected, Boolean)
 !share(eyestone)
 fun eyestone() {
     if eyestone_collected {
@@ -103,7 +113,6 @@ fun eyestone() {
 // 64: shuriken
 // 67: water
 // 70: djump
-!state(shiny_ore_collected, Integer)
 fun gorlek_ore() {
     store(player.gorlekOre, fetch(player.gorlekOre) + 1)
     if get_boolean("shiny") store(shiny_ore_collected, shiny_ore_collected + 1)

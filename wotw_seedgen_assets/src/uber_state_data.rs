@@ -42,6 +42,15 @@ pub enum UberStateValue {
     Integer(i32),
     Float(f32),
 }
+impl Display for UberStateValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UberStateValue::Boolean(value) => value.fmt(f),
+            UberStateValue::Integer(value) => value.fmt(f),
+            UberStateValue::Float(value) => value.fmt(f),
+        }
+    }
+}
 impl UberStateData {
     pub fn from_reader<R: io::Read>(reader: R) -> serde_json::Result<Self> {
         let mut uber_state_data = Self::default();

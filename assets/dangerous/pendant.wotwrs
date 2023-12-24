@@ -1,0 +1,12 @@
+!include("ability_cells")
+!use("ability_cells", pendant_purchased)
+
+on pendant_purchased {
+    store(questUberStateGroup.firstRaceRumorMokiState, 0)
+}
+
+on questUberStateGroup.firstRaceRumorMokiState > 0 if pendant_purchased {
+    item_message("$Large Health Cell$")
+    store(player.maxHealth, player.maxHealth + 30)
+    store(player.health, player.maxHealth)
+}

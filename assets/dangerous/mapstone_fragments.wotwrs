@@ -7,6 +7,10 @@
 
 !state(mapstone_fragments, Integer)
 !share(mapstone_fragment)
+
+!include("reset")
+!on_callback("reset", reset, store(mapstone_fragments, 0))
+
 fun mapstone_fragment() {
     store(mapstone_fragments, mapstone_fragments + 1)
     set_string("color", "")
