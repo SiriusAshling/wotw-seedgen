@@ -14,7 +14,8 @@ impl Display for Icon {
             Icon::Lupo(lupo_icon) => write!(f, "{lupo_icon} icon"),
             Icon::Grom(grom_icon) => write!(f, "{grom_icon} icon"),
             Icon::Tuley(tuley_icon) => write!(f, "{tuley_icon} icon"),
-            Icon::Path(path) => write!(f, "custom icon at \"{path}\""),
+            Icon::File(path) => write!(f, "icon at \"{path}\""),
+            Icon::Bundle(path) => write!(f, "bundled icon at \"{path}\""),
         }
     }
 }

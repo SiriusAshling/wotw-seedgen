@@ -1,5 +1,4 @@
 use crate::{Ast, ErrorKind, ParseIdentToken, Parser, Result, Tokenize};
-use parse_display::Display;
 use std::fmt::{self, Display};
 
 /// [`Ast`] node parsing an identifier
@@ -37,7 +36,7 @@ use std::fmt::{self, Display};
 ///     Ok(Identifier("OriIsAGoodGame"))
 /// );
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct Identifier<'source>(pub &'source str);
 impl<'source, T> Ast<'source, T> for Identifier<'source>
@@ -54,6 +53,11 @@ where
         } else {
             Err(parser.error(ErrorKind::ExpectedToken("identifier".to_string())))
         }
+    }
+}
+impl Display for Identifier<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
     }
 }
 

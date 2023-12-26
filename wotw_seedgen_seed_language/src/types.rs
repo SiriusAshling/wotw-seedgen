@@ -7,8 +7,8 @@ use crate::{
     output::intermediate,
     token::Tokenizer,
 };
-use parse_display::Display;
 use serde::Deserialize;
+use strum::Display;
 use wotw_seedgen_assets::{UberStateData, UberStateValue};
 use wotw_seedgen_data::UberIdentifier;
 use wotw_seedgen_parse::{Ast, Identifier, Once, Result, Spanned};
@@ -148,8 +148,16 @@ impl InferType for FunctionCall<'_> {
             | FunctionIdentifier::ToString
             | FunctionIdentifier::SpiritLightString
             | FunctionIdentifier::RemoveSpiritLightString
-            | FunctionIdentifier::ResourceString
-            | FunctionIdentifier::RemoveResourceString
+            | FunctionIdentifier::GorlekOreString
+            | FunctionIdentifier::RemoveGorlekOreString
+            | FunctionIdentifier::KeystoneString
+            | FunctionIdentifier::RemoveKeystoneString
+            | FunctionIdentifier::ShardSlotString
+            | FunctionIdentifier::RemoveShardSlotString
+            | FunctionIdentifier::HealthFragmentString
+            | FunctionIdentifier::RemoveHealthFragmentString
+            | FunctionIdentifier::EnergyFragmentString
+            | FunctionIdentifier::RemoveEnergyFragmentString
             | FunctionIdentifier::SkillString
             | FunctionIdentifier::RemoveSkillString
             | FunctionIdentifier::ShardString
@@ -163,8 +171,16 @@ impl InferType for FunctionCall<'_> {
             FunctionIdentifier::CurrentZone => Type::Zone,
             FunctionIdentifier::SpiritLight
             | FunctionIdentifier::RemoveSpiritLight
-            | FunctionIdentifier::Resource
-            | FunctionIdentifier::RemoveResource
+            | FunctionIdentifier::GorlekOre
+            | FunctionIdentifier::RemoveGorlekOre
+            | FunctionIdentifier::Keystone
+            | FunctionIdentifier::RemoveKeystone
+            | FunctionIdentifier::ShardSlot
+            | FunctionIdentifier::RemoveShardSlot
+            | FunctionIdentifier::HealthFragment
+            | FunctionIdentifier::RemoveHealthFragment
+            | FunctionIdentifier::EnergyFragment
+            | FunctionIdentifier::RemoveEnergyFragment
             | FunctionIdentifier::Skill
             | FunctionIdentifier::RemoveSkill
             | FunctionIdentifier::Shard
@@ -235,7 +251,7 @@ impl Expression<'_> {
             })) => {
                 let uber_state = uber_identifier.resolve(compiler)?;
                 match uber_state.value {
-                    None => compiler.uber_state_type(uber_state.uber_identifier, &uber_identifier),
+                    None => compiler.uber_state_type(uber_state.uber_identifier, uber_identifier),
                     Some(_) => None,
                 }
             }
@@ -244,7 +260,7 @@ impl Expression<'_> {
                     intermediate::Literal::UberIdentifier(uber_state) => match uber_state.value {
                         None => {
                             let uber_identifier = uber_state.uber_identifier;
-                            compiler.uber_state_type(uber_identifier, &identifier)
+                            compiler.uber_state_type(uber_identifier, identifier)
                         }
                         Some(_) => None,
                     },
@@ -307,14 +323,15 @@ impl intermediate::Literal {
             intermediate::Literal::Float(_) => Type::Float,
             intermediate::Literal::String(_) => Type::String,
             intermediate::Literal::Constant(constant) => constant.literal_type(),
-            intermediate::Literal::PathIcon(_) => Type::Icon,
+            intermediate::Literal::IconAsset(_) | intermediate::Literal::CustomIcon(_) => {
+                Type::Icon
+            }
         }
     }
 }
 impl intermediate::Constant {
     pub fn literal_type(&self) -> Type {
         match self {
-            intermediate::Constant::Resource(_) => Type::Resource,
             intermediate::Constant::Skill(_) => Type::Skill,
             intermediate::Constant::Shard(_) => Type::Shard,
             intermediate::Constant::Teleporter(_) => Type::Teleporter,

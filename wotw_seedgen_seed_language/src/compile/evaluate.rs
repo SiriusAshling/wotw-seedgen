@@ -20,7 +20,7 @@ pub(crate) trait EvaluateFrom: Sized {
 impl<'source> ast::Expression<'source> {
     pub(crate) fn evaluate<T: EvaluateFrom>(
         self,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<T> {
         let span = self.span();
         let value = T::evaluate(self.compile_into(compiler)?);

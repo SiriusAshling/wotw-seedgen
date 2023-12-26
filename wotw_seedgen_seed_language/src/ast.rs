@@ -3,8 +3,8 @@ use crate::{
     types::Type,
 };
 use ordered_float::OrderedFloat;
-use parse_display::Display;
 use serde::{Deserialize, Serialize};
+use strum::Display;
 use wotw_seedgen_parse::{
     parse_ast, Ast, Identifier, NoTrailingInput, Once, Parser, Recover, Recoverable, Result,
     SeparatedNonEmpty, Span, Spanned, Symbol,
@@ -70,7 +70,7 @@ pub enum Trigger<'source> {
 // TODO remove ability triggers because the states are more flexible for those (remain true for the duration)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ast, Display, Serialize, Deserialize)]
 #[ast(case = "snake")]
-#[display(style = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum ClientEvent {
     /// Trigger when starting a new file
     Spawn,
@@ -335,8 +335,11 @@ pub struct Variant;
 pub enum Command<'source> {
     // TODO have include be able to change the default config?
     Include(Spanned<Include>, CommandArgs<IncludeArgs<'source>>),
+    IncludeIcon(Spanned<IncludeIcon>, CommandArgs<IncludeIconArgs<'source>>),
+    // TODO rename useiconasset?
     UseIcon(Spanned<UseIcon>, CommandArgs<UseIconArgs<'source>>),
     Callback(Spanned<Callback>, CommandArgs<CallbackArgs<'source>>),
+    // TODO rename use_callback?
     OnCallback(Spanned<OnCallback>, CommandArgs<OnCallbackArgs<'source>>),
     Share(Spanned<Share>, CommandArgs<ShareArgs<'source>>),
     Use(Spanned<Use>, CommandArgs<UseArgs<'source>>),
@@ -396,6 +399,15 @@ pub type CommandArgs<Args> = CommandArgsCollection<Once<Args>>;
 pub struct Include;
 #[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
 pub struct IncludeArgs<'source>(pub Spanned<&'source str>);
+#[derive(Debug, Clone, PartialEq, Eq, Ast)]
+#[ast(case = "snake")]
+pub struct IncludeIcon;
+#[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
+pub struct IncludeIconArgs<'source> {
+    pub identifier: Spanned<Identifier<'source>>,
+    pub comma: Symbol<','>,
+    pub path: Spanned<&'source str>,
+}
 #[derive(Debug, Clone, PartialEq, Eq, Ast)]
 #[ast(case = "snake")]
 pub struct UseIcon;

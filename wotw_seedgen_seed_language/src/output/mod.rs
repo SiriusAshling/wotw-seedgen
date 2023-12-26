@@ -25,11 +25,12 @@ pub struct CompilerOutput {
     pub spawn: Option<Position>,
     pub events: Vec<Event>,
     pub command_lookup: Vec<Command>,
+    pub icons: Vec<(String, Vec<u8>)>, // TODO poor memory
     pub flags: FxHashSet<StringOrPlaceholder>,
-    pub item_pool_changes: FxHashMap<Command, i32>,
-    pub item_metadata: FxHashMap<Command, ItemMetadata>,
+    pub item_pool_changes: FxHashMap<CommandVoid, i32>,
+    pub item_metadata: FxHashMap<CommandVoid, ItemMetadata>,
     pub logical_state_sets: FxHashSet<String>,
-    pub preplacements: Vec<(Command, wotw_seedgen_data::Zone)>,
+    pub preplacements: Vec<(CommandVoid, wotw_seedgen_data::Zone)>,
     pub success: bool,
     pub debug: Option<DebugOutput>,
 }
@@ -102,5 +103,6 @@ pub enum Icon {
     Lupo(LupoIcon),
     Grom(GromIcon),
     Tuley(TuleyIcon),
-    Path(String),
+    File(String),
+    Bundle(String),
 }

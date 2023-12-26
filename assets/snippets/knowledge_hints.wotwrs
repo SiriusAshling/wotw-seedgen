@@ -27,7 +27,7 @@ on tick if
         current_zone() == Zone::Woods
         || current_zone() == Zone::Reach
         || current_zone() == Zone::Depths
-        || current_zone() == Zone::Pools
+        || current_zone() == Zone::Luma
         || current_zone() == Zone::Wastes
         || current_zone() == Zone::Ruins
         || current_zone() == Zone::Willow

@@ -32,8 +32,6 @@ impl Compile for input::Command {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
-        // dbg!(&self);
-
         match self {
             Self::Boolean(command) => command.compile(command_lookup),
             Self::Integer(command) => command.compile(command_lookup),
@@ -49,8 +47,6 @@ impl Compile for input::CommandBoolean {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
-        // dbg!(&self);
-
         match self {
             Self::Constant { value } => (vec![Command::SetBoolean(value)], MemoryUsed::ZERO),
             Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
@@ -100,8 +96,6 @@ impl Compile for input::CommandInteger {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
-        // dbg!(&self);
-
         match self {
             Self::Constant { value } => (vec![Command::SetInteger(value)], MemoryUsed::ZERO),
             Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
@@ -130,8 +124,6 @@ impl Compile for input::CommandFloat {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
-        // dbg!(&self);
-
         match self {
             Self::Constant { value } => (vec![Command::SetFloat(value.into())], MemoryUsed::ZERO),
             Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
@@ -154,8 +146,6 @@ impl Compile for input::CommandString {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
-        // dbg!(&self);
-
         match self {
             Self::Constant { value } => (
                 vec![Command::SetString(unwrap_string_placeholder(value))],
@@ -185,8 +175,6 @@ impl Compile for input::CommandZone {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
-        // dbg!(&self);
-
         match self {
             Self::Constant { value } => (vec![Command::SetInteger(value as i32)], MemoryUsed::ZERO),
             Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
@@ -205,8 +193,6 @@ impl Compile for input::CommandVoid {
     type Output = (Vec<Command>, MemoryUsed);
 
     fn compile(self, command_lookup: &mut Vec<Vec<Command>>) -> Self::Output {
-        // dbg!(&self);
-
         match self {
             Self::Multi { commands } => multi(commands, command_lookup),
             Self::Lookup { index } => (vec![Command::Execute(index)], MemoryUsed::ZERO),

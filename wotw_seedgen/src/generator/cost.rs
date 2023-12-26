@@ -1,21 +1,11 @@
 use std::collections::HashSet;
-use wotw_seedgen_data::{Resource, Shard, Skill, Teleporter};
-use wotw_seedgen_seed_language::output::{Action, Command, CommonItem};
+use wotw_seedgen_data::{Shard, Skill, Teleporter, WeaponUpgrade};
+use wotw_seedgen_seed_language::output::CommandVoid;
 
-use crate::inventory::Inventory;
+use crate::{common_item::CommonItem, inventory::Inventory};
 
 pub trait Cost {
     fn cost(&self) -> usize;
-}
-impl Cost for Resource {
-    fn cost(&self) -> usize {
-        match self {
-            Resource::GorlekOre => 20,
-            Resource::EnergyFragment | Resource::HealthFragment => 120,
-            Resource::Keystone => 320,
-            Resource::ShardSlot => 480,
-        }
-    }
 }
 impl Cost for Skill {
     fn cost(&self) -> usize {
@@ -50,50 +40,52 @@ impl Cost for Teleporter {
         }
     }
 }
+impl Cost for WeaponUpgrade {
+    fn cost(&self) -> usize {
+        400
+    }
+}
 impl Cost for Inventory {
     fn cost(&self) -> usize {
-        self.spirit_light.max(0) as usize
-            + self
-                .resources
-                .iter()
-                .map(|(resource, amount)| resource.cost() * (*amount).max(0) as usize)
-                .sum::<usize>()
+        self.spirit_light.max(0)
+            + self.gorlek_ore.max(0) * CommonItem::GorlekOre.cost()
+            + self.keystones.max(0) * CommonItem::Keystone.cost()
+            + self.shard_slots.max(0) * CommonItem::ShardSlot.cost()
+            + self.health_fragments().max(0) * CommonItem::HealthFragment.cost()
+            + self.energy_fragments().max(0) * CommonItem::EnergyFragment.cost()
             + self.skills.cost()
             + self.shards.cost()
             + self.teleporters.cost()
             + self.clean_water as usize * 1800
+            + self.weapon_upgrades.cost()
     }
 }
-impl Cost for Action {
+impl Cost for CommandVoid {
+    fn cost(&self) -> usize {
+        CommonItem::from_command(self).cost()
+    }
+}
+impl Cost for CommonItem {
     fn cost(&self) -> usize {
         match self {
-            Action::Command(command) => command.cost(),
-            Action::Condition(condition) => condition.action.cost(),
-            Action::Multi(multi) => multi.cost(),
+            CommonItem::SpiritLight(amount) => usize::max(*amount, 0),
+            CommonItem::GorlekOre => 20,
+            CommonItem::Keystone => 320,
+            CommonItem::ShardSlot => 480,
+            CommonItem::HealthFragment | CommonItem::EnergyFragment => 120,
+            CommonItem::Skill(skill) => skill.cost(),
+            CommonItem::Shard(shard) => shard.cost(),
+            CommonItem::Teleporter(teleporter) => teleporter.cost(),
+            CommonItem::CleanWater => 1800, // Key Item
+            CommonItem::WeaponUpgrade(weapon_upgrade) => weapon_upgrade.cost(),
         }
     }
 }
-impl Cost for Command {
-    fn cost(&self) -> usize {
-        match self {
-            Command::Custom(common_item) => match common_item {
-                CommonItem::SpiritLight(amount) => (*amount).max(0) as usize,
-                CommonItem::Resource(resource) => resource.cost(),
-                CommonItem::Skill(skill) => skill.cost(),
-                CommonItem::Shard(shard) => shard.cost(),
-                CommonItem::Teleporter(teleporter) => teleporter.cost(),
-                _ => 0,
-            },
-            _ => 0,
-        }
-    }
-}
-impl<C: Cost> Cost for [C] {
+impl<C: Cost> Cost for Vec<C> {
     fn cost(&self) -> usize {
         self.iter().map(|c| c.cost()).sum()
     }
 }
-// TODO check if used
 impl<C: Cost, S> Cost for HashSet<C, S> {
     fn cost(&self) -> usize {
         self.iter().map(|c| c.cost()).sum()

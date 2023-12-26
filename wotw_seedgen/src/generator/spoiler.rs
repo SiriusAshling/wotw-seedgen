@@ -2,7 +2,6 @@ use crate::inventory::Inventory;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display, Write};
-use wotw_seedgen_assembly::{Action, SeedLiteralTypes};
 use wotw_seedgen_data::{Position, Zone};
 use wotw_seedgen_logic_language::output::Node;
 
@@ -37,9 +36,8 @@ pub struct SpoilerPlacement {
     pub target_world_index: usize,
     /// The placement location
     pub location: NodeSummary,
-    /// The placed [`Action`]
-    pub item: Action<SeedLiteralTypes>,
-    /// The name of the [`Action`], which may vary from the [`Action`]s [`Display`] implementation if a custom name for item was provided by headers
+    // TODO I guess the Command Display implementation is supposed to show something user-facing?
+    /// The name of the [`Command`], which may vary from the [`Command`]s [`Display`] implementation if a custom name for item was provided by headers
     pub item_name: String,
 }
 /// Select data from a [`Node`](crate::world::graph::Node)
@@ -53,20 +51,13 @@ pub struct NodeSummary {
     pub zone: Option<Zone>,
 }
 impl NodeSummary {
+    // TODO populate spoiler
     pub(crate) fn new(node: &Node) -> Self {
         Self {
             identifier: node.identifier().to_string(),
             position: node.position().copied(),
             zone: node.zone(),
         }
-    }
-}
-
-impl SeedSpoiler {
-    /// Serialize into json format
-    pub fn to_json(&self) -> String {
-        // This is safe because the SeedSpoiler struct is known to serialize successfully
-        serde_json::to_string(&self).unwrap()
     }
 }
 
@@ -100,7 +91,7 @@ impl Display for SeedSpoiler {
                     .map(|placement| {
                         let mut pickup = String::new();
                         if multiworld {
-                            write!(pickup, "[{}] ", placement.target_world_index)?;
+                            write!(pickup, "[World {}] ", placement.target_world_index)?;
                         }
                         write!(pickup, "{}", placement.item_name)?;
                         if pickup.len() > longest_pickup {
@@ -109,7 +100,7 @@ impl Display for SeedSpoiler {
 
                         let mut location = String::new();
                         if multiworld {
-                            write!(location, "[{}] ", placement.origin_world_index)?;
+                            write!(location, "[World {}] ", placement.origin_world_index)?;
                         }
                         write!(location, "{}", placement.location.identifier)?;
                         if location.len() > longest_location {

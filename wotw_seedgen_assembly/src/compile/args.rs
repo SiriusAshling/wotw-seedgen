@@ -26,8 +26,6 @@ impl<'a> Args<'a> {
     where
         T: Compile<Output = (Vec<Command>, MemoryUsed)> + std::fmt::Debug, // TODO remove debug bound
     {
-        // dbg!(&arg, arg_type);
-
         self.commands.push((
             self.commands.len(),
             arg_type,
@@ -86,8 +84,6 @@ impl<'a> Args<'a> {
             },
         );
 
-        // dbg!(&command, &self.commands, &total_memory_used);
-
         while !self.commands.is_empty() {
             let args_except_last = &self.commands[..self.commands.len() - 1];
             let prioritized_arg_index = args_except_last.iter().enumerate().rev().find_map(
@@ -99,7 +95,6 @@ impl<'a> Args<'a> {
                             .filter(|(memory_destination, other_arg_type, _)| {
                                 other_arg_type.memory_used(memory_used) >= *memory_destination
                             });
-                    // dbg!(args_which_this_overwrites.clone().collect::<Vec<_>>());
                     // TODO implement strategy to avoid copies on the first arg
                     // let is_first_arg = *memory_destination == 0;
                     // let overwrite_threshold = if is_first_arg { 1 } else { 0 };
@@ -114,8 +109,6 @@ impl<'a> Args<'a> {
                     }
                 },
             );
-            // TODO remove dbg logging
-            // dbg!(prioritized_arg_index);
             match prioritized_arg_index {
                 None => {
                     for (memory_destination, arg_type, (commands, _)) in
@@ -129,6 +122,7 @@ impl<'a> Args<'a> {
                     break;
                 }
                 Some(index) => {
+                    // TODO can we swap_remove?
                     let (memory_destination, arg_type, (commands, _)) = self.commands.remove(index);
                     output.extend(commands);
                     let max_memory_used = self
@@ -143,13 +137,11 @@ impl<'a> Args<'a> {
                         })
                         .max()
                         .unwrap_or_default();
-                    // dbg!(max_memory_used);
                     let occupied_intermediate_locations =
                         occupied_intermediate_locations.entry(arg_type).or_default();
                     let intermediate_location = ((max_memory_used + 1)..)
                         .find(|location| !occupied_intermediate_locations.contains(location))
                         .unwrap();
-                    // dbg!(intermediate_location);
                     assert!(
                         intermediate_location < RESERVED_MEMORY,
                         "insufficient memory to perform calculation"
@@ -166,8 +158,6 @@ impl<'a> Args<'a> {
 
         output.extend(back_copies);
         output.push(command);
-
-        // dbg!(&output, &total_memory_used);
 
         (output, total_memory_used)
     }

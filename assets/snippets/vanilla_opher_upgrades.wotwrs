@@ -11,11 +11,41 @@ on OpherShop.StaticStar weapon_upgrade(WeaponUpgrade::StaticShuriken)
 on OpherShop.ChargeBlaze weapon_upgrade(WeaponUpgrade::ChargeBlaze)
 on OpherShop.RapidSentry weapon_upgrade(WeaponUpgrade::RapidSentry)
 
+// TODO weapoon upgrade icons?
 on reload {
-    // TODO can't write the names
-    store(1|11074, 300)
-    store(1|11098, 300)
-    store(1|11106, 300)
-    store(1|11115, 300)
-    store(1|11116, 300)
+    set_shop_item_data(
+        OpherShop.ExplodingSpike,
+        300,
+        weapon_upgrade_string(WeaponUpgrade::ExplodingSpear),
+        "", // TODO
+        OpherIcon::ExplodingSpear
+    )
+    set_shop_item_data(
+        OpherShop.ShockSmash,
+        300,
+        weapon_upgrade_string(WeaponUpgrade::HammerShockwave),
+        "", // TODO
+        OpherIcon::HammerShockwave
+    )
+    set_shop_item_data(
+        OpherShop.StaticStar,
+        300,
+        weapon_upgrade_string(WeaponUpgrade::StaticShuriken),
+        "", // TODO
+        OpherIcon::StaticShuriken
+    )
+    set_shop_item_data(
+        OpherShop.ChargeBlaze,
+        300,
+        weapon_upgrade_string(WeaponUpgrade::ChargeBlaze),
+        "", // TODO
+        OpherIcon::ChargeBlaze
+    )
+    set_shop_item_data(
+        OpherShop.RapidSentry,
+        300,
+        weapon_upgrade_string(WeaponUpgrade::RapidSentry),
+        "", // TODO
+        OpherIcon::RapidSentry
+    )
 }

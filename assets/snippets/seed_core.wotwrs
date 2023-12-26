@@ -18,8 +18,8 @@ on spawn {
     store(inkwaterMarshStateGroup.mokiTorchPlayed, true)
     store(swampStateGroup.leverA, true)
     store(_petrifiedForestGroup.narratorLineShown, true)
-    store(58674|32369, true)
-    store(58674|14539, true)
+    store(58674|32369, true) // _petrifiedForestGroup.powlVignettePlayed
+    store(58674|14539, true) // _petrifiedForestGroup.powlVignettePlayed
     store(_petrifiedForestGroup.skeletonState, true)
     store(_petrifiedForestGroup.narratorLineShownHowl, true)
     store(_petrifiedForestGroup.featherVignettePlayed, true)

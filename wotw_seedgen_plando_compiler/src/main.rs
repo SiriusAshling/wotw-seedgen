@@ -3,12 +3,12 @@ use rustc_hash::FxHashMap;
 use serde::Serialize;
 use std::{
     fmt::{self, Debug},
-    fs::{self, File},
-    io::{self, ErrorKind, Write},
+    fs,
+    io::{self, ErrorKind},
     mem,
     path::{Path, PathBuf},
 };
-use wotw_seedgen_assembly::{Command, SeedWorld};
+use wotw_seedgen_assembly::{compile_intermediate_output, Command, Package};
 use wotw_seedgen_assets::{SnippetAccess, Source};
 use wotw_seedgen_seed_language::{compile::Compiler, output::DebugOutput};
 use wotw_seedgen_static_assets::UBER_STATE_DATA;
@@ -24,34 +24,41 @@ fn main() -> Result<(), Error> {
     let folder = Cli::parse().folder;
     let mut rng = rand::thread_rng();
     let files = Files { folder };
-    let mut compiler: Compiler<'_, '_, Files> =
-        Compiler::new(&mut rng, &files, &UBER_STATE_DATA, Default::default());
+    let mut compiler = Compiler::new(&mut rng, &files, &UBER_STATE_DATA, Default::default());
     compiler.debug();
     compiler.compile_snippet("main")?;
     let mut output = compiler.finish(&mut io::stderr())?;
-    let compiler_data = mem::take(&mut output.debug).unwrap();
-    let seed = SeedWorld::from_intermediate_output(output);
 
     // TODO remove
     // fs::write("seeds/out/out.intermediate", format!("{output:#?}"))?;
 
-    let file = File::create("seeds/out/out_release.wotwr")?;
-    seed.package(file)?;
+    let compiler_data = mem::take(&mut output.debug).unwrap();
 
-    let indexed_lookup = seed.command_lookup.iter().cloned().enumerate().collect();
+    let mut package = Package::new("seeds/out/out_release.wotwr")?;
+    package.add_from_intermediate_output(output.clone(), false)?;
+    package.finish()?;
 
-    let seed = SeedWorld {
-        flags: seed.flags,
-        spawn: seed.spawn,
-        events: seed.events,
-        command_lookup: seed.command_lookup,
-        metadata: Metadata {
-            compiler_data,
-            indexed_lookup,
-        },
+    let mut package = Package::new("seeds/out/out.wotwr")?;
+    let (seed_world, icons) = compile_intermediate_output(output);
+    package.add_seed(&seed_world, true)?;
+    for (name, icon) in icons {
+        let mut path = PathBuf::from("assets");
+        path.push(name);
+        package.add_data(path, icon)?;
+    }
+
+    let metadata = Metadata {
+        compiler_data,
+        indexed_lookup: seed_world
+            .command_lookup
+            .iter()
+            .cloned()
+            .enumerate()
+            .collect(),
     };
-    let file = File::create("seeds/out/out.wotwr")?;
-    seed.package_pretty(file)?;
+    package.add_data("debug", serde_json::to_vec_pretty(&metadata)?)?;
+
+    package.finish()?;
 
     Ok(())
 }
@@ -112,6 +119,11 @@ impl SnippetAccess for Files {
             path_snippet.display(),
             filename.display()
         ))
+    }
+    fn read_file(&self, path: &Path) -> Result<Vec<u8>, String> {
+        let mut full_path = self.folder.clone();
+        full_path.push(path);
+        fs::read(full_path).map_err(|err| err.to_string())
     }
 }
 

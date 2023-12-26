@@ -191,7 +191,7 @@ pub struct Energy;
 #[derive(Debug, Clone, PartialEq, Ast, Span)]
 pub struct Amount {
     pub equals: Spanned<Symbol<'='>>,
-    pub value: Recoverable<Spanned<u32>, RecoverPass>,
+    pub value: Recoverable<Spanned<usize>, RecoverPass>,
 }
 pub struct RecoverPass;
 impl<'source> Recover<'source, Tokenizer> for RecoverPass {

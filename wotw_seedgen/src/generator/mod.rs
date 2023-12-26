@@ -8,13 +8,17 @@ pub use item_pool::*;
 pub use spoiler::*;
 
 use crate::{
-    constants::RETRIES, generator::placement::generate_placements, log, logical_difficulty,
-    world::World, UberStates,
+    constants::RETRIES,
+    generator::placement::generate_placements,
+    log::{info, trace, warning},
+    logical_difficulty,
+    world::World,
+    UberStates,
 };
 use rand::{seq::IteratorRandom, Rng};
 use rand_pcg::Pcg64Mcg;
 use rand_seeder::Seeder;
-use std::io;
+use std::{io, iter};
 use wotw_seedgen_assembly::SeedWorld;
 use wotw_seedgen_assets::{SnippetAccess, UberStateData};
 use wotw_seedgen_logic_language::output::Graph;
@@ -29,7 +33,6 @@ pub struct Seed {
     pub spoiler: SeedSpoiler,
 }
 
-// TODO this is the entry point??? how do you get the graph? how do you get the settings?
 pub fn generate_seed<F: SnippetAccess, W: io::Write>(
     graph: &Graph,
     snippet_access: &F,
@@ -40,7 +43,7 @@ pub fn generate_seed<F: SnippetAccess, W: io::Write>(
     settings: &UniverseSettings,
 ) -> Result<Seed, String> {
     let mut rng: Pcg64Mcg = Seeder::from(&settings.seed).make_rng();
-    log::trace!("Seeded RNG with {}", settings.seed);
+    trace!("Seeded RNG with \"{}\"", settings.seed);
 
     let snippet_outputs = settings
         .world_settings
@@ -61,14 +64,15 @@ pub fn generate_seed<F: SnippetAccess, W: io::Write>(
     let uber_states = UberStates::new(uber_state_data);
 
     for attempt in 0..RETRIES {
+        trace!("Attempt #{attempt} to generate");
+
         let worlds = snippet_outputs
             .iter()
             .map(|(world_settings, output)| {
                 let spawn = choose_spawn(graph, world_settings, &mut rng)?;
                 if output.spawn.is_some() {
-                    log::warning!("A Snippet attempted to set spawn, ignoring");
+                    warning!("A Snippet attempted to set spawn");
                 }
-                log::trace!("(World {}): Spawning on {}", index, spawn.identifier());
                 let world = World::new_spawn(graph, spawn, world_settings, uber_states.clone());
                 Ok((world, output.clone()))
             })
@@ -77,8 +81,8 @@ pub fn generate_seed<F: SnippetAccess, W: io::Write>(
         match generate_placements(&mut rng, worlds) {
             Ok(seed) => {
                 if attempt > 0 {
-                    log::info!(
-                        "Generated seed after {} tries{}",
+                    info!(
+                        "Generated seed after {} attempts{}",
                         attempt + 1,
                         if attempt < RETRIES / 2 { "" } else { " (phew)" }
                     );
@@ -87,7 +91,7 @@ pub fn generate_seed<F: SnippetAccess, W: io::Write>(
                 return Ok(seed);
             }
             #[cfg_attr(not(feature = "log"), allow(unused_variables))]
-            Err(err) => log::warning!("{}\nRetrying...", err),
+            Err(err) => warning!("{err}"),
         }
     }
 
@@ -96,12 +100,12 @@ pub fn generate_seed<F: SnippetAccess, W: io::Write>(
     ))
 }
 
-fn parse_snippets<F: SnippetAccess, W: io::Write>(
+fn parse_snippets<W: io::Write>(
     snippets: &[String],
-    mut compiler: Compiler<F>,
+    mut compiler: Compiler,
     write_errors: &mut W,
 ) -> Result<CompilerOutput, String> {
-    for identifier in snippets {
+    for identifier in iter::once("seed_core").chain(snippets.iter().map(String::as_str)) {
         compiler
             .compile_snippet(identifier)
             .map_err(|err| format!("Failed to read snippet \"{identifier}\": {err}"))?;
@@ -178,7 +182,7 @@ const SEED_FAILED_MESSAGE: &str = "Failed to seed child RNG";
 //                 .filter_map(|node| node.trigger())
 //                 .filter(|trigger| trigger.check(uber_state_item.identifier, value.to_f32()))
 //             {
-//                 log::trace!(
+//                 trace!(
 //                     "adding an empty pickup at {} to prevent placements",
 //                     trigger.code()
 //                 );

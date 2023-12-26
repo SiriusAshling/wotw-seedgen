@@ -40,7 +40,7 @@ pub struct StateDataEntry {
 }
 impl PartialEq for StateDataEntry {
     fn eq(&self, other: &Self) -> bool {
-        &self.identifier == &other.identifier
+        self.identifier == other.identifier
     }
 }
 impl StateData {

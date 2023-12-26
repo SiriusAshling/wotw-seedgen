@@ -6,7 +6,7 @@ use smallvec::smallvec;
 use std::io;
 use wotw_seedgen::{ItemPool, Player, UberStates, World};
 use wotw_seedgen_assets::{LocData, StateData};
-use wotw_seedgen_data::{Resource, Skill};
+use wotw_seedgen_data::Skill;
 use wotw_seedgen_logic_language::{
     ast::{parse, Areas},
     output::{Enemy, Graph, Requirement},
@@ -57,8 +57,8 @@ fn requirements(c: &mut Criterion) {
     let req_c = Requirement::EnergySkill(Skill::Blaze, 1.0);
     let req_d = Requirement::Damage(10.0);
     player.inventory.skills.insert(Skill::Blaze);
-    player.inventory.add_resource(Resource::EnergyFragment, 4);
-    player.inventory.add_resource(Resource::HealthFragment, 4);
+    player.inventory.health += 20;
+    player.inventory.energy += 2.;
     let requirement = Requirement::And(vec![
         Requirement::Or(vec![req_a.clone(), req_d.clone()]),
         Requirement::Or(vec![req_b.clone(), req_c.clone()]),
@@ -70,7 +70,7 @@ fn requirements(c: &mut Criterion) {
     });
 
     player.inventory.skills.insert(Skill::Bow);
-    player.inventory.add_resource(Resource::EnergyFragment, 20);
+    player.inventory.energy += 10.;
     let requirement = Requirement::Combat(smallvec![(Enemy::Lizard, 3),]);
     c.bench_function("short combat", |b| {
         b.iter(|| player.is_met(&requirement, &states, smallvec![player.max_orbs()]))
@@ -119,11 +119,11 @@ fn reach_checking(c: &mut Criterion) {
             let spawn = graph.find_node(DEFAULT_SPAWN).unwrap();
             let mut world = World::new(&graph, spawn, &world_settings, uber_states.clone());
             world.set_spirit_light(10000, &output);
-            world.set_resource(Resource::HealthFragment, 40, &output);
-            world.set_resource(Resource::EnergyFragment, 40, &output);
-            world.set_resource(Resource::Keystone, 34, &output);
-            world.set_resource(Resource::GorlekOre, 40, &output);
-            world.set_resource(Resource::ShardSlot, 8, &output);
+            world.set_max_health(200, &output);
+            world.set_max_energy(20.0.into(), &output);
+            world.set_keystones(34, &output);
+            world.set_gorlek_ore(40, &output);
+            world.set_shard_slots(8, &output);
             world.set_skill(Skill::Sword, true, &output);
             world.set_skill(Skill::DoubleJump, true, &output);
             world.set_skill(Skill::Dash, true, &output);
@@ -136,7 +136,7 @@ fn reach_checking(c: &mut Criterion) {
     let uber_states = UberStates::new(&UBER_STATE_DATA);
     let mut world = World::new_spawn(&graph, spawn, &world_settings, uber_states);
     let mut pool = ItemPool::default();
-    for item in pool.drain(&mut Pcg64Mcg::new(0xcafef00dd15ea5e5)) {
+    for item in pool.drain() {
         world.simulate(&item, &output);
     }
     c.bench_function("long reach check", |b| b.iter(|| world.reached()));

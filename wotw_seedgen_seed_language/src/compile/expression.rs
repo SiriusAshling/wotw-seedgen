@@ -4,7 +4,7 @@ use crate::{
     output::{
         intermediate::{Constant, Literal},
         ArithmeticOperator, Command, CommandBoolean, CommandFloat, CommandInteger, CommandString,
-        CommandZone, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
+        CommandVoid, CommandZone, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
         StringOrPlaceholder,
     },
     types::{common_type, InferType, Type},
@@ -15,10 +15,27 @@ use wotw_seedgen_assets::UberStateAlias;
 use wotw_seedgen_data::UberIdentifier;
 use wotw_seedgen_parse::{Error, Span, Spanned};
 
+impl Command {
+    pub(crate) fn expect_void<S: Span>(
+        self,
+        compiler: &mut SnippetCompiler<'_, '_, '_, '_>,
+        span: S,
+    ) -> Option<CommandVoid> {
+        let result = match self {
+            Command::Void(command) => Ok(command),
+            _ => Err(Error::custom(
+                "unexpected return value".to_string(),
+                span.span(),
+            )),
+        };
+        compiler.consume_result(result)
+    }
+}
+
 impl<'source> ast::Expression<'source> {
     pub(crate) fn compile_into<T: CompileInto>(
         self,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<T> {
         match self {
             ast::Expression::Value(value) => value.compile_into(compiler),
@@ -29,7 +46,7 @@ impl<'source> ast::Expression<'source> {
 impl<'source> ast::ExpressionValue<'source> {
     pub(crate) fn compile_into<T: CompileInto>(
         self,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<T> {
         match self {
             ast::ExpressionValue::Group(group) => compiler
@@ -48,7 +65,7 @@ impl<'source> ast::ExpressionValue<'source> {
 impl<'source> Compile<'source> for ast::ArithmeticOperator {
     type Output = ArithmeticOperator;
 
-    fn compile(self, _compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
+    fn compile(self, _compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
         match self {
             ast::ArithmeticOperator::Add => ArithmeticOperator::Add,
             ast::ArithmeticOperator::Subtract => ArithmeticOperator::Subtract,
@@ -60,7 +77,7 @@ impl<'source> Compile<'source> for ast::ArithmeticOperator {
 impl<'source> Compile<'source> for ast::LogicOperator {
     type Output = LogicOperator;
 
-    fn compile(self, _compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
+    fn compile(self, _compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
         match self {
             ast::LogicOperator::And => LogicOperator::And,
             ast::LogicOperator::Or => LogicOperator::Or,
@@ -70,7 +87,7 @@ impl<'source> Compile<'source> for ast::LogicOperator {
 impl<'source> Compile<'source> for ast::Comparator {
     type Output = Comparator;
 
-    fn compile(self, _compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
+    fn compile(self, _compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
         match self {
             ast::Comparator::Equal => Comparator::Equal,
             ast::Comparator::NotEqual => Comparator::NotEqual,
@@ -91,15 +108,15 @@ pub(crate) trait CompileInto: Sized {
     ) -> Option<Self>;
     fn compile_action<'source>(
         action: ast::Action<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self>;
     fn compile_operation<'source>(
         operation: ast::Operation<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self>;
     fn compile_literal<'source>(
         literal: Spanned<ast::Literal<'source>>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         Self::coerce_literal(literal.data.compile(compiler)?, literal.span, compiler)
     }
@@ -129,7 +146,7 @@ impl CompileInto for CommandBoolean {
     // TODO a lot of compile_action implementations are really similar
     fn compile_action<'source>(
         action: ast::Action<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         let result = match action {
             ast::Action::Function(function) => {
@@ -145,7 +162,7 @@ impl CompileInto for CommandBoolean {
     }
     fn compile_operation<'source>(
         operation: ast::Operation<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         match operation.operator {
             Operator::Logic(operator) => {
@@ -403,7 +420,7 @@ impl CompileInto for CommandInteger {
     }
     fn compile_action<'source>(
         action: ast::Action<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         let result = match action {
             ast::Action::Function(function) => {
@@ -419,7 +436,7 @@ impl CompileInto for CommandInteger {
     }
     fn compile_operation<'source>(
         operation: ast::Operation<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         match operation.operator {
             Operator::Arithmetic(operator) => {
@@ -502,7 +519,7 @@ impl CompileInto for CommandFloat {
     }
     fn compile_action<'source>(
         action: ast::Action<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         let result = match action {
             ast::Action::Function(function) => {
@@ -518,7 +535,7 @@ impl CompileInto for CommandFloat {
     }
     fn compile_operation<'source>(
         operation: ast::Operation<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         match operation.operator {
             Operator::Arithmetic(operator) => {
@@ -605,7 +622,7 @@ impl CompileInto for CommandString {
     }
     fn compile_action<'source>(
         action: ast::Action<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         let result = match action {
             ast::Action::Function(function) => {
@@ -645,7 +662,7 @@ impl CompileInto for CommandString {
     }
     fn compile_operation<'source>(
         operation: ast::Operation<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         match operation.operator {
             Operator::Arithmetic(ast::ArithmeticOperator::Add) => {
@@ -693,7 +710,7 @@ impl CompileInto for CommandZone {
     }
     fn compile_action<'source>(
         action: ast::Action<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         let result = match action {
             ast::Action::Function(function) => {
@@ -709,7 +726,7 @@ impl CompileInto for CommandZone {
     }
     fn compile_operation<'source>(
         operation: ast::Operation<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         let found = operation.infer_type(compiler)?;
         compiler
@@ -755,13 +772,13 @@ impl CompileInto for Command {
     }
     fn compile_action<'source>(
         action: ast::Action<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         action.compile(compiler)
     }
     fn compile_operation<'source>(
         operation: ast::Operation<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         match operation.operator {
             Operator::Arithmetic(_) => {
@@ -818,7 +835,7 @@ impl CompileInto for usize {
     }
     fn compile_action<'source>(
         action: ast::Action<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         let command = action.compile(compiler)?;
         let index = compiler.global.output.command_lookup.len();
@@ -827,7 +844,7 @@ impl CompileInto for usize {
     }
     fn compile_operation<'source>(
         operation: ast::Operation<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         let found = operation.infer_type(compiler)?;
         compiler
@@ -847,7 +864,7 @@ trait CompileIntoLiteral: Sized {
 impl<T: CompileIntoLiteral> CompileInto for T {
     fn compile_action<'source>(
         action: ast::Action<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         compiler
             .errors
@@ -856,7 +873,7 @@ impl<T: CompileIntoLiteral> CompileInto for T {
     }
     fn compile_operation<'source>(
         operation: ast::Operation<'source>,
-        compiler: &mut SnippetCompiler<'_, 'source, '_>,
+        compiler: &mut SnippetCompiler<'_, 'source, '_, '_>,
     ) -> Option<Self> {
         compiler.errors.push(Error::custom(
             "expected literal".to_string(),
@@ -938,7 +955,8 @@ impl CompileIntoLiteral for Icon {
             Literal::Constant(Constant::LupoIcon(value)) => Icon::Lupo(value),
             Literal::Constant(Constant::GromIcon(value)) => Icon::Grom(value),
             Literal::Constant(Constant::TuleyIcon(value)) => Icon::Tuley(value),
-            Literal::PathIcon(path) => Icon::Path(path),
+            Literal::IconAsset(path) => Icon::File(path),
+            Literal::CustomIcon(path) => Icon::Bundle(path),
             other => {
                 compiler
                     .errors
@@ -969,7 +987,6 @@ macro_rules! impl_constants_coerce_from {
     };
 }
 impl_constants_coerce_from!(
-    Resource,
     Skill,
     Shard,
     Teleporter,

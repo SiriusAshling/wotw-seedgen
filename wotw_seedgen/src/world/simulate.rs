@@ -1,38 +1,21 @@
+use crate::common_item::CommonItem;
+
 use super::{uber_states::UberStateValue, World};
+use ordered_float::OrderedFloat;
 use std::ops::{Add, Div, Mul, Sub};
 use wotw_seedgen_assembly::{
-    ArithmeticOperator, CommandZone, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
+    ArithmeticOperator, Comparator, EqualityComparator, LogicOperator, Operation,
 };
-use wotw_seedgen_data::{Resource, Shard, UberIdentifier, Zone};
+use wotw_seedgen_data::{UberIdentifier, Zone};
 use wotw_seedgen_seed_language::output::{
-    Action, ActionCondition, Command, CommandBoolean, CommandFloat, CommandIcon, CommandInteger,
-    CommandString, CommandVoid, CommonItem, CompilerOutput, StringOrPlaceholder, Trigger,
+    Command, CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandVoid, CommandZone,
+    CompilerOutput, StringOrPlaceholder, Trigger,
 };
 
 pub trait Simulate {
     type Return;
 
     fn simulate(&self, world: &mut World, output: &CompilerOutput) -> Self::Return;
-}
-impl Simulate for Action {
-    type Return = ();
-
-    fn simulate(&self, world: &mut World, output: &CompilerOutput) -> Self::Return {
-        match self {
-            Action::Command(command) => command.simulate(world, output),
-            Action::Condition(condition) => condition.simulate(world, output),
-            Action::Multi(multi) => multi.simulate(world, output),
-        }
-    }
-}
-impl Simulate for ActionCondition {
-    type Return = ();
-
-    fn simulate(&self, world: &mut World, output: &CompilerOutput) -> Self::Return {
-        if self.condition.simulate(world, output) {
-            self.action.simulate(world, output);
-        }
-    }
 }
 impl<T: Simulate> Simulate for Vec<T> {
     type Return = ();
@@ -63,13 +46,7 @@ impl Simulate for Command {
             Command::Zone(command) => {
                 command.simulate(world, output);
             }
-            Command::Icon(command) => {
-                command.simulate(world, output);
-            }
             Command::Void(command) => {
-                command.simulate(world, output);
-            }
-            Command::Custom(command) => {
                 command.simulate(world, output);
             }
         }
@@ -147,6 +124,10 @@ impl Simulate for CommandBoolean {
     fn simulate(&self, world: &mut World, output: &CompilerOutput) -> Self::Return {
         match self {
             CommandBoolean::Constant { value } => *value,
+            CommandBoolean::Multi { commands, last } => {
+                commands.simulate(world, output);
+                last.simulate(world, output)
+            }
             CommandBoolean::CompareBoolean { operation } => operation.simulate(world, output),
             CommandBoolean::CompareInteger { operation } => operation.simulate(world, output),
             CommandBoolean::CompareFloat { operation } => operation.simulate(world, output),
@@ -158,7 +139,6 @@ impl Simulate for CommandBoolean {
             }
             CommandBoolean::GetBoolean { id } => world.variables.get_boolean(id),
             CommandBoolean::IsInHitbox { .. } => false,
-            CommandBoolean::RandomSpiritLightNames {} => true,
         }
     }
 }
@@ -168,11 +148,18 @@ impl Simulate for CommandInteger {
     fn simulate(&self, world: &mut World, output: &CompilerOutput) -> Self::Return {
         match self {
             CommandInteger::Constant { value } => *value,
+            CommandInteger::Multi { commands, last } => {
+                commands.simulate(world, output);
+                last.simulate(world, output)
+            }
             CommandInteger::Arithmetic { operation } => operation.simulate(world, output),
             CommandInteger::FetchInteger { uber_identifier } => {
                 world.uber_states.get(*uber_identifier).as_integer()
             }
             CommandInteger::GetInteger { id } => world.variables.get_integer(id),
+            CommandInteger::FromFloat { float } => {
+                float.simulate(world, output).into_inner().round() as i32
+            }
         }
     }
 }
@@ -182,6 +169,10 @@ impl Simulate for CommandFloat {
     fn simulate(&self, world: &mut World, output: &CompilerOutput) -> Self::Return {
         match self {
             CommandFloat::Constant { value } => *value,
+            CommandFloat::Multi { commands, last } => {
+                commands.simulate(world, output);
+                last.simulate(world, output)
+            }
             CommandFloat::Arithmetic { operation } => operation.simulate(world, output),
             CommandFloat::FetchFloat { uber_identifier } => {
                 world.uber_states.get(*uber_identifier).as_float()
@@ -202,32 +193,32 @@ impl Simulate for CommandString {
                 StringOrPlaceholder::Value(value) => value.clone(),
                 _ => Default::default(),
             },
+            CommandString::Multi { commands, last } => {
+                commands.simulate(world, output);
+                last.simulate(world, output)
+            }
             CommandString::Concatenate { left, right } => {
                 left.simulate(world, output) + &right.simulate(world, output)
             }
             CommandString::GetString { id } => world.variables.get_string(id),
             CommandString::WorldName { .. } => Default::default(),
-            CommandString::ToString { .. } => todo!(),
+            CommandString::FromBoolean { boolean } => boolean.simulate(world, output).to_string(),
+            CommandString::FromInteger { integer } => integer.simulate(world, output).to_string(),
+            CommandString::FromFloat { float } => float.simulate(world, output).to_string(),
         }
     }
 }
 impl Simulate for CommandZone {
     type Return = Zone;
 
-    fn simulate(&self, _world: &mut World, _output: &CompilerOutput) -> Self::Return {
+    fn simulate(&self, world: &mut World, output: &CompilerOutput) -> Self::Return {
         match self {
             CommandZone::Constant { value } => *value,
+            CommandZone::Multi { commands, last } => {
+                commands.simulate(world, output);
+                last.simulate(world, output)
+            }
             CommandZone::CurrentZone {} => Zone::Void,
-        }
-    }
-}
-impl Simulate for CommandIcon {
-    type Return = Icon;
-
-    fn simulate(&self, _world: &mut World, _output: &CompilerOutput) -> Self::Return {
-        match self {
-            CommandIcon::Constant { value } => *value,
-            CommandIcon::ReadIcon { .. } => Icon::Shard(Shard::Overcharge),
         }
     }
 }
@@ -235,7 +226,17 @@ impl Simulate for CommandVoid {
     type Return = ();
 
     fn simulate(&self, world: &mut World, output: &CompilerOutput) -> Self::Return {
+        for common_item in CommonItem::from_command(self) {
+            simulate_common_item(common_item, world);
+        }
+
         match self {
+            CommandVoid::Multi { commands } => commands.simulate(world, output),
+            CommandVoid::If { condition, command } => {
+                if condition.simulate(world, output) {
+                    command.simulate(world, output)
+                }
+            }
             CommandVoid::StoreBoolean {
                 uber_identifier,
                 value,
@@ -277,18 +278,19 @@ impl Simulate for CommandVoid {
                 world.variables.set_string(*id, value);
             }
             // TODO simluate more maybe?
-            CommandVoid::DefineTimer { .. }
-            | CommandVoid::SetKwolokStatueEnabled { .. }
+            CommandVoid::QueuedMessage { .. }
+            | CommandVoid::FreeMessage { .. }
+            | CommandVoid::MessageDestroy { .. }
+            | CommandVoid::MessageText { .. }
+            | CommandVoid::MessageTimeout { .. }
+            | CommandVoid::MessageBackground { .. }
+            | CommandVoid::FreeMessagePosition { .. }
+            | CommandVoid::FreeMessageAlignment { .. }
+            | CommandVoid::FreeMessageScreenPosition { .. }
+            | CommandVoid::DefineTimer { .. }
             | CommandVoid::CreateWarpIcon { .. }
             | CommandVoid::DestroyWarpIcon { .. }
             | CommandVoid::Lookup { .. }
-            | CommandVoid::ItemMessage { .. }
-            | CommandVoid::ItemMessageWithTimeout { .. }
-            | CommandVoid::PriorityMessage { .. }
-            | CommandVoid::ControlledMessage { .. }
-            | CommandVoid::SetMessageText { .. }
-            | CommandVoid::SetMessageTimeout { .. }
-            | CommandVoid::DestroyMessage { .. }
             | CommandVoid::Save { .. }
             | CommandVoid::Checkpoint { .. }
             | CommandVoid::Warp { .. }
@@ -304,6 +306,7 @@ impl Simulate for CommandVoid {
             | CommandVoid::SetShopItemDescription { .. }
             | CommandVoid::SetShopItemIcon { .. }
             | CommandVoid::SetShopItemHidden { .. }
+            | CommandVoid::SetShopItemLocked { .. }
             | CommandVoid::SetWheelItemName { .. }
             | CommandVoid::SetWheelItemDescription { .. }
             | CommandVoid::SetWheelItemIcon { .. }
@@ -316,75 +319,46 @@ impl Simulate for CommandVoid {
         }
     }
 }
-impl Simulate for CommonItem {
-    type Return = ();
 
-    fn simulate(&self, world: &mut World, output: &CompilerOutput) -> Self::Return {
-        match self {
-            CommonItem::SpiritLight(amount) => {
-                world.player.inventory.spirit_light += *amount;
-                world.modify_integer(UberIdentifier::SPIRIT_LIGHT, *amount, output);
-            }
-            CommonItem::RemoveSpiritLight(amount) => {
-                world.player.inventory.spirit_light -= *amount;
-                world.modify_integer(UberIdentifier::SPIRIT_LIGHT, -amount, output);
-            }
-            CommonItem::Resource(resource) => {
-                world.player.inventory.add_resource(*resource, 1);
-                world.modify_integer(resource.uber_identifier(), 1, output);
-            }
-            CommonItem::RemoveResource(resource) => {
-                world.player.inventory.add_resource(*resource, -1);
-                world.modify_integer(resource.uber_identifier(), -1, output);
-            }
-            CommonItem::Skill(skill) => {
-                world.player.inventory.skills.insert(*skill);
-                world.set_boolean(skill.uber_identifier(), true, output);
-            }
-            CommonItem::RemoveSkill(skill) => {
-                world.player.inventory.skills.remove(skill);
-                world.set_boolean(skill.uber_identifier(), false, output);
-            }
-            CommonItem::Shard(shard) => {
-                world.player.inventory.shards.insert(*shard);
-                world.set_boolean(shard.uber_identifier(), true, output);
-            }
-            CommonItem::RemoveShard(shard) => {
-                world.player.inventory.shards.remove(shard);
-                world.set_boolean(shard.uber_identifier(), false, output);
-            }
-            CommonItem::Teleporter(teleporter) => {
-                world.player.inventory.teleporters.insert(*teleporter);
-                world.set_boolean(teleporter.uber_identifier(), true, output);
-            }
-            CommonItem::RemoveTeleporter(teleporter) => {
-                world.player.inventory.teleporters.remove(teleporter);
-                world.set_boolean(teleporter.uber_identifier(), false, output);
-            }
-            CommonItem::CleanWater => {
-                world.player.inventory.clean_water = true;
-                world.set_boolean(UberIdentifier::CLEAN_WATER, true, output);
-            }
-            CommonItem::RemoveCleanWater => {
-                world.player.inventory.clean_water = false;
-                world.set_boolean(UberIdentifier::CLEAN_WATER, false, output);
-            }
-            CommonItem::WeaponUpgrade(weapon_upgrade) => {
-                world
-                    .player
-                    .inventory
-                    .weapon_upgrades
-                    .insert(*weapon_upgrade);
-                world.set_boolean(weapon_upgrade.uber_identifier(), true, output);
-            }
-            CommonItem::RemoveWeaponUpgrade(weapon_upgrade) => {
-                world
-                    .player
-                    .inventory
-                    .weapon_upgrades
-                    .remove(weapon_upgrade);
-                world.set_boolean(weapon_upgrade.uber_identifier(), false, output);
-            }
+// don't want to expose this since it's not useful on its own
+fn simulate_common_item(common_item: CommonItem, world: &mut World) {
+    match common_item {
+        CommonItem::SpiritLight(amount) => {
+            world.player.inventory.spirit_light += amount;
+        }
+        CommonItem::GorlekOre => {
+            world.player.inventory.gorlek_ore += 1;
+        }
+        CommonItem::Keystone => {
+            world.player.inventory.keystones += 1;
+        }
+        CommonItem::ShardSlot => {
+            world.player.inventory.shard_slots += 1;
+        }
+        CommonItem::HealthFragment => {
+            world.player.inventory.health += 5;
+        }
+        CommonItem::EnergyFragment => {
+            world.player.inventory.energy += 0.5;
+        }
+        CommonItem::Skill(skill) => {
+            world.player.inventory.skills.insert(skill);
+        }
+        CommonItem::Shard(shard) => {
+            world.player.inventory.shards.insert(shard);
+        }
+        CommonItem::Teleporter(teleporter) => {
+            world.player.inventory.teleporters.insert(teleporter);
+        }
+        CommonItem::CleanWater => {
+            world.player.inventory.clean_water = true;
+        }
+        CommonItem::WeaponUpgrade(weapon_upgrade) => {
+            world
+                .player
+                .inventory
+                .weapon_upgrades
+                .insert(weapon_upgrade);
         }
     }
 }
@@ -401,7 +375,10 @@ fn set_uber_state(
         return;
     }
     if trigger_events {
-        let events = world.uber_states.set(uber_identifier, value).collect();
+        let events = world
+            .uber_states
+            .set_and_return_triggers(uber_identifier, value)
+            .collect();
         uber_state_side_effects(world, output, uber_identifier, value, trigger_events);
         process_triggers(world, output, events);
     } else {
@@ -416,7 +393,7 @@ fn process_triggers(world: &mut World, output: &CompilerOutput, events: Vec<usiz
             Trigger::Binding(_) => true,
             Trigger::Condition(condition) => condition.simulate(world, output),
         } {
-            event.action.simulate(world, output);
+            event.command.simulate(world, output);
         }
     }
 }
@@ -533,8 +510,8 @@ fn uber_state_side_effects(
         }
         VOICE | STRENGTH | MEMORY | EYES | HEART if value == true => {
             // TODO not strictly correct but not sure what else to do
-            world.modify_resource(Resource::HealthFragment, 2, output);
-            world.modify_resource(Resource::EnergyFragment, 2, output);
+            world.modify_max_health(10, output);
+            world.modify_max_energy(1.0.into(), output);
         }
         _ => {}
     }

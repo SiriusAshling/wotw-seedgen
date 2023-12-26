@@ -45,7 +45,7 @@ fn is_met() {
         Requirement::EnergySkill(Skill::Blaze, 1.0),
         []
     );
-    player.inventory.add_resource(Resource::EnergyFragment, 2);
+    player.inventory.energy += 1.;
     test!(
         &player,
         &states,
@@ -72,7 +72,7 @@ fn is_met() {
         ..WorldSettings::default()
     };
     player.settings = &world_settings;
-    player.inventory.add_resource(Resource::EnergyFragment, 2);
+    player.inventory.energy += 1.;
     test!(
         &player,
         &states,
@@ -89,8 +89,8 @@ fn is_met() {
     };
     player = Player::new(&world_settings);
     player.inventory.skills.insert(Skill::Blaze);
-    player.inventory.add_resource(Resource::EnergyFragment, 1);
-    player.inventory.add_resource(Resource::HealthFragment, 3);
+    player.inventory.energy += 0.5;
+    player.inventory.health += 15;
     player.inventory.shards.insert(Shard::LifePact);
     test!(
         &player,
@@ -130,10 +130,10 @@ fn is_met() {
     test!(&player, &states, Requirement::State(33), []);
 
     player = Player::new(&world_settings);
-    player.inventory.add_resource(Resource::EnergyFragment, 4);
-    player.inventory.add_resource(Resource::HealthFragment, 6);
+    player.inventory.energy += 2.;
+    player.inventory.health += 30;
     test!(&player, &states, Requirement::Damage(30.0), []);
-    player.inventory.add_resource(Resource::HealthFragment, 1);
+    player.inventory.health += 5;
     test!(
         &player,
         &states,
@@ -143,10 +143,10 @@ fn is_met() {
             ..orbs
         }]
     );
-    player.inventory.add_resource(Resource::EnergyFragment, 2);
+    player.inventory.energy += 1.;
     player.inventory.skills.insert(Skill::Regenerate);
     test!(&player, &states, Requirement::Damage(60.0), []);
-    player.inventory.add_resource(Resource::HealthFragment, 6);
+    player.inventory.health += 30;
     test!(
         &player,
         &states,
@@ -203,9 +203,9 @@ fn is_met() {
     player = Player::new(&world_settings);
     player.inventory.skills.insert(Skill::Grenade);
     test!(&player, &states, Requirement::BreakWall(12.0), []);
-    player.inventory.add_resource(Resource::EnergyFragment, 3);
+    player.inventory.energy += 1.5;
     test!(&player, &states, Requirement::BreakWall(12.0), []);
-    player.inventory.add_resource(Resource::EnergyFragment, 1);
+    player.inventory.energy += 0.5;
     test!(
         &player,
         &states,
@@ -217,7 +217,7 @@ fn is_met() {
     );
     player = Player::new(&world_settings);
     player.inventory.skills.insert(Skill::Grenade);
-    player.inventory.add_resource(Resource::EnergyFragment, 2);
+    player.inventory.energy += 1.;
     let world_settings = WorldSettings {
         difficulty: Difficulty::Unsafe,
         ..WorldSettings::default()
@@ -237,7 +237,7 @@ fn is_met() {
         ..WorldSettings::default()
     };
     player.settings = &world_settings;
-    player.inventory.add_resource(Resource::EnergyFragment, 1);
+    player.inventory.energy += 0.5;
     test!(&player, &states, Requirement::BreakWall(12.0), []);
 
     player = Player::new(&world_settings);
@@ -248,7 +248,7 @@ fn is_met() {
     };
     player.settings = &world_settings;
     test!(&player, &states, Requirement::ShurikenBreak(12.0), []);
-    player.inventory.add_resource(Resource::EnergyFragment, 4);
+    player.inventory.energy += 2.;
     test!(
         &player,
         &states,
@@ -258,14 +258,14 @@ fn is_met() {
             ..orbs
         }]
     );
-    player.inventory.add_resource(Resource::EnergyFragment, 6);
+    player.inventory.energy += 3.;
     let world_settings = WorldSettings {
         difficulty: Difficulty::Moki,
         ..WorldSettings::default()
     };
     player.settings = &world_settings;
     test!(&player, &states, Requirement::ShurikenBreak(12.0), []);
-    player.inventory.add_resource(Resource::EnergyFragment, 2);
+    player.inventory.energy += 1.;
     test!(
         &player,
         &states,
@@ -289,7 +289,7 @@ fn is_met() {
         Requirement::Combat(smallvec![(Enemy::Slug, 2), (Enemy::Skeeto, 1)]),
         []
     );
-    player.inventory.add_resource(Resource::EnergyFragment, 7);
+    player.inventory.energy += 3.5;
     test!(
         &player,
         &states,
@@ -299,7 +299,7 @@ fn is_met() {
             ..orbs
         }]
     );
-    player.inventory.add_resource(Resource::EnergyFragment, 6);
+    player.inventory.energy += 3.;
     let world_settings = WorldSettings {
         difficulty: Difficulty::Moki,
         ..WorldSettings::default()
@@ -332,14 +332,14 @@ fn is_met() {
     ]);
     player.inventory.skills.insert(Skill::Shuriken);
     player.inventory.skills.insert(Skill::Spear);
-    player.inventory.add_resource(Resource::EnergyFragment, 27);
+    player.inventory.energy += 13.5;
     let world_settings = WorldSettings {
         difficulty: Difficulty::Unsafe,
         ..WorldSettings::default()
     };
     player.settings = &world_settings;
     test!(&player, &states, &req, []);
-    player.inventory.add_resource(Resource::EnergyFragment, 1);
+    player.inventory.energy += 0.5;
     test!(
         &player,
         &states,
@@ -349,7 +349,7 @@ fn is_met() {
             ..orbs
         }]
     );
-    player.inventory.add_resource(Resource::EnergyFragment, 37);
+    player.inventory.energy += 18.5;
     player.inventory.skills.insert(Skill::Bash);
     player.inventory.skills.insert(Skill::Launch);
     player.inventory.skills.insert(Skill::Burrow);
@@ -359,7 +359,7 @@ fn is_met() {
     };
     player.settings = &world_settings;
     test!(&player, &states, &req, []);
-    player.inventory.add_resource(Resource::EnergyFragment, 1);
+    player.inventory.energy += 0.5;
     test!(
         &player,
         &states,
@@ -372,7 +372,7 @@ fn is_met() {
     player = Player::new(&world_settings);
     player.inventory.skills.insert(Skill::Spear);
     player.inventory.skills.insert(Skill::DoubleJump);
-    player.inventory.add_resource(Resource::EnergyFragment, 4);
+    player.inventory.energy += 2.;
     let world_settings = WorldSettings {
         difficulty: Difficulty::Gorlek,
         ..WorldSettings::default()
@@ -403,14 +403,14 @@ fn is_met() {
         Requirement::Combat(smallvec![(Enemy::Tentacle, 1)]),
         []
     );
-    player.inventory.add_resource(Resource::EnergyFragment, 11);
+    player.inventory.energy += 5.5;
     test!(
         &player,
         &states,
         Requirement::Combat(smallvec![(Enemy::Tentacle, 1)]),
         []
     );
-    player.inventory.add_resource(Resource::EnergyFragment, 1);
+    player.inventory.energy += 0.5;
     test!(
         &player,
         &states,
@@ -427,8 +427,8 @@ fn is_met() {
     let c = Requirement::EnergySkill(Skill::Blaze, 1.0);
     let d = Requirement::Damage(10.0);
     player.inventory.skills.insert(Skill::Blaze);
-    player.inventory.add_resource(Resource::EnergyFragment, 4);
-    player.inventory.add_resource(Resource::HealthFragment, 5);
+    player.inventory.energy += 2.;
+    player.inventory.health += 25;
     let world_settings = WorldSettings {
         difficulty: Difficulty::Unsafe,
         ..WorldSettings::default()
@@ -494,8 +494,8 @@ fn is_met() {
             health: -10.0
         }]
     );
-    player.inventory.add_resource(Resource::EnergyFragment, 8);
-    player.inventory.add_resource(Resource::HealthFragment, 8);
+    player.inventory.health += 40;
+    player.inventory.energy += 4.;
     test!(
         &player,
         &states,
@@ -547,8 +547,8 @@ fn is_met() {
         ..WorldSettings::default()
     };
     player.settings = &world_settings;
-    player.inventory.add_resource(Resource::HealthFragment, 7);
-    player.inventory.add_resource(Resource::EnergyFragment, 2);
+    player.inventory.health += 35;
+    player.inventory.energy += 1.;
     test!(
         &player,
         &states,
@@ -571,7 +571,7 @@ fn is_met() {
         Requirement::EnergySkill(Skill::Blaze, 1.0),
     ]);
     player.inventory.skills.insert(Skill::Blaze);
-    player.inventory.add_resource(Resource::EnergyFragment, 2);
+    player.inventory.energy += 1.;
     test!(
         &player,
         &states,

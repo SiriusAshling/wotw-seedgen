@@ -1,5 +1,7 @@
 #[cfg(feature = "loc_data")]
 mod loc_data;
+use std::path::Path;
+
 #[cfg(feature = "loc_data")]
 pub use loc_data::*;
 #[cfg(feature = "state_data")]
@@ -30,5 +32,6 @@ impl Source {
 }
 
 pub trait SnippetAccess {
-    fn read_snippet(&self, identifier: &str) -> std::result::Result<Source, String>;
+    fn read_snippet(&self, identifier: &str) -> Result<Source, String>;
+    fn read_file(&self, path: &Path) -> Result<Vec<u8>, String>;
 }

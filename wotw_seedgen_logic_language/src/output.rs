@@ -1,7 +1,7 @@
-use parse_display::FromStr;
 use smallvec::SmallVec;
+use strum::EnumString;
 use wotw_seedgen_assets::{LocDataEntry, StateDataEntry};
-use wotw_seedgen_data::{Position, Resource, Shard, Skill, Teleporter, UberIdentifier, Zone};
+use wotw_seedgen_data::{Position, Shard, Skill, Teleporter, UberIdentifier, Zone};
 use wotw_seedgen_settings::{Difficulty, Trick};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -30,7 +30,7 @@ impl Node {
             Node::Anchor(anchor) => &anchor.identifier,
             Node::Pickup(pickup) => &pickup.identifier,
             Node::State(state) => &state.identifier,
-            Node::LogicalState(identifier) => &identifier,
+            Node::LogicalState(identifier) => identifier,
         }
     }
     pub fn zone(&self) -> Option<Zone> {
@@ -89,7 +89,7 @@ pub struct Anchor {
 }
 impl PartialEq for Anchor {
     fn eq(&self, other: &Self) -> bool {
-        &self.identifier == &other.identifier
+        self.identifier == other.identifier
     }
 }
 #[derive(Debug, Clone, PartialEq)]
@@ -119,8 +119,9 @@ pub enum Requirement {
     Skill(Skill),
     EnergySkill(Skill, f32),
     NonConsumingEnergySkill(Skill),
-    SpiritLight(i32),
-    Resource(Resource, i32),
+    SpiritLight(usize),
+    GorlekOre(usize),
+    Keystone(usize),
     Shard(Shard),
     Teleporter(Teleporter),
     Water,
@@ -135,7 +136,7 @@ pub enum Requirement {
     And(Vec<Requirement>),
     Or(Vec<Requirement>),
 }
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, FromStr)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, EnumString)]
 pub enum Enemy {
     Mantis,
     Slug,

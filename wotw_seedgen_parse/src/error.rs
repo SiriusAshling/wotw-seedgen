@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use parse_display::Display;
 #[cfg(feature = "ariadne")]
 use std::io;
 use std::{
@@ -19,8 +18,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// You may provide the [`Source`] file to [`Error::with_source`] or (with the ariadne feature) [`Error::write_pretty`] for better error displays.
 ///
 /// [`Ast`]: crate::Ast
-#[derive(Debug, Clone, PartialEq, Eq, Display)]
-#[display("{kind}")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Error {
     /// Information about what went wrong
     pub kind: ErrorKind,
@@ -87,6 +85,7 @@ impl Error {
         }
     }
     // TODO is there a use for print and eprint functions here like ariadne itself has?
+    // I suppose we could lock stderr then to avoid issues when having multiple threads printing errors
     // TODO try some other options like codespan-reporting, there's some rough edges on ariadne
     /// Write this [`Error`] to an implementor of [`Write`] using the [`ariadne`] crate.
     ///
@@ -119,6 +118,11 @@ impl Error {
                 .finish()
                 .write((id, Source::from(&source.content)), w)
         }
+    }
+}
+impl Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.kind.fmt(f)
     }
 }
 impl error::Error for Error {}

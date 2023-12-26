@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use std::{fs, io::ErrorKind};
-use vergen::EmitBuilder;
+// use vergen::EmitBuilder;
 
 #[derive(Deserialize)]
 struct PackageMeta {
@@ -18,11 +18,12 @@ fn main() {
             println!("cargo:rustc-env=VERGEN_GIT_SHA={}", package_meta.git.sha1);
         }
         Err(err) if matches!(err.kind(), ErrorKind::NotFound) => {
-            EmitBuilder::builder()
-                .git_sha(false)
-                .fail_on_error()
-                .emit_and_set()
-                .unwrap();
+            // TODO
+            // EmitBuilder::builder()
+            //     .git_sha(false)
+            //     .fail_on_error()
+            //     .emit_and_set()
+            //     .unwrap();
         }
         Err(err) => panic!("{err:?}"),
     }

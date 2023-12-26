@@ -5,6 +5,7 @@ use crate::{
     logical_difficulty,
     orbs::{self, OrbVariants, Orbs},
 };
+use ordered_float::OrderedFloat;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use smallvec::{smallvec, SmallVec};
@@ -13,14 +14,18 @@ use std::{
     mem,
     ops::{Add, AddAssign, Sub, SubAssign},
 };
-use wotw_seedgen_data::{Resource, Shard, Skill, Teleporter, WeaponUpgrade};
+use wotw_seedgen_data::{Shard, Skill, Teleporter, WeaponUpgrade};
 use wotw_seedgen_logic_language::output::RefillValue;
 use wotw_seedgen_settings::{Difficulty, WorldSettings};
 
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct Inventory {
-    pub spirit_light: i32,
-    pub resources: FxHashMap<Resource, i32>,
+    pub spirit_light: usize,
+    pub gorlek_ore: usize,
+    pub keystones: usize,
+    pub shard_slots: usize,
+    pub health: usize,
+    pub energy: f32,
     pub skills: FxHashSet<Skill>,
     pub shards: FxHashSet<Shard>,
     pub teleporters: FxHashSet<Teleporter>,
@@ -30,22 +35,18 @@ pub struct Inventory {
 impl Inventory {
     pub fn spawn() -> Self {
         Inventory {
-            resources: [
-                (Resource::HealthFragment, 6),
-                (Resource::EnergyFragment, 6),
-                (Resource::ShardSlot, 3),
-            ]
-            .into_iter()
-            .collect(),
+            shard_slots: 3,
+            health: 60,
+            energy: 6.,
             ..Default::default()
         }
     }
 
-    pub fn get_resource(&self, resource: Resource) -> i32 {
-        self.resources.get(&resource).copied().unwrap_or_default()
+    pub fn health_fragments(&self) -> usize {
+        self.health / 5
     }
-    pub fn add_resource(&mut self, resource: Resource, amount: i32) {
-        *self.resources.entry(resource).or_default() += amount;
+    pub fn energy_fragments(&self) -> usize {
+        (self.energy * 2.) as usize
     }
 
     pub fn clear(&mut self) {
@@ -53,15 +54,17 @@ impl Inventory {
     }
 
     pub fn item_count(&self) -> usize {
-        // Note that requirement::solutions has logic based on this formula (check_slot_limits)
-        ((self.spirit_light + 39) / 40).max(0) as usize // this will usually demand more than necessary, but with the placeholder system that shouldn't be a problem
-        + self.world_item_count()
+        self.spirit_light_item_count() + self.world_item_count()
+    }
+    pub fn spirit_light_item_count(&self) -> usize {
+        ((self.spirit_light + 39) / 40).max(0) // this will usually demand more than necessary, but with the placeholder system that shouldn't be a problem
     }
     pub fn world_item_count(&self) -> usize {
-        self.resources
-            .values()
-            .map(|&amount| amount.max(0) as usize)
-            .sum::<usize>()
+        self.gorlek_ore
+            + self.keystones
+            + self.shard_slots
+            + self.health_fragments()
+            + self.energy_fragments()
             + self.skills.len()
             + self.shards.len()
             + self.teleporters.len()
@@ -73,25 +76,26 @@ impl Inventory {
 
     pub fn contains(&self, other: &Inventory) -> bool {
         self.spirit_light >= other.spirit_light
-            && self
-                .resources
-                .iter()
-                .all(|(resource, amount)| *amount >= other.get_resource(*resource))
+            && self.gorlek_ore >= other.gorlek_ore
+            && self.keystones >= other.keystones
+            && self.shard_slots >= other.shard_slots
+            && self.health >= other.health
+            && self.energy - other.energy >= -0.01
             && other.skills.is_subset(&self.skills)
             && other.shards.is_subset(&self.shards)
             && other.teleporters.is_subset(&self.teleporters)
-            && (!self.clean_water || other.clean_water)
+            && (self.clean_water || !other.clean_water)
     }
 
     pub fn max_health(&self, difficulty: Difficulty) -> f32 {
-        let mut health = (self.get_resource(Resource::HealthFragment) * 5) as f32;
+        let mut health = self.health as f32;
         if difficulty >= logical_difficulty::VITALITY && self.shards.contains(&Shard::Vitality) {
             health += 10.0;
         }
         health
     }
     pub fn max_energy(&self, difficulty: Difficulty) -> f32 {
-        let mut energy = self.get_resource(Resource::EnergyFragment) as f32 * 0.5;
+        let mut energy = self.energy;
         if difficulty >= logical_difficulty::ENERGY_SHARD && self.shards.contains(&Shard::Energy) {
             energy += 1.0;
         }
@@ -106,7 +110,7 @@ impl Inventory {
     pub fn cap_orbs(&self, orbs: &mut Orbs, checkpoint: bool, difficulty: Difficulty) {
         // checkpoints don't refill health given by the Vitality shard
         let max_health = if checkpoint {
-            (self.get_resource(Resource::HealthFragment) * 5) as f32
+            self.health as f32
         } else {
             self.max_health(difficulty)
         };
@@ -197,7 +201,7 @@ impl Inventory {
                 damage_mod += 0.25;
             }
 
-            let mut slots = self.get_resource(Resource::ShardSlot);
+            let mut slots = self.shard_slots;
             let mut splinter = false;
 
             if flying_target && slots > 0 && self.shards.contains(&Shard::Wingclip) {
@@ -209,7 +213,7 @@ impl Inventory {
                 slots -= 1;
             }
             if slots > 0 && self.shards.contains(&Shard::SpiritSurge) {
-                damage_mod += (self.spirit_light / 10000) as f32; // TODO but this is capped right
+                damage_mod += self.spirit_light as f32 * 0.0001; // TODO but this is capped right
                 slots -= 1;
             }
             if slots > 0 && self.shards.contains(&Shard::LastStand) {
@@ -306,8 +310,8 @@ impl Inventory {
         // Use the best weapon as long as it doesn't "waste" any damage
         let ((damage, mut cost), _) = weapon_stats
             .iter()
-            .map(|(damage, cost)| ((*damage, *cost), damage / cost))
-            .max_by(|(_, dpe_a), (_, dpe_b)| dpe_a.float_cmp(dpe_b))?;
+            .map(|(damage, cost)| ((*damage, *cost), OrderedFloat(damage / cost)))
+            .max_by(|(_, dpe_a), (_, dpe_b)| dpe_a.cmp(dpe_b))?;
         let optimal_hits = (target_health / damage).floor();
         target_health -= optimal_hits * damage;
         cost *= optimal_hits;
@@ -315,8 +319,9 @@ impl Inventory {
         // Figure out the best weapon to deal the last bit of damage
         cost += weapon_stats
             .into_iter()
-            .map(|(damage, cost)| ((target_health / damage).ceil() * cost))
-            .min_by(f32::float_cmp)?;
+            .map(|(damage, cost)| OrderedFloat((target_health / damage).ceil() * cost))
+            .min()?
+            .into_inner();
 
         // On arbitrary energy costs and damage amounts this procedure might choose suboptimal weapons to use, but for the defaults it should be exhaustive
 
@@ -455,9 +460,27 @@ impl Display for Inventory {
             first = false;
             write!(f, "{} Spirit Light", self.spirit_light)?;
         }
-        for (resource, amount) in &self.resources {
+        if self.gorlek_ore > 0 {
             comma(f, &mut first)?;
-            write!(f, "{amount} {resource}")?;
+            write!(f, "{} Gorlek Ore", self.gorlek_ore)?;
+        }
+        if self.keystones > 0 {
+            comma(f, &mut first)?;
+            write!(f, "{} Keystones", self.keystones)?;
+        }
+        if self.shard_slots > 0 {
+            comma(f, &mut first)?;
+            write!(f, "{} Shard Slots", self.shard_slots)?;
+        }
+        let health_fragments = self.health_fragments();
+        if health_fragments > 0 {
+            comma(f, &mut first)?;
+            write!(f, "{} Health Fragments", health_fragments)?;
+        }
+        let energy_fragments = self.energy_fragments() as i32;
+        if energy_fragments > 0 {
+            comma(f, &mut first)?;
+            write!(f, "{} Energy Fragments", energy_fragments)?;
         }
         for skill in &self.skills {
             comma(f, &mut first)?;
@@ -491,9 +514,11 @@ impl Add for Inventory {
 impl AddAssign for Inventory {
     fn add_assign(&mut self, rhs: Self) {
         self.spirit_light += rhs.spirit_light;
-        for (resource, amount) in rhs.resources {
-            self.add_resource(resource, amount);
-        }
+        self.gorlek_ore += rhs.gorlek_ore;
+        self.keystones += rhs.keystones;
+        self.shard_slots += rhs.shard_slots;
+        self.health += rhs.health;
+        self.energy += rhs.energy;
         self.skills.extend(rhs.skills);
         self.shards.extend(rhs.shards);
         self.teleporters.extend(rhs.teleporters);
@@ -510,28 +535,18 @@ impl Sub for Inventory {
 }
 impl SubAssign for Inventory {
     fn sub_assign(&mut self, rhs: Self) {
-        self.spirit_light = self.spirit_light.saturating_sub(rhs.spirit_light);
-        for (resource, amount) in rhs.resources {
-            self.add_resource(resource, -amount);
-        }
-        for skill in rhs.skills {
-            self.skills.remove(&skill);
-        }
-        for shard in rhs.shards {
-            self.shards.remove(&shard);
-        }
-        for teleporter in rhs.teleporters {
-            self.teleporters.remove(&teleporter);
-        }
-        self.clean_water &= rhs.clean_water;
+        *self -= &rhs;
     }
 }
 impl SubAssign<&Self> for Inventory {
     fn sub_assign(&mut self, rhs: &Self) {
-        self.spirit_light = self.spirit_light.saturating_sub(rhs.spirit_light);
-        for (resource, amount) in &rhs.resources {
-            self.add_resource(*resource, -*amount);
-        }
+        // TODO do we floor to 0? but why do we have signed integers in the first place?
+        self.spirit_light -= rhs.spirit_light;
+        self.gorlek_ore -= rhs.gorlek_ore;
+        self.keystones -= rhs.keystones;
+        self.shard_slots -= rhs.shard_slots;
+        self.health -= rhs.health;
+        self.energy -= rhs.energy;
         for skill in &rhs.skills {
             self.skills.remove(skill);
         }
@@ -541,6 +556,8 @@ impl SubAssign<&Self> for Inventory {
         for teleporter in &rhs.teleporters {
             self.teleporters.remove(teleporter);
         }
-        self.clean_water &= rhs.clean_water;
+        if rhs.clean_water {
+            self.clean_water = false;
+        }
     }
 }

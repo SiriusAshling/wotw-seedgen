@@ -1,6 +1,6 @@
-use super::{player::Player, World};
+use super::World;
 use crate::orbs::{self, OrbVariants};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use smallvec::smallvec;
 use wotw_seedgen_logic_language::output::{Connection, Node, RefillValue, Requirement};
 

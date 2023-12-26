@@ -129,6 +129,7 @@ pub enum CommandString {
         commands: Vec<CommandVoid>,
         last: Box<CommandString>,
     },
+    // TODO using Operation here had the clear advantage of only needing one box
     /// Return a String consisting of `left`, then `right`
     Concatenate {
         left: Box<CommandString>,

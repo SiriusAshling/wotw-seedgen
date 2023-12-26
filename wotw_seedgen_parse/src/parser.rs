@@ -142,6 +142,16 @@ pub trait ParseIntToken {
     fn parse_i128(slice: &str) -> std::result::Result<i128, String> {
         i128::from_str(slice).map_err(|err| err.to_string())
     }
+    /// Attempt to parse `slice` into [`usize`]
+    #[inline]
+    fn parse_usize(slice: &str) -> std::result::Result<usize, String> {
+        usize::from_str(slice).map_err(|err| err.to_string())
+    }
+    /// Attempt to parse `slice` into [`isize`]
+    #[inline]
+    fn parse_isize(slice: &str) -> std::result::Result<isize, String> {
+        isize::from_str(slice).map_err(|err| err.to_string())
+    }
 }
 /// Enables float [`Ast`] implementations for your `Token`
 ///

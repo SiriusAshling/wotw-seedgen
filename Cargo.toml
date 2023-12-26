@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "temp", # TODO delete
     "wotw_seedgen",
     "wotw_seedgen_assembly",
     "wotw_seedgen_assets",
@@ -15,3 +16,5 @@ members = [
     "wotw_seedgen_static_assets", # TODO move into a feature module of assets?
     # TODO "wotw_seedgen_stats",
 ]
+
+# TODO try out strum

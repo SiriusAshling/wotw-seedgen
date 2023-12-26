@@ -8,6 +8,7 @@
 #![allow(clippy::too_many_lines)]
 #![allow(clippy::struct_excessive_bools)]
 
+mod common_item;
 mod constants;
 mod generator;
 mod inventory;
@@ -22,26 +23,26 @@ pub use world::*;
 // pub use reach_check::reach_check;
 
 // TODO use this and also set the other metadata: current world, format version, settings
-pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "-", env!("VERGEN_GIT_SHA"));
+pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"));
 
 mod log {
     macro_rules! trace {
         ($($arg:tt)+) => {{
-            #[cfg(feature = "log")]
+            #[cfg(any(feature = "log", test))]
             ::log::trace!($($arg)+)
         }}
     }
     pub(crate) use trace;
     macro_rules! info {
         ($($arg:tt)+) => {{
-            #[cfg(feature = "log")]
+            #[cfg(any(feature = "log", test))]
             ::log::info!($($arg)+)
         }}
     }
     pub(crate) use info;
     macro_rules! warning {
         ($($arg:tt)+) => {{
-            #[cfg(feature = "log")]
+            #[cfg(any(feature = "log", test))]
             ::log::warn!($($arg)+)
         }}
     }
@@ -51,6 +52,7 @@ mod log {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use env_logger::Env;
     use lazy_static::lazy_static;
     use std::io;
     use wotw_seedgen_logic_language::{
@@ -71,6 +73,10 @@ mod tests {
 
     #[test]
     fn some_seeds() {
+        env_logger::Builder::from_env(Env::default().default_filter_or("trace"))
+            .format_timestamp(None)
+            .init();
+
         let mut universe_settings = UniverseSettings::new(String::default());
         let mut graph = Graph::compile(
             AREAS.clone(),
@@ -80,7 +86,7 @@ mod tests {
         )
         .into_result()
         .unwrap();
-        eprintln!("Default settings ({})", universe_settings.seed);
+        eprintln!("Default settings");
         generate_seed(
             &graph,
             &*SNIPPET_ACCESS,
@@ -99,7 +105,7 @@ mod tests {
         )
         .into_result()
         .unwrap();
-        eprintln!("Unsafe ({})", universe_settings.seed);
+        eprintln!("Unsafe");
         generate_seed(
             &graph,
             &*SNIPPET_ACCESS,
@@ -141,7 +147,7 @@ mod tests {
             .apply_preset(preset, &*PRESET_ACCESS)
             .unwrap();
 
-        eprintln!("Gorlek with headers ({})", universe_settings.seed);
+        eprintln!("Gorlek with headers");
         generate_seed(
             &graph,
             &*SNIPPET_ACCESS,

@@ -1,5 +1,3 @@
-use std::ops::Range;
-
 use super::{Compile, SnippetCompiler};
 use crate::{
     ast::{self, TriggerBinding},
@@ -10,7 +8,7 @@ use wotw_seedgen_parse::{Error, Span};
 impl<'source> Compile<'source> for ast::Content<'source> {
     type Output = ();
 
-    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
+    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
         match self {
             ast::Content::Event(_, event) => {
                 event.compile(compiler);
@@ -29,23 +27,27 @@ impl<'source> Compile<'source> for ast::Content<'source> {
 impl<'source> Compile<'source> for ast::Event<'source> {
     type Output = ();
 
-    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
+    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
         let trigger = self.trigger.compile(compiler);
+        let span = self.action.span();
         let command = self.action.compile(compiler);
 
-        if let (Some(trigger), Some(Some(command))) = (trigger, command) {
-            compiler
-                .global
-                .output
-                .events
-                .push(Event { trigger, command });
+        if let Some(Some(command)) = command {
+            let command = command.expect_void(compiler, span);
+            if let (Some(command), Some(trigger)) = (command, trigger) {
+                compiler
+                    .global
+                    .output
+                    .events
+                    .push(Event { trigger, command });
+            }
         }
     }
 }
 impl<'source> Compile<'source> for ast::Trigger<'source> {
     type Output = Option<Trigger>;
 
-    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
+    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
         match self {
             ast::Trigger::ClientEvent(client) => Some(Trigger::ClientEvent(client.data)),
             ast::Trigger::Binding(_, binding) => {
@@ -92,7 +94,7 @@ impl<'source> Compile<'source> for ast::Trigger<'source> {
 impl<'source> Compile<'source> for ast::FunctionDefinition<'source> {
     type Output = ();
 
-    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
+    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
         let commands = self
             .actions
             .content
@@ -100,7 +102,7 @@ impl<'source> Compile<'source> for ast::FunctionDefinition<'source> {
             .flatten()
             .filter_map(|action| {
                 let span = action.span();
-                expect_void(action.compile(compiler)?, compiler, span)
+                action.compile(compiler)?.expect_void(compiler, span)
             })
             .collect();
 
@@ -116,7 +118,7 @@ impl<'source> Compile<'source> for ast::FunctionDefinition<'source> {
 impl<'source> Compile<'source> for ast::Action<'source> {
     type Output = Option<Command>;
 
-    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
+    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
         match self {
             ast::Action::Function(function_call) => function_call.compile(compiler),
             ast::Action::Condition(_, condition) => condition.compile(compiler),
@@ -127,7 +129,7 @@ impl<'source> Compile<'source> for ast::Action<'source> {
                     .flatten()
                     .filter_map(|action| {
                         let span = action.span();
-                        expect_void(action.compile(compiler)?, compiler, span)
+                        action.compile(compiler)?.expect_void(compiler, span)
                     })
                     .collect();
                 Some(Command::Void(CommandVoid::Multi { commands }))
@@ -138,26 +140,14 @@ impl<'source> Compile<'source> for ast::Action<'source> {
 impl<'source> Compile<'source> for ast::ActionCondition<'source> {
     type Output = Option<Command>;
 
-    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
+    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
         let condition = self.condition.compile_into(compiler);
         let span = self.action.span();
         let command = self.action.compile(compiler);
 
         Some(Command::Void(CommandVoid::If {
             condition: condition?,
-            command: Box::new(expect_void(command??, compiler, span)?),
+            command: Box::new(command??.expect_void(compiler, span)?),
         }))
     }
-}
-
-pub(super) fn expect_void(
-    command: Command,
-    compiler: &mut SnippetCompiler,
-    span: Range<usize>,
-) -> Option<CommandVoid> {
-    let result = match command {
-        Command::Void(command) => Ok(command),
-        _ => Err(Error::custom("unused return value".to_string(), span)),
-    };
-    compiler.consume_result(result)
 }

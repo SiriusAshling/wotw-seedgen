@@ -17,7 +17,7 @@ use crate::{
 /// `Ast` is implemented for many common Rust types, often relying on additional trait implementations for your `Token`.
 ///
 /// - [`bool`] implements `Ast` if `Token` implements [`ParseBoolToken`]
-/// - [`u8`] through [`u128`] and [`i8`] through [`i128`] implement `Ast` if `Token` implements [`ParseIntToken`]
+/// - Integer types implement `Ast` if `Token` implements [`ParseIntToken`]
 /// - [`f32`] and [`f64`] implement `Ast` if `Token` implements [`ParseFloatToken`]
 /// - With the `ordered_float` feature, [`OrderedFloat<f32>`] and [`OrderedFloat<f64>`] implement `Ast` if `Token` implements [`ParseFloatToken`]
 /// - [`&str`](str) and [`String`] implement `Ast` if `Token` implements [`ParseStringToken`]
@@ -370,7 +370,11 @@ macro_rules! impl_ast_floats {
         impl_ast_floats!($($more)*);
     };
 }
-impl_ast_integers! { u8 parse_u8 u16 parse_u16 u32 parse_u32 u64 parse_u64 u128 parse_u128 i8 parse_i8 i16 parse_i16 i32 parse_i32 i64 parse_i64 i128 parse_i128 }
+impl_ast_integers! {
+    u8 parse_u8 u16 parse_u16 u32 parse_u32 u64 parse_u64 u128 parse_u128
+    i8 parse_i8 i16 parse_i16 i32 parse_i32 i64 parse_i64 i128 parse_i128
+    usize parse_usize isize parse_isize
+}
 impl_ast_floats! { f32 parse_f32 f64 parse_f64 }
 #[cfg(feature = "ordered_float")]
 mod impl_ordered_float {

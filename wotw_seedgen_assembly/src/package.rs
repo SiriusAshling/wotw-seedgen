@@ -1,46 +1,75 @@
-use std::{error::Error, io::Write};
-
-use serde::Serialize;
-use serde_json::{
-    ser::{CompactFormatter, Formatter, PrettyFormatter},
-    Serializer,
+use crate::{compile_intermediate_output, Result, SeedWorld, VERSION};
+use std::{
+    fs::File,
+    io::Write,
+    path::{Path, PathBuf},
 };
+use wotw_seedgen_seed_language::output::CompilerOutput;
 
-use crate::{SeedWorld, VERSION};
+pub struct Package {
+    builder: tar::Builder<xz2::write::XzEncoder<File>>,
+    header: tar::Header,
+}
 
-impl<Metadata: Serialize> SeedWorld<Metadata> {
-    pub fn package<W: Write>(&self, w: W) -> Result<(), Box<dyn Error>> {
-        self.package_with_formatter(w, CompactFormatter)
-    }
-    pub fn package_pretty<W: Write>(&self, w: W) -> Result<(), Box<dyn Error>> {
-        self.package_with_formatter(w, PrettyFormatter::new())
-    }
-    fn package_with_formatter<W, F>(&self, w: W, formatter: F) -> Result<(), Box<dyn Error>>
-    where
-        W: Write,
-        F: Formatter,
-    {
+impl Package {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let file = File::create(path)?;
         // TODO choose compression
-        let mut builder = tar::Builder::new(xz2::write::XzEncoder::new(w, 9));
+        let builder = tar::Builder::new(xz2::write::XzEncoder::new(file, 9));
         // let mut builder = tar::Builder::new(brotli::CompressorWriter::new(w, 4096, 11, 22));
         // let mut builder = tar::Builder::new(w);
-        let mut header = base_header();
+        let header = base_header();
+        let mut package = Self { builder, header };
+        package.set_header_and_append("format_version", VERSION)?;
+        Ok(package)
+    }
 
-        header.set_path("format_version")?;
-        header.set_size(VERSION.len().try_into()?);
-        header.set_cksum();
-        builder.append(&header, VERSION.as_bytes())?;
+    pub fn add_from_intermediate_output(
+        &mut self,
+        output: CompilerOutput,
+        pretty: bool,
+    ) -> Result<()> {
+        let (seed_world, icons) = compile_intermediate_output(output);
+        self.add_seed(&seed_world, pretty)?;
+        for (name, icon) in icons {
+            let mut path = PathBuf::from("assets");
+            path.push(name); // TODO extension?
+            self.add_data(path, icon)?;
+        }
+        Ok(())
+    }
 
-        let mut seed = Vec::with_capacity(128); // TODO estimate capacity
-        self.serialize(&mut Serializer::with_formatter(&mut seed, formatter))?;
+    pub fn add_data<P: AsRef<Path>>(&mut self, path: P, data: Vec<u8>) -> Result<()> {
+        self.set_header_and_append(path, data)?;
+        Ok(())
+    }
 
-        header.set_path("seed")?;
-        header.set_size(seed.len().try_into()?);
-        header.set_cksum();
-        builder.append(&mut header, seed.as_slice())?;
+    pub fn finish(self) -> Result<()> {
+        self.builder.into_inner()?.finish()?.flush()?;
+        Ok(())
+    }
 
-        builder.into_inner()?.finish()?.flush()?;
+    pub fn add_seed(&mut self, seed: &SeedWorld, pretty: bool) -> Result<()> {
+        let ser = if pretty {
+            serde_json::to_vec_pretty
+        } else {
+            serde_json::to_vec
+        }; // TODO we might be able to make better assumptions about initial capacity
+        let data = ser(&seed)?;
+        self.set_header_and_append("seed", data)?;
+        Ok(())
+    }
 
+    fn set_header_and_append<P: AsRef<Path>, D: AsRef<[u8]>>(
+        &mut self,
+        path: P,
+        data: D,
+    ) -> Result<()> {
+        let data = data.as_ref();
+        self.header.set_path(path)?;
+        self.header.set_size(data.len().try_into()?);
+        self.header.set_cksum();
+        self.builder.append(&self.header, data)?;
         Ok(())
     }
 }

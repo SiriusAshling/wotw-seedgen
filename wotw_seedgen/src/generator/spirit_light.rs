@@ -21,26 +21,26 @@ impl SpiritLightProvider {
         }
     }
 
-    pub fn take(&mut self, slots_remaining: usize) -> i32 {
-        // We want spirit_light(slots_remaining) = a * x + b
-        // And spirit_light(slots_remaining) = self.next_amount
+    pub fn take(&mut self, placements_remaining: usize) -> usize {
+        // We want spirit_light(placements_remaining) = a * x + b
+        // And spirit_light(placements_remaining) = self.next_amount
         // And ∫₁ˢˡᵒᵗˢʳᵉᵐᵃᶦⁿᶦⁿᵍ spirit_light dx = self.amount
-        // And next = spirit_light(slots_remaining - 1)
+        // And next = spirit_light(placements_remaining - 1)
         //
-        // So spirit_light(slots_remaining) = a * slots_remaining + b = self.next_amount
-        // ... b = self.next_amount - a * slots_remaining
-        // And ∫₁ˢˡᵒᵗˢʳᵉᵐᵃᶦⁿᶦⁿᵍ spirit_light dx = 1/2 * (slots_remaining - 1) * (a * slots_remaining + a + 2 * b) = self.amount
-        // ... a * slots_remaining + a + 2 * b = 2 * self.amount / (slots_remaining - 1)
-        // ... a * slots_remaining + a + 2 * self.next_amount - 2 * a * slots_remaining = 2 * self.amount / (slots_remaining - 1)
-        // ... a * (slots_remaining + 1 - 2 * slots_remaining) = 2 * self.amount / (slots_remaining - 1) - 2 * self.next_amount
-        // ... a = (2 * self.amount / (slots_remaining - 1) - 2 * self.next_amount) / (slots_remaining + 1 - 2 * slots_remaining)
+        // So spirit_light(placements_remaining) = a * placements_remaining + b = self.next_amount
+        // ... b = self.next_amount - a * placements_remaining
+        // And ∫₁ˢˡᵒᵗˢʳᵉᵐᵃᶦⁿᶦⁿᵍ spirit_light dx = 1/2 * (placements_remaining - 1) * (a * placements_remaining + a + 2 * b) = self.amount
+        // ... a * placements_remaining + a + 2 * b = 2 * self.amount / (placements_remaining - 1)
+        // ... a * placements_remaining + a + 2 * self.next_amount - 2 * a * placements_remaining = 2 * self.amount / (placements_remaining - 1)
+        // ... a * (placements_remaining + 1 - 2 * placements_remaining) = 2 * self.amount / (placements_remaining - 1) - 2 * self.next_amount
+        // ... a = (2 * self.amount / (placements_remaining - 1) - 2 * self.next_amount) / (placements_remaining + 1 - 2 * placements_remaining)
 
-        let slots_remaining = slots_remaining as f32;
-        let a = (2. * self.amount / (slots_remaining - 1.) - 2. * self.next_amount)
-            / (slots_remaining + 1. - 2. * slots_remaining);
-        let b = self.next_amount - a * slots_remaining;
-        let next = (a * (slots_remaining - 1.) + b) * self.rng.sample(self.noise);
+        let placements_remaining = placements_remaining as f32;
+        let a = (2. * self.amount / (placements_remaining - 1.) - 2. * self.next_amount)
+            / (placements_remaining + 1. - 2. * placements_remaining);
+        let b = self.next_amount - a * placements_remaining;
+        let next = (a * (placements_remaining - 1.) + b) * self.rng.sample(self.noise);
         self.amount -= self.next_amount;
-        mem::replace(&mut self.next_amount, next).round() as i32
+        mem::replace(&mut self.next_amount, next).round() as usize
     }
 }

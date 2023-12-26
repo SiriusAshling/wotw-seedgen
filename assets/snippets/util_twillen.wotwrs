@@ -14,11 +14,46 @@ on TwillenShop.LightHarvest skill(Skill::WaterBreath)
 on TwillenShop.Swap shard(Shard::Catalyst)
 
 on reload {
-    // TODO can't write out the names
-    store(2|122, 100)
-    store(2|140, 200)
-    store(2|126, 300)
-    store(2|101, 300)
-    store(2|119, 375)
-    store(2|105, 400)
+    set_shop_item_data(
+        TwillenShop.Vitality,
+        100,
+        shard_string(Shard::Sticky),
+        "", // TODO
+        Shard::Sticky
+    )
+    set_shop_item_data(
+        TwillenShop.Finesse,
+        200,
+        shard_string(Shard::Magnet),
+        "", // TODO
+        Shard::Magnet
+    )
+    set_shop_item_data(
+        TwillenShop.Energy,
+        300,
+        shard_string(Shard::Reckless),
+        "", // TODO
+        Shard::Reckless
+    )
+    set_shop_item_data(
+        TwillenShop.Overcharge,
+        300,
+        shard_string(Shard::Overflow),
+        "", // TODO
+        Shard::Overflow
+    )
+    set_shop_item_data(
+        TwillenShop.LightHarvest,
+        375,
+        skill_string(Skill::WaterBreath),
+        "", // TODO
+        OpherIcon::WaterBreath
+    )
+    set_shop_item_data(
+        TwillenShop.Swap,
+        400,
+        shard_string(Shard::Catalyst),
+        "", // TODO
+        Shard::Catalyst
+    )
 }

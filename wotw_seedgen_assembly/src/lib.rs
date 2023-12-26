@@ -1,8 +1,9 @@
 mod compile;
 mod package;
 
+// TODO determine a good standard for reexports
 pub use compile::*;
-use wotw_seedgen_data::{Alignment, ScreenPosition};
+pub use package::*;
 pub use wotw_seedgen_data::{
     EquipSlot, Equipment, MapIcon, Position, UberIdentifier, WheelBind, WheelItemPosition,
 };
@@ -10,15 +11,19 @@ pub use wotw_seedgen_seed_language::output::{
     ArithmeticOperator, ClientEvent, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
 };
 pub use wotw_seedgen_settings::UniverseSettings;
-use wotw_seedgen_settings::DEFAULT_SPAWN;
 
 use serde::{Deserialize, Serialize};
+use std::error::Error;
+use wotw_seedgen_data::{Alignment, ScreenPosition};
+use wotw_seedgen_settings::DEFAULT_SPAWN;
+
+pub type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 pub const VERSION: &str = "0.0.1";
 
 /// Seed data for one World
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SeedWorld<Metadata = ()> {
+pub struct SeedWorld {
     /// String to display when loading the seed; usually a summary of the settings
     pub flags: Vec<String>,
     /// Starting location
@@ -29,8 +34,6 @@ pub struct SeedWorld<Metadata = ()> {
     ///
     /// Each index may store multiple [`Command`]s to execute
     pub command_lookup: Vec<Vec<Command>>,
-    /// Attached metadata not relevant to the client
-    pub metadata: Metadata,
 }
 // TODO reminder for which metadata seedgen needs:
 // - universe settings

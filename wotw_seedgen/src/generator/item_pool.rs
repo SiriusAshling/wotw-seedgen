@@ -1,132 +1,107 @@
-use std::iter;
-
-use crate::{inventory::Inventory, log};
+use super::cost::Cost;
+use crate::inventory::Inventory;
 use rand::{seq::SliceRandom, Rng};
 use rand_pcg::Pcg64Mcg;
-use wotw_seedgen_data::{Resource, Shard, Skill, WeaponUpgrade};
-use wotw_seedgen_seed_language::output::{Action, Command, CommonItem};
-
-use super::cost::Cost;
+use std::iter;
+use wotw_seedgen_data::{Shard, Skill, WeaponUpgrade};
+use wotw_seedgen_seed_language::{compile, output::CommandVoid};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ItemPool {
     items: Vec<usize>,
-    item_lookup: Vec<Action>,
+    item_lookup: Vec<CommandVoid>,
+    // TODO this seems half implemented
     inventory: Inventory,
 }
 impl Default for ItemPool {
     fn default() -> Self {
         Self {
             items: [
-                iter::repeat(0).take(24),
-                iter::repeat(1).take(24),
                 iter::repeat(2).take(40),
                 iter::repeat(3).take(34),
                 iter::repeat(4).take(5),
+                iter::repeat(0).take(24),
+                iter::repeat(1).take(24),
             ]
             .into_iter()
             .flatten()
             .chain(5..=63)
             .collect(),
             item_lookup: [
-                Action::Command(Command::Custom(CommonItem::Resource(
-                    Resource::HealthFragment,
-                ))),
-                Action::Command(Command::Custom(CommonItem::Resource(
-                    Resource::EnergyFragment,
-                ))),
-                Action::Command(Command::Custom(CommonItem::Resource(Resource::GorlekOre))),
-                Action::Command(Command::Custom(CommonItem::Resource(Resource::Keystone))),
-                Action::Command(Command::Custom(CommonItem::Resource(Resource::ShardSlot))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Bash))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::DoubleJump))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Launch))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Glide))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::WaterBreath))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Grenade))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Grapple))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Flash))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Spear))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Regenerate))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Bow))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Hammer))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Sword))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Burrow))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Dash))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::WaterDash))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Shuriken))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Blaze))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Sentry))),
-                Action::Command(Command::Custom(CommonItem::Skill(Skill::Flap))),
-                Action::Command(Command::Custom(CommonItem::Skill(
-                    Skill::GladesAncestralLight,
-                ))),
-                Action::Command(Command::Custom(CommonItem::Skill(
-                    Skill::InkwaterAncestralLight,
-                ))),
-                Action::Command(Command::Custom(CommonItem::CleanWater)),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Overcharge))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::TripleJump))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Wingclip))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Bounty))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Swap))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Magnet))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Splinter))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Reckless))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Quickshot))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Resilience))),
-                Action::Command(Command::Custom(CommonItem::Shard(
-                    Shard::SpiritLightHarvest,
-                ))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Vitality))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::LifeHarvest))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::EnergyHarvest))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Energy))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::LifePact))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::LastStand))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Sense))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::UltraBash))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::UltraGrapple))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Overflow))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Thorn))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Catalyst))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Turmoil))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Sticky))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Finesse))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::SpiritSurge))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Lifeforce))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Deflector))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Fracture))),
-                Action::Command(Command::Custom(CommonItem::Shard(Shard::Arcing))),
-                Action::Command(Command::Custom(CommonItem::WeaponUpgrade(
-                    WeaponUpgrade::ExplodingSpear,
-                ))),
-                Action::Command(Command::Custom(CommonItem::WeaponUpgrade(
-                    WeaponUpgrade::HammerShockwave,
-                ))),
-                Action::Command(Command::Custom(CommonItem::WeaponUpgrade(
-                    WeaponUpgrade::StaticShuriken,
-                ))),
-                Action::Command(Command::Custom(CommonItem::WeaponUpgrade(
-                    WeaponUpgrade::ChargeBlaze,
-                ))),
-                Action::Command(Command::Custom(CommonItem::WeaponUpgrade(
-                    WeaponUpgrade::RapidSentry,
-                ))),
+                compile::gorlek_ore(),
+                compile::keystone(),
+                compile::shard_slot(),
+                compile::health_fragment(),
+                compile::energy_fragment(),
+                compile::skill(Skill::Bash),
+                compile::skill(Skill::DoubleJump),
+                compile::skill(Skill::Launch),
+                compile::skill(Skill::Glide),
+                compile::skill(Skill::WaterBreath),
+                compile::skill(Skill::Grenade),
+                compile::skill(Skill::Grapple),
+                compile::skill(Skill::Flash),
+                compile::skill(Skill::Spear),
+                compile::skill(Skill::Regenerate),
+                compile::skill(Skill::Bow),
+                compile::skill(Skill::Hammer),
+                compile::skill(Skill::Sword),
+                compile::skill(Skill::Burrow),
+                compile::skill(Skill::Dash),
+                compile::skill(Skill::WaterDash),
+                compile::skill(Skill::Shuriken),
+                compile::skill(Skill::Blaze),
+                compile::skill(Skill::Sentry),
+                compile::skill(Skill::Flap),
+                compile::skill(Skill::GladesAncestralLight),
+                compile::skill(Skill::InkwaterAncestralLight),
+                compile::clean_water(),
+                compile::shard(Shard::Overcharge),
+                compile::shard(Shard::TripleJump),
+                compile::shard(Shard::Wingclip),
+                compile::shard(Shard::Bounty),
+                compile::shard(Shard::Swap),
+                compile::shard(Shard::Magnet),
+                compile::shard(Shard::Splinter),
+                compile::shard(Shard::Reckless),
+                compile::shard(Shard::Quickshot),
+                compile::shard(Shard::Resilience),
+                compile::shard(Shard::SpiritLightHarvest),
+                compile::shard(Shard::Vitality),
+                compile::shard(Shard::LifeHarvest),
+                compile::shard(Shard::EnergyHarvest),
+                compile::shard(Shard::Energy),
+                compile::shard(Shard::LifePact),
+                compile::shard(Shard::LastStand),
+                compile::shard(Shard::Sense),
+                compile::shard(Shard::UltraBash),
+                compile::shard(Shard::UltraGrapple),
+                compile::shard(Shard::Overflow),
+                compile::shard(Shard::Thorn),
+                compile::shard(Shard::Catalyst),
+                compile::shard(Shard::Turmoil),
+                compile::shard(Shard::Sticky),
+                compile::shard(Shard::Finesse),
+                compile::shard(Shard::SpiritSurge),
+                compile::shard(Shard::Lifeforce),
+                compile::shard(Shard::Deflector),
+                compile::shard(Shard::Fracture),
+                compile::shard(Shard::Arcing),
+                compile::weapon_upgrade(WeaponUpgrade::ExplodingSpear),
+                compile::weapon_upgrade(WeaponUpgrade::HammerShockwave),
+                compile::weapon_upgrade(WeaponUpgrade::StaticShuriken),
+                compile::weapon_upgrade(WeaponUpgrade::ChargeBlaze),
+                compile::weapon_upgrade(WeaponUpgrade::RapidSentry),
             ]
             .into_iter()
             .collect(),
             inventory: Inventory {
                 spirit_light: 0,
-                resources: [
-                    (Resource::HealthFragment, 24),
-                    (Resource::EnergyFragment, 24),
-                    (Resource::Keystone, 40),
-                    (Resource::GorlekOre, 34),
-                    (Resource::ShardSlot, 5),
-                ]
-                .into_iter()
-                .collect(),
+                gorlek_ore: 40,
+                keystones: 34,
+                shard_slots: 5,
+                health: 24 * 5,
+                energy: 24. * 0.5,
                 skills: [
                     Skill::Bash,
                     Skill::DoubleJump,
@@ -204,20 +179,20 @@ impl Default for ItemPool {
     }
 }
 impl ItemPool {
-    pub fn change(&mut self, action: Action, mut amount: i32) {
+    pub fn change(&mut self, command: CommandVoid, mut amount: i32) {
         // TODO update the inventory accordingly
         let index = self
             .item_lookup
             .iter()
             .enumerate()
-            .find(|(_, a)| *a == &action)
+            .find(|(_, a)| *a == &command)
             .map(|(index, _)| index);
 
         if amount > 0 {
             let index = match index {
                 None => {
                     let index = self.item_lookup.len();
-                    self.item_lookup.push(action);
+                    self.item_lookup.push(command);
                     index
                 }
                 Some(index) => index,
@@ -236,26 +211,24 @@ impl ItemPool {
         }
     }
 
-    pub fn choose_random(&mut self, rng: &mut Pcg64Mcg) -> Option<Action> {
+    pub fn choose_random(&mut self, rng: &mut Pcg64Mcg) -> Option<CommandVoid> {
         if self.items.is_empty() {
             return None;
         }
-        // TODO why not swap_remove? same in other places
-        let index = self.items.remove(rng.gen_range(0..self.items.len()));
-        let action = self.item_lookup[index].clone();
+        let index = self.items.swap_remove(rng.gen_range(0..self.items.len()));
+        let command = self.item_lookup[index].clone();
 
-        let cost = action.cost();
+        let cost = command.cost();
         if cost > 10000 {
             let reroll_chance = -10000.0 / cost as f64 + 1.0;
 
             if rng.gen_bool(reroll_chance) {
-                log::trace!("Rerolling random placement {action}");
                 self.items.push(index);
                 return self.choose_random(rng);
             }
         }
 
-        Some(action)
+        Some(command)
     }
 
     #[inline]
@@ -272,8 +245,13 @@ impl ItemPool {
     }
 
     #[inline]
-    pub fn drain<'pool>(&'pool mut self, rng: &mut Pcg64Mcg) -> Drain<'pool> {
-        Drain::new(self, rng)
+    pub fn drain(&mut self) -> Drain<'_> {
+        Drain::new(self)
+    }
+    #[inline]
+    pub fn drain_random<'pool>(&'pool mut self, rng: &mut Pcg64Mcg) -> Drain<'pool> {
+        self.items.shuffle(rng);
+        self.drain()
     }
 }
 
@@ -281,13 +259,12 @@ pub struct Drain<'pool> {
     item_pool: &'pool mut ItemPool,
 }
 impl<'pool> Drain<'pool> {
-    fn new(item_pool: &'pool mut ItemPool, rng: &mut Pcg64Mcg) -> Self {
-        item_pool.items.shuffle(rng);
+    fn new(item_pool: &'pool mut ItemPool) -> Self {
         Self { item_pool }
     }
 }
 impl Iterator for Drain<'_> {
-    type Item = Action;
+    type Item = CommandVoid;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.item_pool

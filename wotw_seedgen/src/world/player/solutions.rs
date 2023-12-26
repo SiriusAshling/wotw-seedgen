@@ -43,7 +43,7 @@ impl Player<'_> {
         let cloned_if_debug = orb_variants;
         let mut solutions = cloned_if_debug.into_iter().flat_map(|orbs| {
             let mut solutions = vec![TaggedSolution::new(self.inventory.clone(), orbs)];
-            self.find_solutions(&mut solutions, requirement, states, slots as usize, world_slots as usize, self.inventory.world_item_count());
+            self.find_solutions(&mut solutions, requirement, states, slots, world_slots, self.inventory.world_item_count());
 
             solutions.into_iter().map(|solution| {
                 #[cfg(debug_assertions)] assert!(solution.orbs.health >= 0.0 && solution.orbs.energy >= 0.0, "Negative health or energy after creating solution!\n\nRequirement: {self:?}\nSolution: {solution:?}\nPlayer inventory: {}\nOrb Variants: {orb_variants:?}", self.inventory);
@@ -83,9 +83,8 @@ impl Player<'_> {
                 self.needed_for_energy_skill(solutions, *skill, 1.0, false)
             }
             Requirement::SpiritLight(amount) => require_spirit_light(solutions, *amount),
-            Requirement::Resource(resource, amount) => {
-                require_resource(solutions, *resource, *amount)
-            }
+            Requirement::GorlekOre(amount) => require_gorlek_ore(solutions, *amount),
+            Requirement::Keystone(amount) => require_keystones(solutions, *amount),
             Requirement::Shard(shard) => require_shard(solutions, *shard),
             Requirement::Teleporter(teleporter) => require_teleporter(solutions, *teleporter),
             Requirement::Water => require_clean_water(solutions),
@@ -146,7 +145,7 @@ impl Player<'_> {
                 .is_met(requirement, states, solution_orb_variants)
                 .is_empty();
 
-            assert!(is_met, "Solution doesn't solve requirement!\nRequirement: {self:?}\nSolution: {}\nPlayer inventory: {}\nOrb Variants: {orb_variants:?}", solution, self.inventory);
+            assert!(is_met, "Solution doesn't solve requirement!\nRequirement: {requirement:?}\nSolution: {solution}\nPlayer inventory: {}\nOrb Variants: {orb_variants:?}", self.inventory);
         }
     }
 
@@ -176,17 +175,20 @@ impl Player<'_> {
             |total_solutions, solutions, defense_mod| {
                 let amount = amount * defense_mod;
 
+                // TODO I think you could eliminate all the fragment logic from here now and put the conversions into the inventory functions
+                // would have to think about the health clause though to make sure it never expects going to 0 health
                 let health_fragments_solution = |mut orbs: Orbs| {
                     let missing_health = amount - orbs.health;
-                    let mut missing_health_fragments = (missing_health * 0.2).ceil().max(0.0);
-                    if missing_health - missing_health_fragments * 5.0 >= 0.0 {
-                        missing_health_fragments += 1.0
+                    let missing_health_fragments = (missing_health * 0.2).ceil().max(0.0);
+                    let mut health_increase = missing_health_fragments * 5.0;
+                    if missing_health >= health_increase {
+                        health_increase += 5.0
                     }
-                    orbs.health += missing_health_fragments * 5.0; // granting fragments increases max health as well
+                    orbs.health += health_increase; // granting fragments increases max health as well
                     if consuming {
                         orbs.health -= amount
                     }
-                    (missing_health_fragments as i32, orbs)
+                    (health_increase as usize, orbs)
                 };
 
                 self.call_for_alternatives(
@@ -204,8 +206,7 @@ impl Player<'_> {
                             let max_health =
                                 solution.inventory.max_health(self.settings.difficulty);
 
-                            let (missing_health_fragments, orbs) =
-                                health_fragments_solution(solution.orbs);
+                            let (health_increase, orbs) = health_fragments_solution(solution.orbs);
 
                             let higher_cost = regenerate_cost.max(game_thinks_regenerate_cost);
                             // If this solution used Life Pact before, that implies it used up all of its energy and Regenerate prohibits using health to pay for it
@@ -218,21 +219,20 @@ impl Player<'_> {
                                     ((max_health - solution.orbs.health) * (1.0 / 30.0)).ceil()
                                         as usize;
                                 if max_regens > 0 {
-                                    let mut total_missing_energy_fragments = 0;
+                                    let mut total_energy_increase = 0.;
                                     for _ in 1..=max_regens {
                                         let solution = &mut total_solutions[index];
 
                                         let missing_energy = higher_cost - solution.orbs.energy;
                                         let missing_energy_fragments =
                                             (missing_energy * 2.0).ceil().max(0.0);
-                                        total_missing_energy_fragments +=
-                                            missing_energy_fragments as i32;
-                                        solution.orbs.energy +=
-                                            missing_energy_fragments * 0.5 - regenerate_cost; // granting fragments increases max energy as well
+                                        let energy_increase = missing_energy_fragments * 0.5;
+                                        total_energy_increase += energy_increase;
+                                        solution.orbs.energy += energy_increase - regenerate_cost; // granting fragments increases max energy as well
                                         solution.orbs.health =
                                             (solution.orbs.health + 30.0).min(max_health);
 
-                                        let (missing_health_fragments, orbs) =
+                                        let (health_increase, orbs) =
                                             health_fragments_solution(solution.orbs);
                                         let mut solution = TaggedSolution {
                                             orbs,
@@ -240,14 +240,8 @@ impl Player<'_> {
                                         };
                                         solution.inventory.skills.insert(Skill::Regenerate);
                                         solution.tags[Tag::UseRegenerate as usize] = Some(true);
-                                        solution.inventory.add_resource(
-                                            Resource::HealthFragment,
-                                            missing_health_fragments,
-                                        );
-                                        solution.inventory.add_resource(
-                                            Resource::EnergyFragment,
-                                            total_missing_energy_fragments,
-                                        ); // the regen branch cannot be entered if we previously used Life Pact (this would not make sense), so we don't need to check health_payed_for_life_pact, it will be zero
+                                        solution.inventory.health += health_increase;
+                                        solution.inventory.energy += total_energy_increase; // the regen branch cannot be entered if we previously used Life Pact (this would not make sense), so we don't need to check health_payed_for_life_pact, it will be zero
                                         debug_assert_eq!(solution.health_payed_for_life_pact, 0.0);
                                         total_solutions.push(solution);
                                     }
@@ -256,9 +250,7 @@ impl Player<'_> {
 
                             // Reuse the current slot for the solution without Regenerate
                             let solution = &mut total_solutions[index];
-                            solution
-                                .inventory
-                                .add_resource(Resource::HealthFragment, missing_health_fragments);
+                            solution.inventory.health += health_increase;
                             solution.orbs = orbs;
                         }
                     },
@@ -344,12 +336,13 @@ impl Player<'_> {
                                                     // just to be able to regenerate at all because we used life pact so much
                                                     // But right now I can't think of a proof that regenerates are guaranteed to be redundant in any case here, so...
                                                     let grant_energy = |solution: &mut TaggedSolution, total_cost: f32, game_thinks_total_cost: f32| {
-                                                let higher_cost = total_cost.max(game_thinks_total_cost);
-                                                let missing_energy = higher_cost - solution.orbs.energy;
-                                                let missing_energy_fragments = (missing_energy * 2.0).ceil().max(0.0);
-                                                solution.orbs.energy += missing_energy_fragments * 0.5 - total_cost;  // granting fragments increases max energy as well
-                                                solution.inventory.add_resource(Resource::EnergyFragment, missing_energy_fragments as i32);
-                                            };
+                                                        let higher_cost = total_cost.max(game_thinks_total_cost);
+                                                        let missing_energy = higher_cost - solution.orbs.energy;
+                                                        let missing_energy_fragments = (missing_energy * 2.0).ceil().max(0.0);
+                                                        let energy_increase = missing_energy_fragments * 0.5;
+                                                        solution.orbs.energy += energy_increase - total_cost;  // granting fragments increases max energy as well
+                                                        solution.inventory.energy += energy_increase;
+                                                    };
 
                                                     let regens = max_heal / 30.0;
                                                     let max_optimal_regens = regens.floor();
@@ -402,15 +395,16 @@ impl Player<'_> {
                                                         let true_health_cost = health_cost * defense_mod;
                                                         let higher_amount = health_cost.max(true_health_cost);
                                                         let missing_health = higher_amount - solution.orbs.health;
-                                                        let mut missing_health_fragments = (missing_health * 0.2).ceil().max(0.0);
-                                                        if missing_health - missing_health_fragments * 5.0 >= 0.0 { missing_health_fragments += 1.0 }
-                                                        solution.orbs.health += missing_health_fragments * 5.0;  // granting fragments increases max health as well
+                                                        let missing_health_fragments = (missing_health * 0.2).ceil().max(0.0);
+                                                        let mut health_increase = missing_health_fragments * 5.0;
+                                                        if missing_health >= health_increase { health_increase += 5.0 }
+                                                        solution.orbs.health += health_increase;  // granting fragments increases max health as well
                                                         solution.orbs.health -= true_health_cost;
                                                         solution.health_payed_for_life_pact += true_health_cost;
                                                         if consuming { solution.orbs.energy = 0.0; }
                                                         else { solution.orbs.energy = (solution.orbs.energy + true_health_cost * 0.1).min(max_energy) }
 
-                                                        solution.inventory.add_resource(Resource::HealthFragment, missing_health_fragments as i32);
+                                                        solution.inventory.health += health_increase as usize;
                                                     };
 
                                                     if solution
@@ -457,10 +451,7 @@ impl Player<'_> {
                                                         }
 
                                                         solution = &mut total_solutions[index];
-                                                        solution.inventory.add_resource(
-                                                            Resource::EnergyFragment,
-                                                            1,
-                                                        );
+                                                        solution.inventory.energy += 0.5;
                                                         solution.orbs.energy += 0.5; // As asserted above, this solution has never used life pact. Otherwise, we would have to perform additional calculations to determine how much we would increase the health instead of the energy
                                                         missing_energy -= 0.5;
                                                         health_cost -= 5.0;
@@ -548,14 +539,12 @@ impl Player<'_> {
                                 let missing_energy = cost - solution.orbs.energy;
                                 let missing_energy_fragments =
                                     (missing_energy * 2.0).ceil().max(0.0);
-                                solution.orbs.energy += missing_energy_fragments * 0.5; // granting fragments increases max energy as well
+                                let energy_increase = missing_energy_fragments * 0.5;
+                                solution.orbs.energy += energy_increase; // granting fragments increases max energy as well
                                 if consuming {
                                     solution.orbs.energy -= cost;
                                 }
-                                solution.inventory.add_resource(
-                                    Resource::EnergyFragment,
-                                    missing_energy_fragments as i32,
-                                ); // this branch cannot be entered if we previously used Life Pact, so we don't need to check health_payed_for_life_pact, it will be zero
+                                solution.inventory.energy += energy_increase; // this branch cannot be entered if we previously used Life Pact, so we don't need to check health_payed_for_life_pact, it will be zero
                                 debug_assert_eq!(solution.health_payed_for_life_pact, 0.0);
                             }
                         }
@@ -766,11 +755,9 @@ impl Player<'_> {
         item_count: usize,
     ) {
         solutions.retain(|solution| {
-            let spirit_light_slots =
-                (solution.inventory.spirit_light - self.inventory.spirit_light + 39) / 40;
-            solution.inventory.world_item_count() as i32 - item_count as i32 + spirit_light_slots
-                <= slots as i32
-                && spirit_light_slots <= world_slots as i32 // Spirit light is the only world item currently
+            let spirit_light_slots = solution.inventory.spirit_light_item_count();
+            solution.inventory.world_item_count() + spirit_light_slots <= item_count + slots
+                && spirit_light_slots <= world_slots
         });
     }
 
@@ -824,6 +811,7 @@ impl TaggedSolution {
         }
     }
 }
+#[allow(clippy::enum_variant_names)]
 #[repr(usize)]
 #[derive(Clone, Copy)]
 enum Tag {
@@ -905,15 +893,20 @@ where
 fn require<F: FnMut(&mut TaggedSolution)>(solutions: &mut [TaggedSolution], f: F) {
     solutions.iter_mut().for_each(f);
 }
-fn require_spirit_light(solutions: &mut [TaggedSolution], amount: i32) {
+fn require_spirit_light(solutions: &mut [TaggedSolution], amount: usize) {
     require(solutions, |solution| {
-        solution.inventory.spirit_light = i32::max(solution.inventory.spirit_light, amount)
+        solution.inventory.spirit_light += amount;
     })
 }
-fn require_resource(solutions: &mut [TaggedSolution], resource: Resource, amount: i32) {
+fn require_gorlek_ore(solutions: &mut [TaggedSolution], amount: usize) {
     require(solutions, |solution| {
-        solution.inventory.add_resource(resource, amount);
-    });
+        solution.inventory.gorlek_ore += amount;
+    })
+}
+fn require_keystones(solutions: &mut [TaggedSolution], amount: usize) {
+    require(solutions, |solution| {
+        solution.inventory.keystones += amount;
+    })
 }
 fn require_skill(solutions: &mut [TaggedSolution], skill: Skill) {
     require(solutions, |solution| {
@@ -951,7 +944,6 @@ fn require_any_of<I: IntoIterator<Item = Skill> + AsRef<[Skill]>>(
 }
 
 pub(crate) fn filter_redundancies(solutions: &mut Vec<Inventory>) {
-    // log::trace!("unfiltered: {}", solutions.len());
     solutions.sort_unstable_by_key(Inventory::item_count); // start with the small solutions to eliminate many redundancies quickly
     let mut len = solutions.len();
 
@@ -972,5 +964,4 @@ pub(crate) fn filter_redundancies(solutions: &mut Vec<Inventory>) {
         len -= deleted;
     }
     solutions.truncate(len);
-    // log::trace!("filtered: {}", solutions.len());
 }

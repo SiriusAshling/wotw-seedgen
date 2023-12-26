@@ -9,7 +9,12 @@ use crate::{
 };
 use lazy_static::lazy_static;
 use rustc_hash::FxHashMap;
-use std::{ffi::OsStr, fmt::Display, fs, io};
+use std::{
+    ffi::OsStr,
+    fmt::Display,
+    fs, io,
+    path::{Path, PathBuf},
+};
 use wotw_seedgen_assets::{SnippetAccess, Source};
 use wotw_seedgen_parse::{parse_ast, Delimited, Identifier, Punctuated, Spanned, Symbol};
 use wotw_seedgen_static_assets::UBER_STATE_DATA;
@@ -124,13 +129,13 @@ fn function_call() {
 lazy_static! {
     // works while debugging, but doesn't work to jump into code from errors
     // static ref WORKDIR: String = {
-    //     let mut path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    //     let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     //     path.pop();
     //     path.to_string_lossy().to_string()
     // };
 
     // works to jump into code from errors, but doesn't work while debugging
-    static ref WORKDIR: String = "..".to_string();
+    static ref WORKDIR: &'static str = "..";
 }
 
 #[test]
@@ -141,6 +146,12 @@ fn snippets() {
             let id = format!("{}/assets/snippets/{}.wotwrs", *WORKDIR, identifier);
             let content = fs::read_to_string(&id).map_err(|err| err.to_string())?;
             Ok(Source { id, content })
+        }
+        fn read_file(&self, path: &Path) -> Result<Vec<u8>, String> {
+            let mut full_path = PathBuf::from(*WORKDIR);
+            full_path.push("assets/snippets");
+            full_path.push(path);
+            fs::read(full_path).map_err(|err| err.to_string())
         }
     }
 
@@ -249,6 +260,12 @@ fn dangerous() {
                 })
                 .map_err(|err| err.to_string())?;
             Ok(Source { id, content })
+        }
+        fn read_file(&self, path: &Path) -> Result<Vec<u8>, String> {
+            let mut full_path = PathBuf::from(*WORKDIR);
+            full_path.push("assets/dangerous");
+            full_path.push(path);
+            fs::read(full_path).map_err(|err| err.to_string())
         }
     }
 

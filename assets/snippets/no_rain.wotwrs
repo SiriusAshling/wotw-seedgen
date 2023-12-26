@@ -5,8 +5,7 @@
 !flag("No Rain")
 
 on spawn {
-    // TODO what dis
-    store(6|401, true)
+    store(MarshSpawn.RainLifted, true)
     store(swampStateGroup.nightCrawlerChaseStarted, true)
     store(swampStateGroup.nightCrawlerDefeated, true)
     store(MarshSpawn.HowlBurnt, true)

@@ -54,8 +54,13 @@ impl Player<'_> {
                     return orb_variants;
                 }
             }
-            Requirement::Resource(resource, amount) => {
-                if self.inventory.get_resource(*resource) >= *amount {
+            Requirement::GorlekOre(amount) => {
+                if self.inventory.gorlek_ore >= *amount {
+                    return orb_variants;
+                }
+            }
+            Requirement::Keystone(amount) => {
+                if self.inventory.keystones >= *amount {
                     return orb_variants;
                 }
             }

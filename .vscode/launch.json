@@ -8,7 +8,7 @@
       "type": "lldb",
       "request": "attach",
       "name": "Attach to CLI",
-      "program": "${workspaceFolder}/compiler.exe" // TODO change back to seedgen
+      "program": "${workspaceFolder}/seedgen.exe"
     },
     {
       "type": "lldb",

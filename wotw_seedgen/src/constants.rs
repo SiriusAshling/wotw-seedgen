@@ -1,29 +1,14 @@
-use ansi_term::Colour;
-use wotw_seedgen_data::{Teleporter, UberIdentifier, Zone};
-use wotw_seedgen_seed_language::output::{Action, Command, CommonItem};
+use wotw_seedgen_data::{Teleporter, UberIdentifier};
+use wotw_seedgen_seed_language::{compile, output::CommandVoid};
 
 // TODO remove this module
 
-pub const SPAWN_GRANTS: &[(&str, Action)] = &[(
+// TODO implement this
+pub const SPAWN_GRANTS: &[(&str, CommandVoid)] = &[(
     "EastPools.Teleporter",
-    Action::Command(Command::Custom(CommonItem::Teleporter(
-        Teleporter::CentralLuma,
-    ))),
+    compile::set_boolean_value(Teleporter::CentralLuma.uber_identifier(), true),
 )];
-pub const RELIC_ZONES: &[Zone] = &[
-    Zone::Marsh,
-    Zone::Hollow,
-    Zone::Glades,
-    Zone::Wellspring,
-    Zone::Woods,
-    Zone::Reach,
-    Zone::Depths,
-    Zone::Pools,
-    Zone::Wastes,
-    Zone::Willow,
-    Zone::Burrows,
-];
-pub const KEYSTONE_DOORS: &[(&str, i32)] = &[
+pub const KEYSTONE_DOORS: &[(&str, usize)] = &[
     ("MarshSpawn.KeystoneDoor", 2),
     ("HowlsDen.KeystoneDoor", 2),
     ("MarshPastOpher.EyestoneDoor", 2),
@@ -56,5 +41,3 @@ pub const RANDOM_PROGRESSION: f64 = 0.4; // How likely to choose a progression i
 pub const UNSHARED_ITEMS: usize = 5; // How many items to place per world that are guaranteed not being sent to another world
 
 pub const HEADER_INDENT: usize = 24; // Which column to align header descriptions on
-pub const NAME_COLOUR: Colour = Colour::Yellow;
-pub const UBERSTATE_COLOUR: Colour = Colour::Cyan;

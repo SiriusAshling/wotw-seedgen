@@ -5,6 +5,7 @@ mod reached;
 mod simulate;
 mod uber_states;
 
+use ordered_float::OrderedFloat;
 pub use player::Player;
 pub use simulate::Simulate;
 pub use uber_states::UberStates;
@@ -23,7 +24,7 @@ use self::reached::ReachContext;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::smallvec;
 use wotw_seedgen_assembly::{ArithmeticOperator, Operation};
-use wotw_seedgen_data::{Resource, Shard, Skill, Teleporter, UberIdentifier, WeaponUpgrade};
+use wotw_seedgen_data::{uber_identifier, Shard, Skill, Teleporter, UberIdentifier, WeaponUpgrade};
 use wotw_seedgen_logic_language::output::{Graph, Node};
 use wotw_seedgen_seed_language::output::{
     CommandBoolean, CommandFloat, CommandInteger, CommandVoid, CompilerOutput,
@@ -36,7 +37,7 @@ use wotw_seedgen_settings::WorldSettings;
 #[derive(Debug, Clone)]
 pub struct World<'graph, 'settings> {
     pub(crate) graph: &'graph Graph,
-    spawn: usize,
+    pub(crate) spawn: usize,
     // TODO technically the entire inventory is already contained in the uber_states?
     pub(crate) player: Player<'settings>,
     pub(crate) uber_states: UberStates,
@@ -83,7 +84,7 @@ impl<'graph, 'settings> World<'graph, 'settings> {
         }
     }
 
-    pub(crate) fn reached(&mut self) -> Vec<&'graph Node> {
+    pub fn reached(&mut self) -> Vec<&'graph Node> {
         let mut context = ReachContext::default();
 
         self.reach_recursion(self.spawn, smallvec![self.player.max_orbs()], &mut context);
@@ -115,7 +116,7 @@ impl<'graph, 'settings> World<'graph, 'settings> {
             &CommandVoid::StoreBoolean {
                 uber_identifier,
                 value: CommandBoolean::Constant { value },
-                check_triggers: true,
+                trigger_events: true,
             },
             output,
         );
@@ -130,7 +131,7 @@ impl<'graph, 'settings> World<'graph, 'settings> {
             &CommandVoid::StoreInteger {
                 uber_identifier,
                 value: CommandInteger::Constant { value },
-                check_triggers: true,
+                trigger_events: true,
             },
             output,
         );
@@ -145,7 +146,7 @@ impl<'graph, 'settings> World<'graph, 'settings> {
             &CommandVoid::StoreFloat {
                 uber_identifier,
                 value: CommandFloat::Constant { value },
-                check_triggers: true,
+                trigger_events: true,
             },
             output,
         );
@@ -166,7 +167,7 @@ impl<'graph, 'settings> World<'graph, 'settings> {
                         right: CommandInteger::Constant { value: add },
                     }),
                 },
-                check_triggers: true,
+                trigger_events: true,
             },
             output,
         );
@@ -187,27 +188,62 @@ impl<'graph, 'settings> World<'graph, 'settings> {
                         right: CommandFloat::Constant { value: add },
                     }),
                 },
-                check_triggers: true,
+                trigger_events: true,
             },
             output,
         );
     }
-    // TODO these are confusing because they sidestep the inventory update. I really think it would be worth investigating whether dropping the inventory in favour of direct uberState check would be worthwhile
+
     #[inline]
     pub fn set_spirit_light(&mut self, value: i32, output: &CompilerOutput) {
-        self.set_integer(UberIdentifier::SPIRIT_LIGHT, value, output);
+        self.set_integer(uber_identifier::SPIRIT_LIGHT, value, output);
     }
     #[inline]
     pub fn modify_spirit_light(&mut self, add: i32, output: &CompilerOutput) {
-        self.modify_integer(UberIdentifier::SPIRIT_LIGHT, add, output);
+        self.modify_integer(uber_identifier::SPIRIT_LIGHT, add, output);
     }
     #[inline]
-    pub fn set_resource(&mut self, resource: Resource, value: i32, output: &CompilerOutput) {
-        self.set_integer(resource.uber_identifier(), value, output);
+    pub fn set_gorlek_ore(&mut self, value: i32, output: &CompilerOutput) {
+        self.set_integer(uber_identifier::GORLEK_ORE, value, output);
     }
     #[inline]
-    pub fn modify_resource(&mut self, resource: Resource, add: i32, output: &CompilerOutput) {
-        self.modify_integer(resource.uber_identifier(), add, output);
+    pub fn modify_gorlek_ore(&mut self, add: i32, output: &CompilerOutput) {
+        self.modify_integer(uber_identifier::GORLEK_ORE, add, output);
+    }
+    #[inline]
+    pub fn set_keystones(&mut self, value: i32, output: &CompilerOutput) {
+        self.set_integer(uber_identifier::KEYSTONES, value, output);
+    }
+    #[inline]
+    pub fn modify_keystones(&mut self, add: i32, output: &CompilerOutput) {
+        self.modify_integer(uber_identifier::KEYSTONES, add, output);
+    }
+    #[inline]
+    pub fn set_shard_slots(&mut self, value: i32, output: &CompilerOutput) {
+        self.set_integer(uber_identifier::SHARD_SLOTS, value, output);
+    }
+    #[inline]
+    pub fn modify_shard_slots(&mut self, add: i32, output: &CompilerOutput) {
+        self.modify_integer(uber_identifier::SHARD_SLOTS, add, output);
+    }
+    #[inline]
+    pub fn set_max_health(&mut self, value: i32, output: &CompilerOutput) {
+        self.set_integer(uber_identifier::MAX_HEALTH, value, output);
+    }
+    // TODO check that uses scaled correctly since they might have used the number of fragments before
+    #[inline]
+    pub fn modify_max_health(&mut self, add: i32, output: &CompilerOutput) {
+        self.modify_integer(uber_identifier::MAX_HEALTH, add, output);
+    }
+    // TODO but where do I *really* want OrderedFloat
+    #[inline]
+    pub fn set_max_energy(&mut self, value: OrderedFloat<f32>, output: &CompilerOutput) {
+        self.set_float(uber_identifier::MAX_ENERGY, value, output);
+    }
+    // TODO check that uses scaled correctly since they might have used the number of fragments before
+    #[inline]
+    pub fn modify_max_energy(&mut self, add: OrderedFloat<f32>, output: &CompilerOutput) {
+        self.modify_float(uber_identifier::MAX_ENERGY, add, output);
     }
     #[inline]
     pub fn set_skill(&mut self, skill: Skill, value: bool, output: &CompilerOutput) {
@@ -223,7 +259,7 @@ impl<'graph, 'settings> World<'graph, 'settings> {
     }
     #[inline]
     pub fn set_clean_water(&mut self, value: bool, output: &CompilerOutput) {
-        self.set_boolean(UberIdentifier::CLEAN_WATER, value, output);
+        self.set_boolean(uber_identifier::CLEAN_WATER, value, output);
     }
     #[inline]
     pub fn set_weapon_upgrade(

@@ -32,4 +32,4 @@ on spawn {
     store(GladesTown.CaveEntrance, true)
     store(questUberStateGroup.darkCaveQuest, 1)
 }
-!remove(resource(Resource::GorlekOre), 40)
+!remove(gorlek_ore(), 40)

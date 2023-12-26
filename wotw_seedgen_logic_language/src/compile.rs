@@ -7,7 +7,7 @@ use crate::{
 };
 use rustc_hash::FxHashMap;
 use wotw_seedgen_assets::{LocData, StateData};
-use wotw_seedgen_data::{Position, Resource, Shard, Skill, Teleporter};
+use wotw_seedgen_data::{Position, Shard, Skill, Teleporter};
 use wotw_seedgen_parse::{
     Error, ErrorKind, Recover, Recoverable, Result, Separated, SeparatedNonEmpty, Span, Spanned,
 };
@@ -324,7 +324,7 @@ impl TrickRequirements {
         }
     }
 
-    fn get(&self, trick: Trick, amount: &mut Option<u32>) -> Option<Requirement> {
+    fn get(&self, trick: Trick, amount: &mut Option<usize>) -> Option<Requirement> {
         let requirement = match trick {
             Trick::SwordSentryJump => build_and([
                 self.sword_sentry_jump.clone(),
@@ -421,7 +421,7 @@ trait Compile {
 
     fn compile(self, compiler: &mut Compiler) -> Self::Output;
 }
-impl<'source, T: Compile> Compile for Vec<T> {
+impl<T: Compile> Compile for Vec<T> {
     type Output = Vec<T::Output>;
 
     fn compile(self, compiler: &mut Compiler) -> Self::Output {
@@ -437,14 +437,14 @@ impl<'source, T: Compile, R: Recover<'source, Tokenizer>> Compile for Recoverabl
             .map(|t| t.compile(compiler))
     }
 }
-impl<'source, T: Compile> Compile for Spanned<T> {
+impl<T: Compile> Compile for Spanned<T> {
     type Output = T::Output;
 
     fn compile(self, compiler: &mut Compiler) -> Self::Output {
         self.data.compile(compiler)
     }
 }
-impl<'source, T: Compile, Separator> Compile for Separated<T, Separator> {
+impl<T: Compile, Separator> Compile for Separated<T, Separator> {
     // TODO is there a merit to returning an iterator here?
     type Output = Vec<T::Output>;
 
@@ -452,21 +452,21 @@ impl<'source, T: Compile, Separator> Compile for Separated<T, Separator> {
         self.into_iter().map(|t| t.compile(compiler)).collect()
     }
 }
-impl<'source, T: Compile, Separator> Compile for SeparatedNonEmpty<T, Separator> {
+impl<T: Compile, Separator> Compile for SeparatedNonEmpty<T, Separator> {
     type Output = Vec<T::Output>;
 
     fn compile(self, compiler: &mut Compiler) -> Self::Output {
         self.into_iter().map(|t| t.compile(compiler)).collect()
     }
 }
-impl<'source, T: Compile> Compile for ast::Group<T> {
+impl<T: Compile> Compile for ast::Group<T> {
     type Output = Option<T::Output>;
 
     fn compile(self, compiler: &mut Compiler) -> Self::Output {
         self.content.compile(compiler)
     }
 }
-impl<'source, T: Compile> Compile for ast::GroupContent<T> {
+impl<T: Compile> Compile for ast::GroupContent<T> {
     type Output = T::Output;
 
     fn compile(self, compiler: &mut Compiler) -> Self::Output {
@@ -601,7 +601,7 @@ impl<'source> Compile for ast::Anchor<'source> {
         }))
     }
 }
-impl<'source> Compile for ast::AnchorPosition {
+impl Compile for ast::AnchorPosition {
     type Output = Option<Position>;
 
     fn compile(self, compiler: &mut Compiler) -> Self::Output {
@@ -625,7 +625,7 @@ impl<'source> Compile for ast::Refill<'source> {
         }
     }
 }
-impl<'source> Compile for ast::RefillValue {
+impl Compile for ast::RefillValue {
     type Output = RefillValue;
 
     fn compile(self, compiler: &mut Compiler) -> Self::Output {
@@ -810,8 +810,6 @@ impl<'source> Compile for ast::PlainRequirement<'source> {
                             )
                         })
                     }
-                } else if let Ok(resource) = Resource::from_str(identifier) {
-                    get_amount().map(|amount| Requirement::Resource(resource, amount as i32))
                 } else if let Ok(shard) = Shard::from_str(identifier) {
                     no_amount().map(|()| Requirement::Shard(shard))
                 } else if let Some(teleporter) = identifier
@@ -823,15 +821,10 @@ impl<'source> Compile for ast::PlainRequirement<'source> {
                     match identifier {
                         "free" => no_amount().map(|()| Requirement::Free),
                         "Impossible" => no_amount().map(|()| Requirement::Impossible),
-                        "SpiritLight" => {
-                            get_amount().map(|amount| Requirement::SpiritLight(amount as i32))
-                        }
-                        "Ore" => {
-                            // TODO remove
-                            get_amount().map(|amount| {
-                                Requirement::Resource(Resource::GorlekOre, amount as i32)
-                            })
-                        }
+                        "SpiritLight" => get_amount().map(Requirement::SpiritLight),
+                        // TODO remove Ore
+                        "Ore" | "GorlekOre" => get_amount().map(Requirement::GorlekOre),
+                        "Keystone" => get_amount().map(Requirement::Keystone),
                         "EastPoolsTP" => {
                             // TODO remove
                             Ok(Requirement::Teleporter(Teleporter::CentralLuma))

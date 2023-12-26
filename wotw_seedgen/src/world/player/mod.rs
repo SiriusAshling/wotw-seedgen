@@ -12,7 +12,7 @@ use crate::{
     orbs::{OrbVariants, Orbs},
 };
 use smallvec::SmallVec;
-use wotw_seedgen_data::{Resource, Skill};
+use wotw_seedgen_data::Skill;
 use wotw_seedgen_logic_language::output::RefillValue;
 use wotw_seedgen_settings::WorldSettings;
 

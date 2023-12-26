@@ -1,3 +1,4 @@
+!include_icon(test_icon, "icons/notinstock-modified.png")
 !use_icon(message_icon, "assets/icons/game/message.png")
 
 !include("bind_pointer")
@@ -45,7 +46,7 @@ on reload {
         1,
         "Shops Explanation",
         "", // TODO empty string doesn't behave well, client is supposed to fix this
-        message_icon,
+        test_icon,
     )
     update_shop_explanations_wheel()
     update_sword_lesson()

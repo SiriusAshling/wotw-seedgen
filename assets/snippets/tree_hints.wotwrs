@@ -3,7 +3,7 @@
 #description("
 Every tree gives a hint for the skill located there
 The Flap hint is on the Glades Ancestral Light Tree
-The Glide hint is on the Marsh Ancestral Light Tree
+The Glide hint is on the Inkwater Ancestral Light Tree
 The Clean Water Hint is on the Wellspring Escape")
 
 !flag("Tree Hints")
@@ -70,8 +70,7 @@ The Clean Water Hint is on the Wellspring Escape")
         set_string("tree_hints", get_string("tree_hints") + get_string("grapple_hint"))
         set_boolean("comma", true)
     }
-    // TODO randoState.Clean Water
-    if 6|2000 {
+    if randoState.cleanWater {
         add_comma()
         write_clean_water_hint()
         set_string("tree_hints", get_string("tree_hints") + get_string("clean_water_hint"))
@@ -155,7 +154,7 @@ on InnerWellspring.GrappleTree {
     write_grapple_hint()
     item_message(get_string("grapple_hint"))
 }
-on 6|2000 {
+on randoState.cleanWater {
     write_clean_water_hint()
     item_message(get_string("clean_water_hint"))
 }
@@ -225,7 +224,7 @@ fun write_grapple_hint() {
 }
 fun write_clean_water_hint() {
     set_string("color", "")
-    if 6|2000 set_string("color", "$")
+    if randoState.cleanWater set_string("color", "$")
     set_string("clean_water_hint", get_string("color") + "Glide: " + clean_water_zone + get_string("color"))
 }
 fun write_flap_hint() {

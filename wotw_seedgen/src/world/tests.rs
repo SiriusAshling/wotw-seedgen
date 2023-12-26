@@ -1,7 +1,6 @@
 use super::*;
 use crate::{generator::ItemPool, tests::AREAS};
 use rand_pcg::Pcg64Mcg;
-use wotw_seedgen_seed_language::output::CommonItem;
 use wotw_seedgen_settings::{Difficulty, UniverseSettings, DEFAULT_SPAWN};
 use wotw_seedgen_static_assets::{LOC_DATA, STATE_DATA, UBER_STATE_DATA};
 
@@ -30,10 +29,10 @@ fn reach_check() {
     let output = CompilerOutput::default();
 
     let mut pool = ItemPool::default();
-    for item in pool.drain(&mut Pcg64Mcg::new(0xcafef00dd15ea5e5)) {
+    for item in pool.drain() {
         world.simulate(&item, &output);
     }
-    world.simulate(&CommonItem::SpiritLight(10000), &output);
+    world.modify_spirit_light(10000, &output);
 
     let reached = world
         .reached()
@@ -73,13 +72,13 @@ fn reach_check() {
     );
 
     for _ in 0..7 {
-        world.simulate(&CommonItem::Resource(Resource::HealthFragment), &output);
+        world.modify_max_health(5, &output); // TODO how do this
     }
     for _ in 0..6 {
-        world.simulate(&CommonItem::Resource(Resource::EnergyFragment), &output);
+        world.modify_max_energy(0.5.into(), &output);
     }
-    world.simulate(&CommonItem::Skill(Skill::DoubleJump), &output);
-    world.simulate(&CommonItem::Shard(Shard::TripleJump), &output);
+    world.set_skill(Skill::DoubleJump, true, &output);
+    world.set_shard(Shard::TripleJump, true, &output);
 
     let reached = world
         .reached()

@@ -56,7 +56,7 @@ impl Preprocessor {
                             ast::Command::Callback(_, command) => {
                                 if let Ok(command) = &command.result {
                                     if let Ok(args) = &command.content {
-                                        self.add_function(args.0 .0.data.0.to_string(), &args.0 .0);
+                                        self.output.functions.insert(args.0 .0.data.0.to_string());
                                     }
                                 }
                             }
@@ -73,23 +73,13 @@ impl Preprocessor {
                 }
                 ast::Content::Function(_, content) => {
                     if let Ok(function) = &content.result {
-                        self.add_function(
-                            function.identifier.data.0.to_string(),
-                            &function.identifier,
-                        );
+                        self.output
+                            .functions
+                            .insert(function.identifier.data.0.to_string());
                     }
                 }
                 _ => {}
             }
-        }
-    }
-
-    fn add_function<S: Span>(&mut self, value: String, span: S) {
-        if !self.output.functions.insert(value) {
-            self.errors.push(Error::custom(
-                "Function already defined".to_string(),
-                span.span(),
-            ))
         }
     }
 }

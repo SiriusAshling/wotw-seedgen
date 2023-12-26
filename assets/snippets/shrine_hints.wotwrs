@@ -8,9 +8,8 @@
 !item_on(woods_shrine_item, WoodsMain.CombatShrine)
 !item_on(depths_shrine_item, LowerDepths.CombatShrine)
 
-// TODO what are these?
-on 19|1 == 1 item_message("Complete the Marsh Combat Shrine to gain\n" + inkwater_shrine_item)
-on 19|2 == 1 item_message("Complete the Howl's Den Combat Shrine to gain\n" + den_shrine_item)
-on 19|0 == 1 item_message("Complete the Glades Combat Shrine to gain\n" + glades_shrine_item)
-on 19|4 == 1 item_message("Complete the Woods Combat Shrine to gain\n" + woods_shrine_item)
-on 19|3 == 1 item_message("Complete the Mouldwood Combat Shrine to gain\n" + depths_shrine_item)
+on shrines.inkwaterWave == 1 item_message("Complete the Marsh Combat Shrine to gain\n" + inkwater_shrine_item)
+on shrines.howlsDenWave == 1 item_message("Complete the Howl's Den Combat Shrine to gain\n" + den_shrine_item)
+on shrines.gladesWave == 1 item_message("Complete the Glades Combat Shrine to gain\n" + glades_shrine_item)
+on shrines.woodsWave == 1 item_message("Complete the Woods Combat Shrine to gain\n" + woods_shrine_item)
+on shrines.depthsWave == 1 item_message("Complete the Mouldwood Combat Shrine to gain\n" + depths_shrine_item)

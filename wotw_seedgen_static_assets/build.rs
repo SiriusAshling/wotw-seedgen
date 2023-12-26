@@ -102,7 +102,7 @@ fn main() {
     }
 }
 
-#[cfg(any(feature = "snippets", feature = "presets",))]
+#[cfg(any(feature = "snippets", feature = "presets"))]
 fn read_optional_dir<P: AsRef<std::path::Path>>(path: P) -> Option<std::fs::ReadDir> {
     match std::fs::read_dir(path) {
         Ok(read_dir) => Some(read_dir),
@@ -124,10 +124,7 @@ fn read_optional_dir<P: AsRef<std::path::Path>>(path: P) -> Option<std::fs::Read
     feature = "presets",
 ))]
 fn write<T: serde::Serialize>(path: &str, contents: &T) {
-    use std::{env, fs, path::Path};
-    fs::write(
-        Path::new(&env::var_os("OUT_DIR").unwrap()).join(path),
-        &bincode::serialize(contents).unwrap(),
-    )
-    .unwrap();
+    use std::{env, fs::File, path::Path};
+    let file = File::create(Path::new(&env::var_os("OUT_DIR").unwrap()).join(path)).unwrap();
+    ciborium::into_writer(contents, file).unwrap();
 }

@@ -2,14 +2,18 @@ use super::{
     cost::Cost, item_pool::ItemPool, spirit_light::SpiritLightProvider, Seed, SEED_FAILED_MESSAGE,
 };
 use crate::{
+    common_item::CommonItem,
     constants::{KEYSTONE_DOORS, PREFERRED_SPAWN_SLOTS, SPAWN_SLOTS, UNSHARED_ITEMS},
     filter_redundancies,
     inventory::Inventory,
+    log::{trace, warning},
     node_condition, node_trigger,
     orbs::OrbVariants,
-    ReachedLocations, World,
+    SeedSpoiler, World,
 };
 use itertools::Itertools;
+#[cfg(any(feature = "log", test))]
+use ordered_float::OrderedFloat;
 use rand::{
     distributions::Uniform,
     prelude::Distribution,
@@ -19,12 +23,15 @@ use rand::{
 use rand_pcg::Pcg64Mcg;
 use rustc_hash::FxHashMap;
 use std::{iter, mem, ops::RangeFrom};
-use wotw_seedgen_assembly::{ClientEvent, Icon};
-use wotw_seedgen_data::{Equipment, MapIcon, OpherIcon, Resource, Skill, UberIdentifier};
+use wotw_seedgen_assembly::{compile_intermediate_output, ClientEvent, Icon, Spawn};
+use wotw_seedgen_data::{uber_identifier, Equipment, MapIcon, OpherIcon, Skill, UberIdentifier};
 use wotw_seedgen_logic_language::output::{Node, Requirement};
-use wotw_seedgen_seed_language::output::{
-    Action, Command, CommandBoolean, CommandFloat, CommandIcon, CommandInteger, CommandString,
-    CommandVoid, CommonItem, CompilerOutput, Event, StringOrPlaceholder, Trigger,
+use wotw_seedgen_seed_language::{
+    compile,
+    output::{
+        CommandInteger, CommandString, CommandVoid, CompilerOutput, Event, StringOrPlaceholder,
+        Trigger,
+    },
 };
 
 pub(crate) fn generate_placements(
@@ -35,44 +42,91 @@ pub(crate) fn generate_placements(
 
     context.preplacements();
 
+    #[cfg(any(feature = "log", test))]
+    let mut step = 1usize..;
     loop {
+        trace!("Placement step #{}", step.next().unwrap_or_default());
         context.update_reached();
         if context.everything_reached() {
+            trace!("All locations reached");
             context.place_remaining();
-            todo!();
+            break;
         }
         context.force_keystones();
         if !context.place_random() {
-            let (target_world_index, progression) = context.choose_progression();
-            context.place_forced(target_world_index, progression);
+            trace!("Placing forced progression");
+            if let Some((target_world_index, progression)) = context.choose_progression() {
+                context.place_forced(target_world_index, progression);
+            }
         }
     }
+
+    Ok(context.finish())
 }
 
 struct Context<'graph, 'settings> {
     rng: Pcg64Mcg,
     worlds: Vec<WorldContext<'graph, 'settings>>,
+    /// next multiworld uberState id to use
     multiworld_state_index: RangeFrom<i32>,
 }
+struct WorldContext<'graph, 'settings> {
+    rng: Pcg64Mcg,
+    world: World<'graph, 'settings>,
+    output: CompilerOutput,
+    /// world index of this world
+    #[cfg_attr(not(any(feature = "log", test)), allow(unused))]
+    index: usize,
+    /// remaining items to place
+    item_pool: ItemPool,
+    /// generates appropriate spirit light amounts
+    spirit_light_provider: SpiritLightProvider,
+    /// all remaining nodes which need to be assigned random placements
+    needs_placement: Vec<&'graph Node>,
+    /// nodes which have been reached but explicitely haven't been asigned a placement yet to leave space for later progressions
+    placeholders: Vec<&'graph Node>,
+    /// reached nodes at the start of the current placement step
+    reached: Vec<&'graph Node>,
+    /// unmet requirements at the start of the current placement step
+    progressions: Vec<(&'graph Requirement, OrbVariants)>,
+    /// indices into `needs_placement` for nodes that are reachable and may be used for placements in this step
+    reached_needs_placement: Vec<usize>,
+    /// indices into `needs_placement` for nodes that have received a placement and should be removed before the next placement step
+    received_placement: Vec<usize>,
+    /// number of nodes in `reached` that can give items
+    reached_item_locations: usize,
+    /// number of remaining allowed placements on spawn
+    spawn_slots: usize,
+    // TODO is this still needed for multiworld quality?
+    /// number of remaining placements that should not be placed outside of the own world
+    unshared_items: usize,
+    /// generates random factors to modify shop prices with
+    price_distribution: Uniform<f32>,
+}
+
 impl<'graph, 'settings> Context<'graph, 'settings> {
     fn new(rng: &mut Pcg64Mcg, worlds: Vec<(World<'graph, 'settings>, CompilerOutput)>) -> Self {
         Self {
             rng: Pcg64Mcg::from_rng(&mut *rng).expect(SEED_FAILED_MESSAGE),
             worlds: worlds
                 .into_iter()
-                .map(|(world, output)| WorldContext::new(rng, world, output))
+                .enumerate()
+                .map(|(index, (world, output))| WorldContext::new(rng, world, output, index))
                 .collect(),
             multiworld_state_index: 0..,
         }
     }
 
     fn preplacements(&mut self) {
+        trace!("Generating preplacements");
+
         for world_context in &mut self.worlds {
             world_context.preplacements();
         }
     }
 
     fn update_reached(&mut self) {
+        trace!("Checking reached locations");
         for world_context in &mut self.worlds {
             world_context.update_reached();
         }
@@ -87,10 +141,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     fn force_keystones(&mut self) {
         for world_index in 0..self.worlds.len() {
             let world_context = &mut self.worlds[world_index];
-            let owned_keystones = world_context
-                .world
-                .inventory()
-                .get_resource(Resource::Keystone);
+            let owned_keystones = world_context.world.inventory().keystones;
             if owned_keystones < 2 {
                 continue;
             }
@@ -104,28 +155,30 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                         .any(|node| node.identifier() == *identifier)
                         .then_some(*amount)
                 })
-                .sum::<i32>();
+                .sum::<usize>();
             if required_keystones <= owned_keystones {
                 continue;
             }
 
+            trace!(
+                "Placing {} keystones for World {world_index} to avoid keylocks",
+                required_keystones - owned_keystones
+            );
             for _ in owned_keystones..required_keystones {
-                self.place_action(
-                    common(CommonItem::Resource(Resource::Keystone)),
-                    world_index,
-                );
+                self.place_command(compile::keystone(), world_index);
             }
         }
     }
 
     fn place_remaining(&mut self) {
+        trace!("Placing remaining items");
         for target_world_index in 0..self.worlds.len() {
-            for action in self.worlds[target_world_index]
+            for command in self.worlds[target_world_index]
                 .item_pool
-                .drain(&mut self.rng)
+                .drain_random(&mut self.rng)
                 .collect::<Vec<_>>()
             {
-                self.place_action(action, target_world_index);
+                self.place_command(command, target_world_index);
             }
         }
         for world_context in &mut self.worlds {
@@ -135,22 +188,30 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
 
     fn place_random(&mut self) -> bool {
         let mut any_placed = false;
-        // TODO placeholders
         for origin_world_index in 0..self.worlds.len() {
-            let reached_needs_placement =
-                mem::take(&mut self.worlds[origin_world_index].reached_needs_placement);
-            for node_index in reached_needs_placement.iter().copied() {
+            let needs_random_placement = self.worlds[origin_world_index].reserve_placeholders();
+            for node in needs_random_placement {
                 any_placed = true;
                 let origin_world = &mut self.worlds[origin_world_index];
-                let slots_remaining = origin_world.slots_remaining();
+                let placements_remaining = origin_world.placements_remaining();
                 let place_spirit_light = self.rng.gen_bool(f64::max(
-                    1. - origin_world.item_pool.len() as f64 / slots_remaining as f64,
+                    1. - origin_world.item_pool.len() as f64 / placements_remaining as f64,
                     0.,
                 ));
 
-                let (target_world_index, action) = if place_spirit_light {
-                    let batch = origin_world.spirit_light_provider.take(slots_remaining);
-                    (origin_world_index, common(CommonItem::SpiritLight(batch)))
+                let (target_world_index, command) = if place_spirit_light {
+                    let batch = origin_world
+                        .spirit_light_provider
+                        .take(placements_remaining);
+                    (
+                        origin_world_index,
+                        compile::spirit_light(
+                            CommandInteger::Constant {
+                                value: batch as i32,
+                            },
+                            &mut self.rng,
+                        ),
+                    )
                 } else {
                     let target_world_index = self.choose_target_world(origin_world_index);
                     (
@@ -162,40 +223,65 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                     )
                 };
 
-                let node = self.worlds[origin_world_index].needs_placement[node_index];
-                let name = self.name(&action, origin_world_index, target_world_index);
-                self.place_action_at(action, name, node, origin_world_index, target_world_index);
+                let name = self.name(&command, origin_world_index, target_world_index);
+                self.place_command_at(command, name, node, origin_world_index, target_world_index);
             }
-            self.worlds[origin_world_index]
-                .received_placement
-                .extend(reached_needs_placement);
         }
         any_placed
     }
 
-    fn choose_progression(&mut self) -> (usize, Inventory) {
-        let slots = self
-            .worlds
-            .iter()
-            .map(|world_context| world_context.reached_needs_placement.len())
-            .sum::<usize>();
-
+    fn choose_progression(&mut self) -> Option<(usize, Inventory)> {
+        let slots = self.progression_slots();
         let mut world_indices = (0..self.worlds.len()).collect::<Vec<_>>();
-        world_indices.sort_by_key(|index| self.worlds[*index].slots_remaining());
+        world_indices.sort_by_key(|index| self.worlds[*index].placements_remaining());
 
         for target_world_index in world_indices {
             if let Some(progression) = self.worlds[target_world_index].choose_progression(slots) {
-                return (target_world_index, progression);
+                return Some((target_world_index, progression));
             }
         }
-        // TODO flush item pool
+
+        trace!(
+            "Unable to find any possible forced progression. Unreached locations:\n{}",
+            self.worlds
+                .iter()
+                .map(|world_context| format!(
+                    "World {}: {}",
+                    world_context.index,
+                    world_context
+                        .needs_placement
+                        .iter()
+                        .map(|node| node.identifier())
+                        .format(", ")
+                ))
+                .format("\n")
+        );
+
+        self.flush_item_pool();
+        None
+    }
+
+    fn progression_slots(&self) -> usize {
+        self.worlds
+            .iter()
+            .map(|world_context| world_context.progression_slots())
+            .sum()
+    }
+
+    fn flush_item_pool(&mut self) {
+        trace!("Placing items which modify uberStates to attempt recovery");
+
         todo!()
     }
 
     fn place_forced(&mut self, target_world_index: usize, progression: Inventory) {
         let Inventory {
             spirit_light,
-            resources,
+            gorlek_ore,
+            keystones,
+            shard_slots,
+            health,
+            energy,
             skills,
             shards,
             teleporters,
@@ -204,47 +290,32 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
         } = progression;
 
         self.worlds[target_world_index].place_spirit_light(spirit_light);
-
-        resources
-            .into_iter()
-            .flat_map(|(resource, amount)| {
-                iter::repeat(common(CommonItem::Resource(resource))).take(amount as usize)
-            })
-            .chain(
-                skills
-                    .into_iter()
-                    .map(|skill| common(CommonItem::Skill(skill))),
-            )
-            .chain(
-                shards
-                    .into_iter()
-                    .map(|shard| common(CommonItem::Shard(shard))),
-            )
-            .chain(
-                teleporters
-                    .into_iter()
-                    .map(|teleporter| common(CommonItem::Teleporter(teleporter))),
-            )
-            .chain(clean_water.then_some(common(CommonItem::CleanWater)))
-            .chain(
-                weapon_upgrades
-                    .into_iter()
-                    .map(|weapon_upgrade| common(CommonItem::WeaponUpgrade(weapon_upgrade))),
-            )
-            .for_each(|action| self.place_action(action, target_world_index));
+        iter::repeat_with(compile::gorlek_ore)
+            .take(gorlek_ore)
+            .chain(iter::repeat_with(compile::keystone).take(keystones))
+            .chain(iter::repeat_with(compile::shard_slot).take(shard_slots))
+            .chain(iter::repeat_with(compile::health_fragment).take(health / 5))
+            .chain(iter::repeat_with(compile::energy_fragment).take((energy * 2.) as usize))
+            .chain(skills.into_iter().map(compile::skill))
+            .chain(shards.into_iter().map(compile::shard))
+            .chain(teleporters.into_iter().map(compile::teleporter))
+            .chain(clean_water.then(compile::clean_water))
+            .chain(weapon_upgrades.into_iter().map(compile::weapon_upgrade))
+            .for_each(|command| self.place_command(command, target_world_index));
     }
 
-    fn place_action(&mut self, action: Action, target_world_index: usize) {
-        let origin_world_index = self.choose_origin_world(&action, target_world_index);
-        let name = self.name(&action, origin_world_index, target_world_index);
+    fn place_command(&mut self, command: CommandVoid, target_world_index: usize) {
+        trace!("Placing {command} for World {target_world_index}");
+        let origin_world_index = self.choose_origin_world(&command, target_world_index);
+        let name = self.name(&command, origin_world_index, target_world_index);
         let origin_world = &mut self.worlds[origin_world_index];
-        match origin_world.choose_placement_node(&action) {
+        match origin_world.choose_placement_node(&command) {
             None => {
                 if origin_world.spawn_slots > 0 {
                     origin_world.spawn_slots -= 1;
-                    self.push_action(
+                    self.push_command(
                         Trigger::ClientEvent(ClientEvent::Spawn),
-                        action,
+                        command,
                         name,
                         origin_world_index,
                         target_world_index,
@@ -254,119 +325,148 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                 }
             }
             Some(node) => {
-                self.place_action_at(action, name, node, origin_world_index, target_world_index);
+                self.place_command_at(command, name, node, origin_world_index, target_world_index);
             }
         }
     }
 
-    fn choose_origin_world(&mut self, action: &Action, target_world_index: usize) -> usize {
-        match action {
-            Action::Command(Command::Custom(CommonItem::SpiritLight(_))) => target_world_index,
-            _ => {
-                if self.worlds[target_world_index].unshared_items > 0 {
-                    self.worlds[target_world_index].unshared_items -= 1;
-                    target_world_index
-                } else {
-                    let mut world_indices = (0..self.worlds.len()).collect::<Vec<_>>();
-                    world_indices.shuffle(&mut self.rng);
+    // TODO might be worth to do some single-world happy paths?
+    fn choose_origin_world(&mut self, command: &CommandVoid, target_world_index: usize) -> usize {
+        trace!("Choosing origin World for {command}");
+
+        if is_spirit_light(command) {
+            trace!("{command} is a spirit light item, chose origin World {target_world_index} to avoid sharing");
+            return target_world_index;
+        }
+
+        if self.worlds[target_world_index].unshared_items > 0 {
+            trace!("World {target_world_index} is not allowed to share items yet, chose origin World {target_world_index}");
+            self.worlds[target_world_index].unshared_items -= 1;
+            target_world_index
+        } else {
+            let mut world_indices = (0..self.worlds.len()).collect::<Vec<_>>();
+            world_indices.shuffle(&mut self.rng);
+            let origin_world_index = world_indices
+                .iter()
+                .find(|index| !self.worlds[**index].reached_needs_placement.is_empty())
+                .copied()
+                .or_else(|| {
                     world_indices
-                        .iter()
-                        .find(|index| !self.worlds[**index].reached_needs_placement.is_empty())
-                        .copied()
-                        .or_else(|| {
-                            world_indices
-                                .into_iter()
-                                .find(|index| self.worlds[*index].spawn_slots > 0)
-                        })
-                        .unwrap() // TODO handle
-                }
-            }
+                        .into_iter()
+                        .find(|index| self.worlds[*index].spawn_slots > 0)
+                })
+                .unwrap(); // TODO handle
+            trace!("Chose origin world {origin_world_index} randomly");
+            origin_world_index
         }
     }
 
     fn choose_target_world(&mut self, origin_world_index: usize) -> usize {
+        trace!("Choosing target World for item from World {origin_world_index}");
         if self.worlds[origin_world_index].unshared_items > 0 {
+            trace!("World {origin_world_index} is not allowed to share items yet, chose target World {origin_world_index}");
             self.worlds[origin_world_index].unshared_items -= 1;
             origin_world_index
         } else {
             let mut world_indices = (0..self.worlds.len()).collect::<Vec<_>>();
             world_indices.shuffle(&mut self.rng);
-            world_indices
+            let target_world_index = world_indices
                 .into_iter()
                 .find_or_last(|index| !self.worlds[*index].item_pool.is_empty())
-                .unwrap()
+                .unwrap(); // TODO handle
+
+            trace!("Chose target World {target_world_index}");
+            target_world_index
         }
     }
 
     fn name(
         &self,
-        action: &Action,
+        command: &CommandVoid,
         origin_world_index: usize,
         target_world_index: usize,
     ) -> CommandString {
-        let name = self.worlds[target_world_index].name(action);
+        let name = self.worlds[target_world_index].name(command);
         if origin_world_index == target_world_index {
-            string(name)
+            CommandString::Constant { value: name }
         } else {
+            let right = match name {
+                StringOrPlaceholder::Value(value) => CommandString::Constant {
+                    value: format!("'s {value}").into(),
+                },
+                placeholder => CommandString::Concatenate {
+                    left: Box::new(CommandString::Constant { value: "'s".into() }),
+                    right: Box::new(CommandString::Constant { value: placeholder }),
+                },
+            };
+
             CommandString::Concatenate {
                 left: Box::new(CommandString::WorldName {
                     index: target_world_index,
                 }),
-                right: Box::new(string(format!("'s {name}"))),
+                right: Box::new(right),
             }
         }
     }
 
-    fn place_action_at(
+    fn place_command_at(
         &mut self,
-        action: Action,
+        command: CommandVoid,
         name: CommandString,
         node: &Node,
         origin_world_index: usize,
         target_world_index: usize,
     ) {
-        self.worlds[origin_world_index].map_icon(node, &action, name.clone());
+        trace!(
+            "Placing {command} for World {target_world_index} at {} in World {origin_world_index}",
+            node.identifier()
+        );
+
+        self.worlds[origin_world_index].map_icon(node, &command, name.clone());
 
         let uber_identifier = node.uber_identifier().unwrap();
         if uber_identifier.is_shop() {
-            self.worlds[origin_world_index].shop_item_data(&action, uber_identifier, name.clone());
+            self.worlds[origin_world_index].shop_item_data(&command, uber_identifier, name.clone());
         }
 
-        self.push_action(
+        self.push_command(
             node_trigger(node).unwrap(),
-            action,
+            command,
             name,
             origin_world_index,
             target_world_index,
         );
     }
 
-    fn push_action(
+    fn push_command(
         &mut self,
         trigger: Trigger,
-        action: Action,
+        command: CommandVoid,
         name: CommandString,
         origin_world_index: usize,
         target_world_index: usize,
     ) {
         if origin_world_index == target_world_index {
-            self.worlds[origin_world_index].push_action(trigger, action);
+            self.worlds[origin_world_index].push_command(trigger, command);
         } else {
             let uber_identifier = self.multiworld_state();
-            self.worlds[origin_world_index].push_action(
+            self.worlds[origin_world_index].push_command(
                 trigger,
-                Action::Multi(vec![
-                    Action::Command(Command::Void(CommandVoid::ItemMessage { message: name })),
-                    Action::Command(Command::Void(CommandVoid::StoreBoolean {
-                        uber_identifier,
-                        value: boolean(true),
-                        check_triggers: true,
-                    })),
-                ]),
+                CommandVoid::Multi {
+                    commands: vec![
+                        CommandVoid::QueuedMessage {
+                            id: None,
+                            priority: false,
+                            message: name,
+                            timeout: None,
+                        },
+                        compile::set_boolean_value(uber_identifier, true),
+                    ],
+                },
             );
-            self.worlds[target_world_index].push_action(
+            self.worlds[target_world_index].push_command(
                 Trigger::Binding(uber_identifier), // this is server synced and can't change to false
-                action,
+                command,
             );
         }
     }
@@ -377,78 +477,62 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
             member: self.multiworld_state_index.next().unwrap(),
         }
     }
+
+    fn finish(self) -> Seed {
+        Seed {
+            worlds: self
+                .worlds
+                .into_iter()
+                .map(|world_context| {
+                    let (mut seed, icons) = compile_intermediate_output(world_context.output);
+                    assert!(icons.is_empty(), "custom icons in seedgen aren't supported"); // TODO
+                    let spawn = &world_context.world.graph.nodes[world_context.world.spawn];
+                    seed.spawn = Spawn {
+                        position: *spawn.position().unwrap(),
+                        identifier: spawn.identifier().to_string(),
+                    };
+                    seed
+                })
+                .collect(),
+            spoiler: SeedSpoiler {
+                // TODO spoiler
+                spawns: vec![],
+                groups: vec![],
+            },
+        }
+    }
 }
-struct WorldContext<'graph, 'settings> {
-    rng: Pcg64Mcg,
-    world: World<'graph, 'settings>,
-    output: CompilerOutput,
-    item_pool: ItemPool,
-    spirit_light_provider: SpiritLightProvider,
-    needs_placement: Vec<&'graph Node>,
-    reached: Vec<&'graph Node>,
-    progressions: Vec<(&'graph Requirement, OrbVariants)>,
-    reached_needs_placement: Vec<usize>,
-    received_placement: Vec<usize>,
-    reached_item_locations: usize,
-    spawn_slots: usize,
-    unshared_items: usize,
-    on_load_index: usize,
-    price_distribution: Uniform<f32>,
-}
+
 impl<'graph, 'settings> WorldContext<'graph, 'settings> {
     fn new(
         rng: &mut Pcg64Mcg,
         world: World<'graph, 'settings>,
         mut output: CompilerOutput,
+        index: usize,
     ) -> Self {
         let mut item_pool = ItemPool::default();
 
-        for (action, amount) in mem::take(&mut output.item_pool_changes) {
-            item_pool.change(action, amount);
+        for (command, amount) in mem::take(&mut output.item_pool_changes) {
+            item_pool.change(command, amount);
         }
 
-        let needs_placement = world
-            .graph
-            .nodes
-            .iter()
-            // TODO optimize based on shape of events, many of which can't possibly be loc_data events
-            .filter(|node| {
-                node.can_place()
-                    && !output.events.iter().any(|event|
-                        matches!(&event.trigger, Trigger::Condition(condition) if Some(condition) == node_condition(node).as_ref())
-                    )
-            })
-            .collect::<Vec<_>>();
-        // TODO filter out unreachable locations
-
-        let on_load_index =
-            match output.events.iter_mut().enumerate().find(|(_, event)| {
-                matches!(event.trigger, Trigger::ClientEvent(ClientEvent::Reload))
-            }) {
-                None => {
-                    let index = output.events.len();
-                    output.events.push(Event {
-                        trigger: Trigger::ClientEvent(ClientEvent::Reload),
-                        action: Action::Multi(vec![]),
-                    });
-                    index
-                }
-                Some((index, event)) => {
-                    let action = mem::replace(&mut event.action, Action::Multi(vec![]));
-                    if let Action::Multi(actions) = &mut event.action {
-                        actions.push(action);
-                    }
-                    index
-                }
-            };
+        let mut needs_placement = total_reach_check(&world, &output, &item_pool);
+        // TODO optimize based on shape of events, many of which can't possibly be loc_data events
+        needs_placement.retain(|node| node.can_place()
+            && !output.events.iter().any(|event|
+                matches!(&event.trigger, Trigger::Condition(condition) if Some(condition) == node_condition(node).as_ref())
+            )
+        );
 
         Self {
             rng: Pcg64Mcg::from_rng(&mut *rng).expect(SEED_FAILED_MESSAGE),
             world,
             output,
+            index,
             item_pool,
             spirit_light_provider: SpiritLightProvider::new(20000, rng), // TODO how should !add(spirit_light(100)) behave?
             needs_placement,
+            placeholders: Default::default(),
             reached: Default::default(),
             progressions: Default::default(),
             reached_needs_placement: Default::default(),
@@ -456,16 +540,17 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             reached_item_locations: Default::default(),
             spawn_slots: SPAWN_SLOTS,
             unshared_items: UNSHARED_ITEMS,
-            on_load_index,
             price_distribution: Uniform::new_inclusive(0.75, 1.25),
         }
     }
 
     fn preplacements(&mut self) {
+        trace!("[World {}] Generating preplacements", self.index);
+
         self.hi_sigma();
 
         let mut zone_needs_placement = FxHashMap::default();
-        for (action, zone) in mem::take(&mut self.output.preplacements) {
+        for (command, zone) in mem::take(&mut self.output.preplacements) {
             let nodes = zone_needs_placement.entry(zone).or_insert_with(|| {
                 self.needs_placement
                     .iter()
@@ -475,12 +560,21 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
                     .collect::<Vec<_>>()
             });
             if nodes.is_empty() {
-                todo!()
+                warning!(
+                    "[World {}] Failed to preplace {command} in {zone} since no free placement location was available",
+                    self.index,
+                );
             }
             // We prefer generating indices over shuffling the nodes because usually there aren't many zone preplacements (relics)
             let node_index = nodes.swap_remove(self.rng.gen_range(0..nodes.len()));
+            // TODO shouldn't this remove the node from needs_placement?
             let node = self.needs_placement[node_index];
-            self.push_action(node_trigger(node).unwrap(), action);
+            trace!(
+                "[World {}] Preplaced {command} at {}",
+                self.index,
+                node.identifier()
+            );
+            self.push_command(node_trigger(node).unwrap(), command);
             self.received_placement.push(node_index);
         }
     }
@@ -489,13 +583,18 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         let node = self
             .needs_placement
             .swap_remove(self.rng.gen_range(0..self.needs_placement.len())); // TODO handle empty
-        self.push_action(
-            node_trigger(node).unwrap(),
-            common(CommonItem::SpiritLight(1)),
+        trace!(
+            "[World {}] Placed something very important at {}",
+            self.index,
+            node.identifier()
         );
+        let command = compile::spirit_light(CommandInteger::Constant { value: 1 }, &mut self.rng);
+        self.push_command(node_trigger(node).unwrap(), command);
     }
 
     fn update_reached(&mut self) {
+        trace!("[World {}] Checking reached locations", self.index);
+
         let mut received_placement = mem::take(&mut self.received_placement);
         received_placement.sort();
         for node_index in received_placement.into_iter().rev() {
@@ -506,26 +605,76 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         self.reached = reached_locations.reached;
         self.progressions = reached_locations.progressions;
         self.reached_needs_placement = self
-            .reached
+            .needs_placement
             .iter()
             .enumerate()
-            .filter(|(_, node)| self.needs_placement.contains(node))
+            .filter(|(_, node)| self.reached.contains(node))
             .map(|(index, _)| index)
             .collect();
         self.reached_item_locations = self.reached.iter().filter(|node| node.can_place()).count();
+        trace!(
+            "[World {}] Reached locations that need placements: {}",
+            self.index,
+            self.reached_needs_placement
+                .iter()
+                .map(|index| self.needs_placement[*index].identifier())
+                .join(", ")
+        );
     }
 
-    fn slots_remaining(&self) -> usize {
+    fn placements_remaining(&self) -> usize {
         self.needs_placement.len() - self.received_placement.len()
     }
 
+    fn reserve_placeholders(&mut self) -> Vec<&'graph Node> {
+        self.received_placement
+            .extend(self.reached_needs_placement.clone());
+        let desired_placeholders = usize::max(
+            usize::max(3, self.placeholders.len()),
+            self.reached_needs_placement.len() / 3,
+        );
+        let new_placeholders = usize::min(desired_placeholders, self.reached_needs_placement.len());
+        let kept_placeholders = usize::min(
+            desired_placeholders - new_placeholders,
+            self.placeholders.len(),
+        );
+        let released_placeholders = self.placeholders.split_off(kept_placeholders);
+        let placeholders = self
+            .reached_needs_placement
+            .split_off(self.reached_needs_placement.len() - new_placeholders)
+            .into_iter()
+            .map(|index| self.needs_placement[index]);
+        self.placeholders.extend(placeholders);
+        self.placeholders.shuffle(&mut self.rng);
+        trace!(
+            "[World {}] Keeping {} placeholders: {}",
+            self.index,
+            self.placeholders.len(),
+            self.placeholders
+                .iter()
+                .map(|node| node.identifier())
+                .format(", ")
+        );
+        mem::take(&mut self.reached_needs_placement)
+            .into_iter()
+            .map(|index| self.needs_placement[index])
+            .chain(released_placeholders)
+            .collect()
+    }
+
+    fn progression_slots(&self) -> usize {
+        self.reached_needs_placement.len() + self.placeholders.len()
+    }
+
     fn choose_progression(&mut self, slots: usize) -> Option<Inventory> {
-        let world_slots = self.reached_needs_placement.len();
+        trace!("[World {}] Attempting forced progression", self.index);
+
+        let world_slots = self.progression_slots();
         let mut progressions = mem::take(&mut self.progressions)
             .into_iter()
             .flat_map(|(requirement, best_orbs)| {
                 self.world.player.solutions(
-                    &requirement,
+                    requirement,
                     &self.world.logic_states,
                     best_orbs,
                     slots,
@@ -537,7 +686,8 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         // TODO is it desirable to filter here again? they have already been filterer per-solutions-call
         filter_redundancies(&mut progressions);
 
-        let weights = progressions
+        #[cfg_attr(not(any(feature = "log", test)), allow(unused_mut))]
+        let mut weights = progressions
             .iter()
             .enumerate()
             .map(|(index, inventory)| {
@@ -554,7 +704,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
 
                 let mut weight = 1.0 / inventory.cost() as f32 * (newly_reached + 1) as f32;
 
-                let begrudgingly_used_slots = (inventory.item_count() as usize
+                let begrudgingly_used_slots = (inventory.item_count()
                     + (SPAWN_SLOTS - PREFERRED_SPAWN_SLOTS))
                     .saturating_sub(slots);
                 if begrudgingly_used_slots > 0 {
@@ -565,28 +715,59 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             })
             .collect::<Vec<_>>();
 
+        #[cfg(any(feature = "log", test))]
+        {
+            weights.sort_unstable_by(|(_, a), (_, b)| OrderedFloat(*b).cmp(&OrderedFloat(*a)));
+            let weight_sum = weights.iter().map(|(_, weight)| weight).sum::<f32>();
+            let options = weights.iter().map(|(index, weight)| {
+                let inventory = &progressions[*index];
+                let chance = ((*weight / weight_sum) * 1000.).round() * 0.1;
+                format!("{chance}%: {inventory}")
+            });
+            trace!(
+                "[World {}] Options for forced progression:\n{}",
+                self.index,
+                options.format("\n")
+            );
+        }
+
         let index = weights
             .choose_weighted(&mut self.rng, |(_, weight)| *weight)
             .ok()?
             .0; // TODO handle
+        let progression = progressions.swap_remove(index);
+        trace!(
+            "[World {}] Chose forced progression: {progression}",
+            self.index
+        );
 
-        Some(progressions.swap_remove(index))
+        Some(progression)
     }
 
-    fn place_spirit_light(&mut self, mut amount: i32) {
+    fn place_spirit_light(&mut self, mut amount: usize) {
         while amount > 0 {
-            let batch = self.spirit_light_provider.take(self.slots_remaining());
+            let batch = self.spirit_light_provider.take(self.placements_remaining());
             amount -= batch;
-            let action = common(CommonItem::SpiritLight(batch));
-            let node = self.choose_placement_node(&action).unwrap();
-            self.push_action(node_trigger(node).unwrap(), action);
+            let command = compile::spirit_light(
+                CommandInteger::Constant {
+                    value: batch as i32,
+                },
+                &mut self.rng,
+            );
+            let node = self.choose_placement_node(&command).unwrap();
+            trace!(
+                "[World {}] Placing {command} at {}",
+                self.index,
+                node.identifier()
+            );
+            self.push_command(node_trigger(node).unwrap(), command);
         }
     }
 
-    fn choose_placement_node(&mut self, action: &Action) -> Option<&'graph Node> {
-        match action {
-            Action::Command(Command::Custom(CommonItem::SpiritLight(_))) => self
-                .reached_needs_placement
+    fn choose_placement_node(&mut self, command: &CommandVoid) -> Option<&'graph Node> {
+        let is_spirit_light = is_spirit_light(command);
+        if is_spirit_light {
+            self.reached_needs_placement
                 .iter()
                 .enumerate()
                 .filter(|(_, node_index)| {
@@ -596,238 +777,254 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
                         .is_shop()
                 })
                 .map(|(index, _)| index)
-                .choose(&mut self.rng),
-            _ => (!self.reached_needs_placement.is_empty())
-                .then(|| self.rng.gen_range(0..self.reached_needs_placement.len())),
+                .choose(&mut self.rng) // TODO shuffle instead?
+        } else {
+            (!self.reached_needs_placement.is_empty())
+                .then(|| self.rng.gen_range(0..self.reached_needs_placement.len()))
         }
         .map(|index| {
             let node_index = self.reached_needs_placement.swap_remove(index);
+            trace!(
+                "[World {}] Choose {} as placement location for {command}",
+                self.index,
+                self.needs_placement[node_index].identifier()
+            );
             self.received_placement.push(node_index);
             self.needs_placement[node_index]
         })
+        .or_else(|| {
+            if is_spirit_light {
+                let (index, _) = self
+                    .placeholders
+                    .iter()
+                    .enumerate()
+                    .find(|(_, node)| !node.uber_identifier().unwrap().is_shop())?;
+                Some(self.placeholders.swap_remove(index))
+            } else {
+                self.placeholders.pop()
+            }
+        })
     }
 
-    fn map_icon(&mut self, node: &Node, action: &Action, label: CommandString) {
+    fn map_icon(&mut self, node: &Node, command: &CommandVoid, label: CommandString) {
         let icon = self
             .output
             .item_metadata
-            .get(action)
-            .and_then(|metadata| metadata.map_icon.clone())
-            .unwrap_or_else(|| match action {
-                Action::Command(Command::Custom(common_item)) => match common_item {
-                    CommonItem::SpiritLight(_) => MapIcon::Experience,
-                    CommonItem::Resource(resource) => match resource {
-                        Resource::HealthFragment => MapIcon::HealthFragment,
-                        Resource::EnergyFragment => MapIcon::EnergyFragment,
-                        Resource::GorlekOre => MapIcon::Ore,
-                        Resource::Keystone => MapIcon::Keystone,
-                        Resource::ShardSlot => MapIcon::ShardSlotUpgrade,
-                    },
-                    CommonItem::Skill(_) => MapIcon::AbilityPedestal,
-                    CommonItem::Shard(_) => MapIcon::SpiritShard,
-                    CommonItem::Teleporter(_) => MapIcon::Teleporter,
-                    _ => MapIcon::QuestItem,
-                },
-                _ => MapIcon::QuestItem,
+            .get(command)
+            .and_then(|metadata| metadata.map_icon)
+            .unwrap_or_else(|| {
+                CommonItem::from_command(command)
+                    .into_iter()
+                    .next()
+                    .map_or(MapIcon::QuestItem, |common_item| common_item.map_icon())
             });
 
-        self.on_load(Action::Command(Command::Void(
-            CommandVoid::SetSpoilerMapIcon {
-                location: string(node.identifier().to_string()),
-                icon,
-                label,
-            },
-        )));
+        self.on_load(CommandVoid::SetSpoilerMapIcon {
+            location: node.identifier().to_string(),
+            icon,
+            label,
+        });
     }
 
-    fn name(&self, action: &Action) -> String {
+    fn name(&self, command: &CommandVoid) -> StringOrPlaceholder {
         self.output
             .item_metadata
-            .get(action)
+            .get(command)
             .and_then(|metadata| metadata.name.clone())
-            .unwrap_or_else(|| action.to_string())
+            .unwrap_or_else(|| command.to_string().into()) // TODO to_string usages in here do not seem reasonable?
     }
 
-    fn on_load(&mut self, action: Action) {
-        // This will be true because we forced it in the constructor
-        if let Action::Multi(actions) = &mut self.output.events[self.on_load_index].action {
-            // we only use this for metadata stuff so no need to simulate
-            actions.push(action);
-        }
+    fn on_load(&mut self, command: CommandVoid) {
+        self.push_command(Trigger::ClientEvent(ClientEvent::Reload), command);
     }
 
     fn shop_item_data(
         &mut self,
-        action: &Action,
+        command: &CommandVoid,
         uber_identifier: UberIdentifier,
         name: CommandString,
     ) {
         let (price, description, icon) = self
             .output
             .item_metadata
-            .get(action)
+            .get(command)
             .cloned()
             .map_or((None, None, None), |metadata| {
                 (metadata.price, metadata.description, metadata.icon)
             });
 
-        let price = price.unwrap_or_else(|| integer(self.shop_price(action)));
-        let icon = icon.or_else(|| default_icon(action));
+        let price = price.unwrap_or_else(|| CommandInteger::Constant {
+            value: self.shop_price(command),
+        });
+        let icon = icon.or_else(|| default_icon(command));
 
-        let mut actions = vec![
-            Action::Command(Command::Void(CommandVoid::SetShopItemPrice {
+        let mut commands = vec![
+            CommandVoid::SetShopItemPrice {
                 uber_identifier,
                 price,
-            })),
-            Action::Command(Command::Void(CommandVoid::SetShopItemName {
+            },
+            CommandVoid::SetShopItemName {
                 uber_identifier,
                 name,
-            })),
+            },
         ];
         if let Some(description) = description {
-            actions.push(Action::Command(Command::Void(
-                CommandVoid::SetShopItemDescription {
-                    uber_identifier,
-                    description,
-                },
-            )))
+            commands.push(CommandVoid::SetShopItemDescription {
+                uber_identifier,
+                description,
+            })
         }
         if let Some(icon) = icon {
-            actions.push(Action::Command(Command::Void(
-                CommandVoid::SetShopItemIcon {
-                    uber_identifier,
-                    icon,
-                },
-            )))
+            commands.push(CommandVoid::SetShopItemIcon {
+                uber_identifier,
+                icon,
+            })
         }
 
-        self.on_load(Action::Multi(actions));
+        self.on_load(CommandVoid::Multi { commands });
     }
 
-    fn shop_price(&mut self, action: &Action) -> i32 {
-        let base_price = match action {
-            Action::Command(Command::Custom(common_item)) => match common_item {
-                CommonItem::Resource(Resource::HealthFragment) => 200.,
-                CommonItem::Resource(Resource::EnergyFragment) => 150.,
-                CommonItem::Resource(Resource::GorlekOre | Resource::Keystone) => 100.,
-                CommonItem::Resource(Resource::ShardSlot) => 250.,
-                CommonItem::Skill(skill) => match skill {
-                    Skill::WaterBreath | Skill::Regenerate | Skill::Seir => 200.,
-                    Skill::GladesAncestralLight | Skill::InkwaterAncestralLight => 300.,
-                    Skill::Blaze => return 420,
-                    Skill::Launch => 800.,
-                    _ => 500.,
-                },
-                CommonItem::CleanWater => 500.,
-                CommonItem::Teleporter(_) | CommonItem::Shard(_) => 250.,
-                _ => 200.,
-            },
-            _ => 200.,
+    fn shop_price(&mut self, command: &CommandVoid) -> i32 {
+        let common_items = CommonItem::from_command(command);
+
+        if matches!(common_items.as_slice(), [CommonItem::Skill(Skill::Blaze)]) {
+            return 420;
+        }
+
+        let base_price = if common_items.is_empty() {
+            200.
+        } else {
+            common_items
+                .into_iter()
+                .map(|common_item| common_item.shop_price())
+                .sum()
         };
 
         (base_price * self.price_distribution.sample(&mut self.rng)).round() as i32
     }
 
     fn fill_remaining(&mut self) {
+        trace!(
+            "[World {}] Filling remaining locations with spirit light",
+            self.index
+        );
+
         let mut needs_placement = mem::take(&mut self.needs_placement);
+        needs_placement.extend(mem::take(&mut self.placeholders));
         needs_placement.shuffle(&mut self.rng);
 
-        for (slots_remaining, node) in needs_placement.into_iter().enumerate().rev() {
+        for (placements_remaining, node) in needs_placement.into_iter().enumerate().rev() {
             let uber_identifier = node.uber_identifier().unwrap();
-            let action = common(if uber_identifier.is_shop() {
+            let command = if uber_identifier.is_shop() {
                 // TODO warn and also try to avoid
-                CommonItem::Resource(Resource::GorlekOre)
+                compile::gorlek_ore()
             } else {
-                CommonItem::SpiritLight(self.spirit_light_provider.take(slots_remaining))
-            });
-            let name = string(self.name(&action));
-            self.shop_item_data(&action, uber_identifier, name.clone());
-            self.push_action(node_trigger(node).unwrap(), action)
+                compile::spirit_light(
+                    CommandInteger::Constant {
+                        value: self.spirit_light_provider.take(placements_remaining) as i32,
+                    },
+                    &mut self.rng,
+                )
+            };
+            trace!(
+                "[World {}] Placing {command} at {}",
+                self.index,
+                node.identifier()
+            );
+            let name = CommandString::Constant {
+                value: self.name(&command),
+            };
+            self.shop_item_data(&command, uber_identifier, name.clone());
+            self.push_command(node_trigger(node).unwrap(), command)
         }
         // TODO unreachable items that should be filled
     }
 
-    fn push_action(&mut self, trigger: Trigger, action: Action) {
+    fn push_command(&mut self, trigger: Trigger, command: CommandVoid) {
         self.world.uber_states.register_trigger(&trigger);
-        self.world.simulate(&action, &self.output);
-        self.output.events.push(Event { trigger, action });
+        self.world.simulate(&command, &self.output);
+        self.output.events.push(Event { trigger, command });
     }
 }
 
-fn common(item: CommonItem) -> Action {
-    Action::Command(Command::Custom(item))
-}
-fn boolean(value: bool) -> CommandBoolean {
-    CommandBoolean::Constant { value }
-}
-fn integer(value: i32) -> CommandInteger {
-    CommandInteger::Constant { value }
-}
-fn float(value: OrderedFloat<f32>) -> CommandFloat {
-    CommandFloat::Constant { value }
-}
-fn string(value: String) -> CommandString {
-    CommandString::Constant {
-        value: value.into(),
+fn total_reach_check<'graph>(
+    world: &World<'graph, '_>,
+    output: &CompilerOutput,
+    item_pool: &ItemPool,
+) -> Vec<&'graph Node> {
+    let mut world = world.clone();
+    for command in item_pool.clone().drain() {
+        world.simulate(&command, output);
     }
-}
-fn icon(value: Icon) -> CommandIcon {
-    CommandIcon::Constant { value }
-}
-fn read_icon(path: String) -> CommandIcon {
-    CommandIcon::ReadIcon {
-        path: Box::new(CommandString::Constant { value: path.into() }),
-    }
+    world.reached()
 }
 
-fn default_icon(action: &Action) -> Option<CommandIcon> {
-    match action {
-        Action::Command(Command::Custom(common_item)) => match common_item {
+fn is_spirit_light(command: &CommandVoid) -> bool {
+    matches!(
+        command,
+        CommandVoid::StoreInteger {
+            uber_identifier: uber_identifier::SPIRIT_LIGHT,
+            ..
+        }
+    )
+}
+
+fn default_icon(command: &CommandVoid) -> Option<Icon> {
+    CommonItem::from_command(command)
+        .into_iter()
+        .next()
+        .and_then(|common_item| match common_item {
             CommonItem::SpiritLight(_) => {
-                Some(read_icon("assets/icons/game/experience.png".to_string()))
+                Some(Icon::File("assets/icons/game/experience.png".to_string()))
             }
-            CommonItem::Resource(resource) => {
-                let mut filename = resource.to_string();
-                filename.make_ascii_lowercase();
-                Some(read_icon(format!("assets/icons/game/{filename}.png",)))
+            CommonItem::GorlekOre => {
+                Some(Icon::File("assets/icons/game/gorlekore.png".to_string()))
             }
+            CommonItem::Keystone => Some(Icon::File("assets/icons/game/keystone.png".to_string())),
+            CommonItem::ShardSlot => {
+                Some(Icon::File("assets/icons/game/shardslot.png".to_string()))
+            }
+            CommonItem::HealthFragment => Some(Icon::File(
+                "assets/icons/game/healthfragment.png".to_string(),
+            )),
+            CommonItem::EnergyFragment => Some(Icon::File(
+                "assets/icons/game/energyfragment.png".to_string(),
+            )),
             CommonItem::Skill(skill) => match skill {
-                Skill::Bash => Some(icon(Icon::Equipment(Equipment::Bash))),
-                Skill::DoubleJump => Some(icon(Icon::Equipment(Equipment::Bounce))),
-                Skill::Launch => Some(icon(Icon::Equipment(Equipment::Launch))),
-                Skill::Glide => Some(icon(Icon::Equipment(Equipment::Glide))),
-                Skill::WaterBreath => Some(icon(Icon::Opher(OpherIcon::WaterBreath))),
-                Skill::Grenade => Some(icon(Icon::Equipment(Equipment::Grenade))),
-                Skill::Grapple => Some(icon(Icon::Equipment(Equipment::Grapple))),
-                Skill::Flash => Some(icon(Icon::Equipment(Equipment::Glow))),
-                Skill::Spear => Some(icon(Icon::Opher(OpherIcon::Spear))),
-                Skill::Regenerate => Some(icon(Icon::Equipment(Equipment::Regenerate))),
-                Skill::Bow => Some(icon(Icon::Equipment(Equipment::Bow))),
-                Skill::Hammer => Some(icon(Icon::Opher(OpherIcon::Hammer))),
-                Skill::Sword => Some(icon(Icon::Equipment(Equipment::Sword))),
-                Skill::Burrow => Some(icon(Icon::Equipment(Equipment::Burrow))),
-                Skill::Dash => Some(icon(Icon::Equipment(Equipment::Dash))),
-                Skill::WaterDash => Some(icon(Icon::Equipment(Equipment::WaterDash))),
-                Skill::Shuriken => Some(icon(Icon::Opher(OpherIcon::Shuriken))),
-                Skill::Seir => Some(icon(Icon::Equipment(Equipment::Sein))),
-                Skill::Blaze => Some(icon(Icon::Opher(OpherIcon::Blaze))),
-                Skill::Sentry => Some(icon(Icon::Opher(OpherIcon::Sentry))),
-                Skill::Flap => Some(icon(Icon::Equipment(Equipment::Flap))),
-                Skill::GladesAncestralLight => Some(read_icon(
+                Skill::Bash => Some(Icon::Equipment(Equipment::Bash)),
+                Skill::DoubleJump => Some(Icon::Equipment(Equipment::Bounce)),
+                Skill::Launch => Some(Icon::Equipment(Equipment::Launch)),
+                Skill::Glide => Some(Icon::Equipment(Equipment::Glide)),
+                Skill::WaterBreath => Some(Icon::Opher(OpherIcon::WaterBreath)),
+                Skill::Grenade => Some(Icon::Equipment(Equipment::Grenade)),
+                Skill::Grapple => Some(Icon::Equipment(Equipment::Grapple)),
+                Skill::Flash => Some(Icon::Equipment(Equipment::Glow)),
+                Skill::Spear => Some(Icon::Opher(OpherIcon::Spear)),
+                Skill::Regenerate => Some(Icon::Equipment(Equipment::Regenerate)),
+                Skill::Bow => Some(Icon::Equipment(Equipment::Bow)),
+                Skill::Hammer => Some(Icon::Opher(OpherIcon::Hammer)),
+                Skill::Sword => Some(Icon::Equipment(Equipment::Sword)),
+                Skill::Burrow => Some(Icon::Equipment(Equipment::Burrow)),
+                Skill::Dash => Some(Icon::Equipment(Equipment::Dash)),
+                Skill::WaterDash => Some(Icon::Equipment(Equipment::WaterDash)),
+                Skill::Shuriken => Some(Icon::Opher(OpherIcon::Shuriken)),
+                Skill::Seir => Some(Icon::Equipment(Equipment::Sein)),
+                Skill::Blaze => Some(Icon::Opher(OpherIcon::Blaze)),
+                Skill::Sentry => Some(Icon::Opher(OpherIcon::Sentry)),
+                Skill::Flap => Some(Icon::Equipment(Equipment::Flap)),
+                Skill::GladesAncestralLight => Some(Icon::File(
                     "assets/icons/game/ancestrallight1.png".to_string(),
                 )),
-                Skill::InkwaterAncestralLight => Some(read_icon(
+                Skill::InkwaterAncestralLight => Some(Icon::File(
                     "assets/icons/game/ancestrallight2.png".to_string(),
                 )),
                 _ => None,
             },
-            CommonItem::Shard(shard) => Some(icon(Icon::Shard(*shard))),
+            CommonItem::Shard(shard) => Some(Icon::Shard(shard)),
             CommonItem::Teleporter(_) => {
-                Some(read_icon("assets/icons/game/teleporter.png".to_string()))
+                Some(Icon::File("assets/icons/game/teleporter.png".to_string()))
             }
-            CommonItem::CleanWater => Some(read_icon("assets/icons/game/water.png".to_string())),
+            CommonItem::CleanWater => Some(Icon::File("assets/icons/game/water.png".to_string())),
             _ => None,
-        },
-        _ => None,
-    }
+        })
 }

@@ -12,7 +12,6 @@ proc-macro = true
 [dependencies]
 syn = { version = "2.0", features = ["extra-traits"] }
 quote = "1.0"
-itertools = "0.10"
+itertools = "0.12"
 proc-macro2 = "1.0"
-convert_case = "0.6"
-logos-codegen = "0.13"
+convert_case = "0.6" # TODO compare to heck, I think we have that in the dependencies through strum already

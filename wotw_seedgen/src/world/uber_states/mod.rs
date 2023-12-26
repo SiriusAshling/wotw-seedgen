@@ -1,13 +1,15 @@
 // TODO why is this in a directory?
 
-use crate::log;
+use crate::log::warning;
+use ordered_float::OrderedFloat;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cmp::Ordering;
-use wotw_seedgen_assembly::{CommandZone, Operation};
+use strum::AsRefStr;
+use wotw_seedgen_assembly::Operation;
 use wotw_seedgen_assets::UberStateData;
 use wotw_seedgen_data::UberIdentifier;
 use wotw_seedgen_seed_language::output::{
-    CommandBoolean, CommandFloat, CommandIcon, CommandInteger, CommandString, CommandVoid, Trigger,
+    CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandVoid, CommandZone, Trigger,
 };
 
 #[derive(Debug, Clone)]
@@ -22,7 +24,7 @@ impl UberStates {
             states: uber_state_data
                 .id_lookup
                 .iter()
-                .filter_map(|(uber_identifier, data)| {
+                .map(|(uber_identifier, data)| {
                     let value = match data.default_value {
                         wotw_seedgen_assets::UberStateValue::Boolean(value) => {
                             UberStateValue::Boolean(value)
@@ -35,13 +37,13 @@ impl UberStates {
                         }
                     };
 
-                    Some((
+                    (
                         *uber_identifier,
                         UberStateEntry {
                             value,
                             triggers: Default::default(),
                         },
-                    ))
+                    )
                 })
                 .collect(),
             registered_triggers: 0,
@@ -58,7 +60,8 @@ pub struct UberStateEntry {
     value: UberStateValue,
     triggers: FxHashSet<usize>,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+// TODO why ord
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, AsRefStr)]
 pub enum UberStateValue {
     Boolean(bool),
     Integer(i32),
@@ -69,7 +72,7 @@ impl UberStateValue {
         match self {
             UberStateValue::Boolean(value) => value,
             _ => {
-                log::warning!("Attempted to access {} UberState as Boolean", self.kind());
+                warning!("Attempted to access {} UberState as Boolean", self.as_ref());
                 Default::default()
             }
         }
@@ -78,7 +81,7 @@ impl UberStateValue {
         match self {
             UberStateValue::Integer(value) => value,
             _ => {
-                log::warning!("Attempted to access {} UberState as Integer", self.kind());
+                warning!("Attempted to access {} UberState as Integer", self.as_ref());
                 Default::default()
             }
         }
@@ -87,17 +90,9 @@ impl UberStateValue {
         match self {
             UberStateValue::Float(value) => value,
             _ => {
-                log::warning!("Attempted to access {} UberState as Float", self.kind());
+                warning!("Attempted to access {} UberState as Float", self.as_ref());
                 Default::default()
             }
-        }
-    }
-
-    fn kind(self) -> &'static str {
-        match self {
-            UberStateValue::Boolean(_) => "Boolean",
-            UberStateValue::Integer(_) => "Integer",
-            UberStateValue::Float(_) => "Float",
         }
     }
 }
@@ -132,24 +127,11 @@ impl PartialOrd<OrderedFloat<f32>> for UberStateValue {
     }
 }
 
-// impl Default for UberStates {
-//     // TODO we ignore the effect of seed_core here
-//     fn default() -> Self {
-//         Self {
-//             states: DEFAULT_UBER_STATES.clone(),
-//             registered_triggers: 0,
-//             fallback: UberStateEntry {
-//                 value: UberStateValue::Boolean(false),
-//                 triggers: Default::default(),
-//             },
-//         }
-//     }
-// }
 impl UberStates {
     pub fn register_trigger(&mut self, trigger: &Trigger) {
         for uber_identifier in contained_uber_identifiers(trigger) {
             match self.states.get_mut(&uber_identifier) {
-                None => log::warning!("Trigger contained unknown UberState {uber_identifier}"),
+                None => warning!("Trigger contained unknown UberState {uber_identifier}"),
                 Some(entry) => {
                     entry.triggers.insert(self.registered_triggers);
                 }
@@ -158,14 +140,17 @@ impl UberStates {
         self.registered_triggers += 1;
     }
 
-    pub fn set<'a>(
-        &'a mut self,
+    pub fn set(&mut self, uber_identifier: UberIdentifier, value: UberStateValue) {
+        let _ = self.set_and_return_triggers(uber_identifier, value);
+    }
+    pub fn set_and_return_triggers(
+        &mut self,
         uber_identifier: UberIdentifier,
         value: UberStateValue,
-    ) -> impl Iterator<Item = usize> + 'a {
+    ) -> impl Iterator<Item = usize> + '_ {
         match self.states.get_mut(&uber_identifier) {
             None => {
-                log::warning!("Attempted to write to unknown UberState {uber_identifier}");
+                warning!("Attempted to write to unknown UberState {uber_identifier}");
                 self.fallback.triggers.iter().copied()
             }
             Some(entry) => {
@@ -182,7 +167,7 @@ impl UberStates {
     pub fn get(&self, uber_identifier: UberIdentifier) -> UberStateValue {
         match self.states.get(&uber_identifier) {
             None => {
-                log::warning!("Attempted to read from unknown UberState {uber_identifier}");
+                warning!("Attempted to read from unknown UberState {uber_identifier}");
                 self.fallback.value
             }
             Some(entry) => entry.value,
@@ -197,6 +182,13 @@ fn contained_uber_identifiers<T: ContainedUberIdentifiers>(t: &T) -> Vec<UberIde
 }
 trait ContainedUberIdentifiers {
     fn contained_uber_identifiers(&self, output: &mut Vec<UberIdentifier>);
+}
+impl<T: ContainedUberIdentifiers> ContainedUberIdentifiers for Vec<T> {
+    fn contained_uber_identifiers(&self, output: &mut Vec<UberIdentifier>) {
+        for t in self {
+            t.contained_uber_identifiers(output)
+        }
+    }
 }
 impl ContainedUberIdentifiers for Trigger {
     fn contained_uber_identifiers(&self, output: &mut Vec<UberIdentifier>) {
@@ -218,6 +210,10 @@ impl<Item: ContainedUberIdentifiers, Operator> ContainedUberIdentifiers
 impl ContainedUberIdentifiers for CommandBoolean {
     fn contained_uber_identifiers(&self, output: &mut Vec<UberIdentifier>) {
         match self {
+            CommandBoolean::Multi { commands, last } => {
+                commands.contained_uber_identifiers(output);
+                last.contained_uber_identifiers(output);
+            }
             CommandBoolean::CompareBoolean { operation } => {
                 operation.contained_uber_identifiers(output)
             }
@@ -239,18 +235,22 @@ impl ContainedUberIdentifiers for CommandBoolean {
             CommandBoolean::FetchBoolean { uber_identifier } => output.push(*uber_identifier),
             CommandBoolean::Constant { .. }
             | CommandBoolean::GetBoolean { .. }
-            | CommandBoolean::IsInHitbox { .. }
-            | CommandBoolean::RandomSpiritLightNames { .. } => {}
+            | CommandBoolean::IsInHitbox { .. } => {}
         }
     }
 }
 impl ContainedUberIdentifiers for CommandInteger {
     fn contained_uber_identifiers(&self, output: &mut Vec<UberIdentifier>) {
         match self {
+            CommandInteger::Multi { commands, last } => {
+                commands.contained_uber_identifiers(output);
+                last.contained_uber_identifiers(output);
+            }
             CommandInteger::Arithmetic { operation } => {
                 operation.contained_uber_identifiers(output)
             }
             CommandInteger::FetchInteger { uber_identifier } => output.push(*uber_identifier),
+            CommandInteger::FromFloat { float } => float.contained_uber_identifiers(output),
             CommandInteger::Constant { .. } | CommandInteger::GetInteger { .. } => {}
         }
     }
@@ -258,6 +258,10 @@ impl ContainedUberIdentifiers for CommandInteger {
 impl ContainedUberIdentifiers for CommandFloat {
     fn contained_uber_identifiers(&self, output: &mut Vec<UberIdentifier>) {
         match self {
+            CommandFloat::Multi { commands, last } => {
+                commands.contained_uber_identifiers(output);
+                last.contained_uber_identifiers(output);
+            }
             CommandFloat::Arithmetic { operation } => operation.contained_uber_identifiers(output),
             CommandFloat::FetchFloat { uber_identifier } => output.push(*uber_identifier),
             CommandFloat::FromInteger { integer } => integer.contained_uber_identifiers(output),
@@ -268,11 +272,17 @@ impl ContainedUberIdentifiers for CommandFloat {
 impl ContainedUberIdentifiers for CommandString {
     fn contained_uber_identifiers(&self, output: &mut Vec<UberIdentifier>) {
         match self {
+            CommandString::Multi { commands, last } => {
+                commands.contained_uber_identifiers(output);
+                last.contained_uber_identifiers(output);
+            }
             CommandString::Concatenate { left, right } => {
                 left.contained_uber_identifiers(output);
                 right.contained_uber_identifiers(output);
             }
-            CommandString::ToString { .. } => todo!(),
+            CommandString::FromBoolean { boolean } => boolean.contained_uber_identifiers(output),
+            CommandString::FromInteger { integer } => integer.contained_uber_identifiers(output),
+            CommandString::FromFloat { float } => float.contained_uber_identifiers(output),
             CommandString::Constant { .. }
             | CommandString::GetString { .. }
             | CommandString::WorldName { .. } => {}
@@ -280,52 +290,12 @@ impl ContainedUberIdentifiers for CommandString {
     }
 }
 impl ContainedUberIdentifiers for CommandZone {
-    fn contained_uber_identifiers(&self, _output: &mut Vec<UberIdentifier>) {}
-}
-impl ContainedUberIdentifiers for CommandIcon {
-    fn contained_uber_identifiers(&self, _output: &mut Vec<UberIdentifier>) {}
+    fn contained_uber_identifiers(&self, _output: &mut Vec<UberIdentifier>) {
+        // None of the variants contain any UberIdentifiers
+    }
 }
 impl ContainedUberIdentifiers for CommandVoid {
     fn contained_uber_identifiers(&self, _output: &mut Vec<UberIdentifier>) {
         // If it doesn't return anything, you can't build a condition out of it
     }
 }
-
-// TODO this blocks being generic over the file access and probably bloats the memory footprint
-// lazy_static! {
-//     static ref DEFAULT_UBER_STATES: FxHashMap<UberIdentifier, UberStateEntry> = UBER_STATE_DATA
-//         .id_lookup
-//         .iter()
-//         .filter_map(|(uber_identifier, data)| {
-//             let value = match data.ty {
-//                 UberStateType::SerializedBooleanUberState
-//                 | UberStateType::BooleanUberState
-//                 | UberStateType::SavePedestalUberState
-//                 | UberStateType::ConditionUberState => {
-//                     UberStateValue::Boolean(data.default_value != 0.)
-//                 }
-//                 UberStateType::SerializedByteUberState
-//                 | UberStateType::ByteUberState
-//                 | UberStateType::SerializedIntUberState
-//                 | UberStateType::IntUberState
-//                 | UberStateType::CountUberState => {
-//                     UberStateValue::Integer(data.default_value as i32)
-//                 }
-//                 UberStateType::SerializedFloatUberState | UberStateType::VirtualUberState => {
-//                     UberStateValue::Float(data.default_value.into())
-//                 }
-//                 UberStateType::PlayerUberStateDescriptor => {
-//                     return None;
-//                 }
-//             };
-
-//             Some((
-//                 *uber_identifier,
-//                 UberStateEntry {
-//                     value,
-//                     triggers: Default::default(),
-//                 },
-//             ))
-//         })
-//         .collect();
-// }

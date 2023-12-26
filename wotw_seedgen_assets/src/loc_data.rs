@@ -55,7 +55,7 @@ pub struct LocDataEntry {
 }
 impl PartialEq for LocDataEntry {
     fn eq(&self, other: &Self) -> bool {
-        &self.identifier == &other.identifier
+        self.identifier == other.identifier
     }
 }
 impl LocData {
@@ -111,7 +111,7 @@ struct LocDataInput<'a> {
 #[serde(remote = "Zone")]
 enum LocDataZone {
     #[serde(rename = "Inkwater Marsh")]
-    Marsh,
+    Inkwater,
     #[serde(rename = "Kwoloks Hollow")]
     Hollow,
     #[serde(rename = "Wellspring Glades")]
@@ -125,7 +125,7 @@ enum LocDataZone {
     #[serde(rename = "Mouldwood Depths")]
     Depths,
     #[serde(rename = "Luma Pools")]
-    Pools,
+    Luma,
     #[serde(rename = "Windswept Wastes")]
     Wastes,
     #[serde(rename = "Windtorn Ruins")]

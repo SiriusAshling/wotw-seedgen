@@ -23,7 +23,7 @@ on spawn {
     store(questUberStateGroup.regrowGladesQuest, 2)
     store(questUberStateGroup.tradeSequenceQuest, 11)
     store(kwolokGroupDescriptor.cleanseWellspringQuestUberState, 4)
-    store(42178|40006, 3)
+    store(hubUberStateGroup.gardenerProjectTree, 3)
     store(_petrifiedForestGroup.hutDoorUnlocked, true)
     store(questUberStateGroup.desertCogQuest, 5)
 }

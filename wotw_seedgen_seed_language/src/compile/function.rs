@@ -7,27 +7,113 @@ use crate::{
     },
 };
 use convert_case::{Case, Casing};
-use parse_display::FromStr;
 use rand::seq::SliceRandom;
 use rand_pcg::Pcg64Mcg;
 use std::ops::Range;
+use strum::EnumString;
 use wotw_seedgen_data::{
-    Resource, Shard, Skill, Teleporter, UberIdentifier, WeaponUpgrade, WheelBind,
+    uber_identifier, Shard, Skill, Teleporter, UberIdentifier, WeaponUpgrade, WheelBind,
 };
 use wotw_seedgen_parse::{Error, Punctuated, Span, Symbol};
 
-struct ArgContext<'a, 'compiler, 'source, 'uberstates> {
+pub fn spirit_light(amount: CommandInteger, rng: &mut Pcg64Mcg) -> CommandVoid {
+    CommandVoid::Multi {
+        commands: vec![
+            item_message(spirit_light_string(amount.clone(), rng, false)),
+            super::add_integer(uber_identifier::SPIRIT_LIGHT, amount),
+        ],
+    }
+}
+pub fn gorlek_ore() -> CommandVoid {
+    resource(gorlek_ore_string, uber_identifier::GORLEK_ORE)
+}
+pub fn keystone() -> CommandVoid {
+    resource(keystone_string, uber_identifier::KEYSTONES)
+}
+pub fn shard_slot() -> CommandVoid {
+    resource(shard_slot_string, uber_identifier::SHARD_SLOTS)
+}
+pub fn health_fragment() -> CommandVoid {
+    CommandVoid::Multi {
+        commands: vec![
+            item_message(health_fragment_string(false)),
+            super::add_integer_value(uber_identifier::MAX_HEALTH, 5),
+            super::set_integer(
+                uber_identifier::HEALTH,
+                CommandInteger::FetchInteger {
+                    uber_identifier: uber_identifier::MAX_HEALTH,
+                }, // TODO reimplement fragment overflow bug?
+            ),
+        ],
+    }
+}
+pub fn energy_fragment() -> CommandVoid {
+    CommandVoid::Multi {
+        commands: vec![
+            item_message(energy_fragment_string(false)),
+            super::add_float_value(uber_identifier::MAX_ENERGY, 0.5.into()),
+            super::set_float(
+                uber_identifier::ENERGY,
+                CommandFloat::FetchFloat {
+                    uber_identifier: uber_identifier::MAX_ENERGY,
+                }, // TODO reimplement fragment overflow bug?
+            ),
+        ],
+    }
+}
+pub fn skill(skill: Skill) -> CommandVoid {
+    CommandVoid::Multi {
+        commands: vec![
+            item_message(skill_string(skill, false)),
+            super::set_boolean_value(skill.uber_identifier(), true),
+        ],
+    }
+}
+pub fn shard(shard: Shard) -> CommandVoid {
+    CommandVoid::Multi {
+        commands: vec![
+            item_message(shard_string(shard, false)),
+            super::set_boolean_value(shard.uber_identifier(), true),
+        ],
+    }
+}
+pub fn teleporter(teleporter: Teleporter) -> CommandVoid {
+    CommandVoid::Multi {
+        commands: vec![
+            item_message(teleporter_string(teleporter, false)),
+            super::set_boolean_value(teleporter.uber_identifier(), true),
+        ],
+    }
+}
+pub fn clean_water() -> CommandVoid {
+    CommandVoid::Multi {
+        commands: vec![
+            item_message(clean_water_string(false)),
+            super::set_boolean_value(uber_identifier::CLEAN_WATER, true),
+        ],
+    }
+}
+pub fn weapon_upgrade(weapon_upgrade: WeaponUpgrade) -> CommandVoid {
+    CommandVoid::Multi {
+        commands: vec![
+            item_message(weapon_upgrade_string(weapon_upgrade, false)),
+            super::set_boolean_value(weapon_upgrade.uber_identifier(), true),
+        ],
+    }
+}
+
+struct ArgContext<'a, 'compiler, 'source, 'snippets, 'uberstates> {
     span: Range<usize>,
     parameters: <Punctuated<ast::Expression<'source>, Symbol<','>> as IntoIterator>::IntoIter,
-    compiler: &'a mut SnippetCompiler<'compiler, 'source, 'uberstates>,
+    compiler: &'a mut SnippetCompiler<'compiler, 'source, 'snippets, 'uberstates>,
 }
 fn try_next<'source>(
-    context: &mut ArgContext<'_, '_, 'source, '_>,
+    context: &mut ArgContext<'_, '_, 'source, '_, '_>,
 ) -> Option<ast::Expression<'source>> {
     let next = context.parameters.next();
     if next.is_none() {
         context.compiler.errors.push(Error::custom(
-            "Too few parameters".to_string(),
+            "Too few parameters".to_string(), // TODO help would be great here
             context.span.clone(),
         ))
     }
@@ -85,8 +171,8 @@ fn warp_icon_id(context: &mut ArgContext) -> Option<usize> {
     string_literal(context).map(|id| context.compiler.global.warp_icon_ids.id(id))
 }
 
-#[derive(FromStr)]
-#[display(style = "snake_case")]
+#[derive(EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub(crate) enum FunctionIdentifier {
     Fetch,
     IsInHitbox,
@@ -99,8 +185,16 @@ pub(crate) enum FunctionIdentifier {
     ToString,
     SpiritLightString,
     RemoveSpiritLightString,
-    ResourceString,
-    RemoveResourceString,
+    GorlekOreString,
+    RemoveGorlekOreString,
+    KeystoneString,
+    RemoveKeystoneString,
+    ShardSlotString,
+    RemoveShardSlotString,
+    HealthFragmentString,
+    RemoveHealthFragmentString,
+    EnergyFragmentString,
+    RemoveEnergyFragmentString,
     SkillString,
     RemoveSkillString,
     ShardString,
@@ -114,8 +208,16 @@ pub(crate) enum FunctionIdentifier {
     CurrentZone,
     SpiritLight,
     RemoveSpiritLight,
-    Resource,
-    RemoveResource,
+    GorlekOre,
+    RemoveGorlekOre,
+    Keystone,
+    RemoveKeystone,
+    ShardSlot,
+    RemoveShardSlot,
+    HealthFragment,
+    RemoveHealthFragment,
+    EnergyFragment,
+    RemoveEnergyFragment,
     Skill,
     RemoveSkill,
     Shard,
@@ -178,7 +280,7 @@ pub(crate) enum FunctionIdentifier {
 impl<'source> Compile<'source> for ast::FunctionCall<'source> {
     type Output = Option<Command>;
 
-    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_>) -> Self::Output {
+    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
         if let Some(&index) = compiler.function_indices.get(self.identifier.data.0) {
             if let Ok(parameters) = &self.parameters.content {
                 if !parameters.is_empty() {
@@ -214,7 +316,7 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 let uber_identifier = try_next(&mut context)?;
                 let span = uber_identifier.span();
                 let uber_identifier =
-                    uber_identifier.compile_into::<UberIdentifier>(&mut context.compiler)?;
+                    uber_identifier.compile_into::<UberIdentifier>(context.compiler)?;
                 match context.compiler.uber_state_type(uber_identifier, &span)? {
                     UberStateType::Boolean => {
                         Command::Boolean(CommandBoolean::FetchBoolean { uber_identifier })
@@ -320,11 +422,23 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 &mut context.compiler.rng,
                 true,
             )),
-            FunctionIdentifier::ResourceString => {
-                Command::String(resource_string(arg(&mut context)?, false))
+            FunctionIdentifier::GorlekOreString => Command::String(gorlek_ore_string(false)),
+            FunctionIdentifier::RemoveGorlekOreString => Command::String(gorlek_ore_string(true)),
+            FunctionIdentifier::KeystoneString => Command::String(keystone_string(false)),
+            FunctionIdentifier::RemoveKeystoneString => Command::String(keystone_string(true)),
+            FunctionIdentifier::ShardSlotString => Command::String(shard_slot_string(false)),
+            FunctionIdentifier::RemoveShardSlotString => Command::String(shard_slot_string(true)),
+            FunctionIdentifier::HealthFragmentString => {
+                Command::String(health_fragment_string(false))
             }
-            FunctionIdentifier::RemoveResourceString => {
-                Command::String(resource_string(arg(&mut context)?, true))
+            FunctionIdentifier::RemoveHealthFragmentString => {
+                Command::String(health_fragment_string(true))
+            }
+            FunctionIdentifier::EnergyFragmentString => {
+                Command::String(energy_fragment_string(false))
+            }
+            FunctionIdentifier::RemoveEnergyFragmentString => {
+                Command::String(energy_fragment_string(true))
             }
             FunctionIdentifier::SkillString => {
                 Command::String(skill_string(arg(&mut context)?, false))
@@ -354,17 +468,7 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
             }
             FunctionIdentifier::CurrentZone => Command::Zone(CommandZone::CurrentZone {}),
             FunctionIdentifier::SpiritLight => {
-                let amount = arg::<CommandInteger>(&mut context)?;
-                Command::Void(CommandVoid::Multi {
-                    commands: vec![
-                        item_message(spirit_light_string(
-                            amount.clone(),
-                            &mut context.compiler.rng,
-                            false,
-                        )),
-                        add(UberIdentifier::SPIRIT_LIGHT, amount),
-                    ],
-                })
+                Command::Void(spirit_light(arg(&mut context)?, &mut context.compiler.rng))
             }
             FunctionIdentifier::RemoveSpiritLight => {
                 let amount = arg::<CommandInteger>(&mut context)?;
@@ -383,118 +487,83 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
                         item_message(spirit_light_string(amount, &mut context.compiler.rng, true)),
-                        add(UberIdentifier::SPIRIT_LIGHT, negative),
+                        super::add_integer(uber_identifier::SPIRIT_LIGHT, negative),
                     ],
                 })
             }
-            FunctionIdentifier::Resource => {
-                let resource = arg(&mut context)?;
-                Command::Void(CommandVoid::Multi {
-                    commands: vec![
-                        item_message(resource_string(resource, false)),
-                        add(
-                            resource.uber_identifier(),
-                            CommandInteger::Constant { value: 1 },
-                        ),
-                    ],
-                })
+            FunctionIdentifier::GorlekOre => Command::Void(gorlek_ore()),
+            FunctionIdentifier::RemoveGorlekOre => {
+                remove_resource(gorlek_ore_string, uber_identifier::GORLEK_ORE)
             }
-            FunctionIdentifier::RemoveResource => {
-                let resource = arg(&mut context)?;
-                Command::Void(CommandVoid::Multi {
-                    commands: vec![
-                        item_message(resource_string(resource, true)),
-                        add(
-                            resource.uber_identifier(),
-                            CommandInteger::Constant { value: -1 },
-                        ),
-                    ],
-                })
+            FunctionIdentifier::Keystone => Command::Void(keystone()),
+            FunctionIdentifier::RemoveKeystone => {
+                remove_resource(keystone_string, uber_identifier::KEYSTONES)
             }
-            FunctionIdentifier::Skill => {
-                let skill = arg(&mut context)?;
-                Command::Void(CommandVoid::Multi {
-                    commands: vec![
-                        item_message(skill_string(skill, false)),
-                        set(skill.uber_identifier(), true),
-                    ],
-                })
+            FunctionIdentifier::ShardSlot => Command::Void(shard_slot()),
+            FunctionIdentifier::RemoveShardSlot => {
+                remove_resource(shard_slot_string, uber_identifier::SHARD_SLOTS)
             }
+            FunctionIdentifier::HealthFragment => Command::Void(health_fragment()),
+            FunctionIdentifier::RemoveHealthFragment => Command::Void(CommandVoid::Multi {
+                commands: vec![
+                    item_message(health_fragment_string(true)),
+                    super::add_integer_value(uber_identifier::MAX_HEALTH, -5),
+                ],
+            }),
+            FunctionIdentifier::EnergyFragment => Command::Void(energy_fragment()),
+            FunctionIdentifier::RemoveEnergyFragment => Command::Void(CommandVoid::Multi {
+                commands: vec![
+                    item_message(energy_fragment_string(true)),
+                    super::add_float_value(uber_identifier::MAX_ENERGY, (-0.5).into()),
+                ],
+            }),
+            FunctionIdentifier::Skill => Command::Void(skill(arg(&mut context)?)),
             FunctionIdentifier::RemoveSkill => {
                 let skill = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
                         item_message(skill_string(skill, true)),
-                        set(skill.uber_identifier(), false),
+                        super::set_boolean_value(skill.uber_identifier(), false),
                         CommandVoid::Unequip {
                             equipment: skill.equipment(),
                         },
                     ],
                 })
             }
-            FunctionIdentifier::Shard => {
-                let shard = arg(&mut context)?;
-                Command::Void(CommandVoid::Multi {
-                    commands: vec![
-                        item_message(shard_string(shard, false)),
-                        set(shard.uber_identifier(), true),
-                    ],
-                })
-            }
+            FunctionIdentifier::Shard => Command::Void(shard(arg(&mut context)?)),
             FunctionIdentifier::RemoveShard => {
                 let shard = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
                         item_message(shard_string(shard, true)),
-                        set(shard.uber_identifier(), false),
+                        super::set_boolean_value(shard.uber_identifier(), false),
                     ],
                 })
             }
-            FunctionIdentifier::Teleporter => {
-                let teleporter = arg(&mut context)?;
-                Command::Void(CommandVoid::Multi {
-                    commands: vec![
-                        item_message(teleporter_string(teleporter, false)),
-                        set(teleporter.uber_identifier(), true),
-                    ],
-                })
-            }
+            FunctionIdentifier::Teleporter => Command::Void(teleporter(arg(&mut context)?)),
             FunctionIdentifier::RemoveTeleporter => {
                 let teleporter = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
                         item_message(teleporter_string(teleporter, true)),
-                        set(teleporter.uber_identifier(), false),
+                        super::set_boolean_value(teleporter.uber_identifier(), false),
                     ],
                 })
             }
-            FunctionIdentifier::CleanWater => Command::Void(CommandVoid::Multi {
-                commands: vec![
-                    item_message(clean_water_string(false)),
-                    set(UberIdentifier::CLEAN_WATER, true),
-                ],
-            }),
+            FunctionIdentifier::CleanWater => Command::Void(clean_water()),
             FunctionIdentifier::RemoveCleanWater => Command::Void(CommandVoid::Multi {
                 commands: vec![
                     item_message(clean_water_string(true)),
-                    set(UberIdentifier::CLEAN_WATER, false),
+                    super::set_boolean_value(uber_identifier::CLEAN_WATER, false),
                 ],
             }),
-            FunctionIdentifier::WeaponUpgrade => {
-                let weapon_upgrade = arg(&mut context)?;
-                Command::Void(CommandVoid::Multi {
-                    commands: vec![
-                        item_message(weapon_upgrade_string(weapon_upgrade, false)),
-                        set(weapon_upgrade.uber_identifier(), true),
-                    ],
-                })
-            }
+            FunctionIdentifier::WeaponUpgrade => Command::Void(weapon_upgrade(arg(&mut context)?)),
             FunctionIdentifier::RemoveWeaponUpgrade => {
                 let weapon_upgrade = arg(&mut context)?;
                 Command::Void(CommandVoid::Multi {
                     commands: vec![
                         item_message(weapon_upgrade_string(weapon_upgrade, true)),
-                        set(weapon_upgrade.uber_identifier(), false),
+                        super::set_boolean_value(weapon_upgrade.uber_identifier(), false),
                     ],
                 })
             }
@@ -821,11 +890,11 @@ fn spirit_light_string(amount: CommandInteger, rng: &mut Pcg64Mcg, remove: bool)
             CommandString::Concatenate {
                 left: Box::new(match amount {
                     CommandInteger::Constant { value } => CommandString::Constant {
-                        value: format!("@ Remove {value} ").into(),
+                        value: format!("@Remove {value} ").into(),
                     },
                     other => CommandString::Concatenate {
                         left: Box::new(CommandString::Constant {
-                            value: "@ Remove ".into(),
+                            value: "@Remove ".into(),
                         }),
                         right: Box::new(CommandString::Concatenate {
                             left: Box::new(CommandString::FromInteger {
@@ -862,18 +931,28 @@ fn spirit_light_string(amount: CommandInteger, rng: &mut Pcg64Mcg, remove: bool)
         }),
     }
 }
-fn resource_string(resource: Resource, remove: bool) -> CommandString {
-    let resource_cased = resource
-        .to_string()
-        .from_case(Case::Pascal)
-        .to_case(Case::Title);
+fn resource_string(resource: &str, remove: bool) -> CommandString {
     let value = if remove {
-        format!("@Remove {resource_cased}@")
+        format!("@Remove {resource}@").into()
     } else {
-        resource_cased
-    }
-    .into();
+        resource.into()
+    };
     CommandString::Constant { value }
+}
+fn gorlek_ore_string(remove: bool) -> CommandString {
+    resource_string("Gorlek Ore", remove)
+}
+fn keystone_string(remove: bool) -> CommandString {
+    resource_string("Keystone", remove)
+}
+fn shard_slot_string(remove: bool) -> CommandString {
+    resource_string("Shard Slot", remove)
+}
+fn health_fragment_string(remove: bool) -> CommandString {
+    resource_string("Health Fragment", remove)
+}
+fn energy_fragment_string(remove: bool) -> CommandString {
+    resource_string("Energy Fragment", remove)
 }
 fn skill_string(skill: Skill, remove: bool) -> CommandString {
     let skill_cased = skill
@@ -958,25 +1037,24 @@ fn weapon_upgrade_string(weapon_upgrade: WeaponUpgrade, remove: bool) -> Command
     CommandString::Constant { value }
 }
 
-fn add(uber_identifier: UberIdentifier, amount: CommandInteger) -> CommandVoid {
-    CommandVoid::StoreInteger {
-        uber_identifier,
-        value: CommandInteger::Arithmetic {
-            operation: Box::new(Operation {
-                left: CommandInteger::FetchInteger { uber_identifier },
-                operator: ArithmeticOperator::Add,
-                right: amount,
-            }),
-        },
-        trigger_events: true,
+fn resource(string_fn: fn(bool) -> CommandString, uber_identifier: UberIdentifier) -> CommandVoid {
+    CommandVoid::Multi {
+        commands: vec![
+            item_message(string_fn(false)),
+            super::add_integer_value(uber_identifier, 1),
+        ],
     }
 }
-fn set(uber_identifier: UberIdentifier, value: bool) -> CommandVoid {
-    CommandVoid::StoreBoolean {
-        uber_identifier,
-        value: CommandBoolean::Constant { value },
-        trigger_events: true,
-    }
+fn remove_resource(
+    string_fn: fn(bool) -> CommandString,
+    uber_identifier: UberIdentifier,
+) -> Command {
+    Command::Void(CommandVoid::Multi {
+        commands: vec![
+            item_message(string_fn(true)),
+            super::add_integer_value(uber_identifier, -1),
+        ],
+    })
 }
 
 fn store(trigger_events: bool, context: &mut ArgContext) -> Option<Command> {

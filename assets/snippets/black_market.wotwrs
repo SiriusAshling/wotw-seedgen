@@ -26,7 +26,7 @@ Supply lasts indefinitely, but the price grows with the demand.")
     }
     on OpherShop.Teleport {
         store(OpherShop.Teleport, false)
-        resource(Resource::Keystone)
+        keystone()
         store(keystones_purchased, keystones_purchased + 1)
         keystone_price()
         set_shop_item_price(OpherShop.Teleport, get_integer("keystone_price"))
@@ -58,7 +58,7 @@ Supply lasts indefinitely, but the price grows with the demand.")
     }
     on TwillenShop.LightHarvest {
         store(TwillenShop.LightHarvest, false)
-        resource(Resource::GorlekOre)
+        gorlek_ore()
         store(ores_purchased, ores_purchased + 1)
         ore_price()
         set_shop_item_price(TwillenShop.LightHarvest, get_integer("ore_price"))

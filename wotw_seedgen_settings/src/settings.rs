@@ -1,10 +1,10 @@
 use crate::{PresetAccess, UniversePreset, WorldPreset};
-#[cfg(feature = "parse_display")]
-use parse_display::{Display, FromStr};
 use rustc_hash::{FxHashMap, FxHashSet};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::iter;
+#[cfg(feature = "strum")]
+use strum::{Display, EnumString};
 
 /// A representation of all the relevant settings when generating a seed
 ///
@@ -318,9 +318,9 @@ impl Default for Spawn {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(
-    feature = "parse_display",
-    derive(FromStr, Display),
-    display(style = "lowercase")
+    feature = "strum",
+    derive(Display, EnumString),
+    strum(serialize_all = "lowercase")
 )]
 pub enum Difficulty {
     #[default]
@@ -337,7 +337,7 @@ pub enum Difficulty {
 /// See the [Paths wiki page](https://wiki.orirando.com/seedgen/paths) for more information
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "parse_display", derive(FromStr, Display))]
+#[cfg_attr(feature = "strum", derive(Display, EnumString))]
 pub enum Trick {
     /// Grounded Sentry Jumps with Sword
     SwordSentryJump,

@@ -1,8 +1,7 @@
 use logos::Logos;
-use wotw_seedgen_derive::TokenDisplay;
 use wotw_seedgen_parse::{
     LogosTokenizer, ParseBoolToken, ParseFloatToken, ParseIdentToken, ParseIntToken,
-    ParseStringToken,
+    ParseStringToken, TokenDisplay,
 };
 
 #[derive(Logos, Debug, Clone, Copy, Hash, PartialEq, Eq, TokenDisplay)]

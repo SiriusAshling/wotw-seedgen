@@ -1,6 +1,6 @@
 use crate::{inventory::Inventory, orbs::Orbs};
 use smallvec::{smallvec, SmallVec};
-use wotw_seedgen_data::{Resource, Shard, Skill};
+use wotw_seedgen_data::{Shard, Skill};
 use wotw_seedgen_logic_language::output::RefillValue;
 use wotw_seedgen_settings::{Difficulty, WorldSettings};
 
@@ -50,7 +50,7 @@ fn weapon_preference() {
 fn max_energy() {
     let mut inventory = Inventory::default();
     assert_eq!(inventory.max_energy(Difficulty::Moki), 0.0);
-    inventory.resources.insert(Resource::EnergyFragment, 10);
+    inventory.energy += 5.;
     inventory.shards.insert(Shard::Energy);
     assert_eq!(inventory.max_energy(Difficulty::Moki), 5.0);
     assert_eq!(inventory.max_energy(Difficulty::Gorlek), 6.0);
@@ -67,7 +67,7 @@ fn refill_orbs() {
     ];
     for health in expected {
         assert_eq!(inventory.checkpoint_orbs(Difficulty::Moki).health, health);
-        inventory.add_resource(Resource::HealthFragment, 1);
+        inventory.health += 5;
     }
 
     inventory.clear();
@@ -79,7 +79,7 @@ fn refill_orbs() {
     ];
     for drops in expected {
         assert_eq!(inventory.health_plant_drops(Difficulty::Moki), drops);
-        inventory.add_resource(Resource::HealthFragment, 1);
+        inventory.health += 5;
     }
 
     inventory.clear();
@@ -95,7 +95,7 @@ fn refill_orbs() {
         }
     );
 
-    inventory.add_resource(Resource::HealthFragment, 7);
+    inventory.health += 35;
 
     assert_eq!(
         inventory.checkpoint_orbs(Difficulty::Gorlek),
@@ -105,7 +105,7 @@ fn refill_orbs() {
         }
     );
 
-    inventory.add_resource(Resource::HealthFragment, 21);
+    inventory.health += 105;
 
     assert_eq!(
         inventory.checkpoint_orbs(Difficulty::Gorlek),
@@ -148,7 +148,7 @@ fn destroy_cost() {
     inventory.skills.insert(Skill::GladesAncestralLight);
     inventory.skills.insert(Skill::InkwaterAncestralLight);
     inventory.shards.insert(Shard::Wingclip);
-    inventory.add_resource(Resource::ShardSlot, 1);
+    inventory.shard_slots += 1;
     inventory.skills.remove(&Skill::Bow);
     assert_eq!(
         inventory.destroy_cost::<false>(1.0, false, &world_settings),

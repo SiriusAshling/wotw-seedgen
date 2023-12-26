@@ -1,6 +1,7 @@
 use super::StringOrPlaceholder;
 use ordered_float::OrderedFloat;
 use std::fmt::{self, Display};
+use strum::{EnumDiscriminants, EnumString};
 use wotw_seedgen_assets::UberStateAlias;
 
 // TODO is this still used for anything other than variables?
@@ -12,7 +13,8 @@ pub enum Literal {
     Float(OrderedFloat<f32>),
     String(StringOrPlaceholder),
     Constant(Constant),
-    PathIcon(String),
+    IconAsset(String),
+    CustomIcon(String),
 }
 impl Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -23,13 +25,14 @@ impl Display for Literal {
             Literal::Float(value) => value.fmt(f),
             Literal::String(value) => value.fmt(f),
             Literal::Constant(value) => value.fmt(f),
-            Literal::PathIcon(path) => write!(f, "icon: \"{path}\""),
+            Literal::IconAsset(path) => write!(f, "icon asset: \"{path}\""),
+            Literal::CustomIcon(path) => write!(f, "custom icon: \"{path}\""),
         }
     }
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumDiscriminants)]
+#[strum_discriminants(derive(EnumString))]
 pub enum Constant {
-    Resource(wotw_seedgen_data::Resource),
     Skill(wotw_seedgen_data::Skill),
     Shard(wotw_seedgen_data::Shard),
     Teleporter(wotw_seedgen_data::Teleporter),
@@ -50,7 +53,6 @@ pub enum Constant {
 impl Display for Constant {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Constant::Resource(value) => write!(f, "Resource::{value}"),
             Constant::Skill(value) => write!(f, "Skill::{value}"),
             Constant::Shard(value) => write!(f, "Shard::{value}"),
             Constant::Teleporter(value) => write!(f, "Teleporter::{value}"),

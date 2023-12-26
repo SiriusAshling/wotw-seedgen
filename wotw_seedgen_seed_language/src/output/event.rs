@@ -1,6 +1,6 @@
 pub use crate::ast::ClientEvent;
 
-use super::{Command, CommandBoolean};
+use super::{CommandBoolean, CommandVoid};
 use wotw_seedgen_data::UberIdentifier;
 
 /// The main event (:badumtsss:)
@@ -10,7 +10,7 @@ pub struct Event {
     /// The Trigger defines when to give the Action
     pub trigger: Trigger,
     /// The Command defines what to do when the Trigger happens
-    pub command: Command,
+    pub command: CommandVoid,
 }
 
 /// Trigger for an [`Event`]

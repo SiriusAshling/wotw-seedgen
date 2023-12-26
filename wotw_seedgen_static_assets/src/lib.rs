@@ -1,4 +1,5 @@
-#[cfg(feature = "lazy_static")]
+use std::path::Path;
+
 use lazy_static::lazy_static;
 #[cfg(feature = "snippets")]
 use rustc_hash::FxHashMap;
@@ -12,27 +13,33 @@ use wotw_seedgen_settings::{PresetAccess, UniversePreset, WorldPreset};
 #[cfg(feature = "loc_data")]
 lazy_static! {
     pub static ref LOC_DATA: LocData =
-        bincode::deserialize(include_bytes!(concat!(env!("OUT_DIR"), "/loc_data"))).unwrap();
+        ciborium::from_reader(include_bytes!(concat!(env!("OUT_DIR"), "/loc_data")).as_slice())
+            .unwrap();
 }
 #[cfg(feature = "state_data")]
 lazy_static! {
     pub static ref STATE_DATA: StateData =
-        bincode::deserialize(include_bytes!(concat!(env!("OUT_DIR"), "/state_data"))).unwrap();
+        ciborium::from_reader(include_bytes!(concat!(env!("OUT_DIR"), "/state_data")).as_slice())
+            .unwrap();
 }
 #[cfg(feature = "uber_state_data")]
 lazy_static! {
-    pub static ref UBER_STATE_DATA: UberStateData =
-        bincode::deserialize(include_bytes!(concat!(env!("OUT_DIR"), "/uber_state_data"))).unwrap();
+    pub static ref UBER_STATE_DATA: UberStateData = ciborium::from_reader(
+        include_bytes!(concat!(env!("OUT_DIR"), "/uber_state_data")).as_slice()
+    )
+    .unwrap();
 }
 #[cfg(feature = "snippets")]
 pub struct StaticSnippetAccess {
-    snippets: FxHashMap<&'static str, (String, String)>,
+    snippets: FxHashMap<String, (String, String)>, // TODO can we really not have &'static str here :( Maybe with a different library. Many don't work with the preset format, but flexbuffers and bendy could be worth trying
 }
 #[cfg(feature = "snippets")]
 lazy_static! {
     pub static ref SNIPPET_ACCESS: StaticSnippetAccess = StaticSnippetAccess {
-        snippets: bincode::deserialize(include_bytes!(concat!(env!("OUT_DIR"), "/snippets")))
-            .unwrap()
+        snippets: ciborium::from_reader(
+            include_bytes!(concat!(env!("OUT_DIR"), "/snippets")).as_slice()
+        )
+        .unwrap()
     };
 }
 #[cfg(feature = "snippets")]
@@ -44,24 +51,26 @@ impl SnippetAccess for StaticSnippetAccess {
             .map(|(id, content)| Source::new(id, content))
             .ok_or_else(|| format!("unknown snippet \"{identifier}\""))
     }
+    fn read_file(&self, _path: &Path) -> Result<Vec<u8>, String> {
+        Err("cannot read arbitrary files with static file access".to_string())
+    }
 }
+// TODO these all fail on the presets because of the conditional skips... maybe go to the playground with this
 #[cfg(feature = "presets")]
 pub struct StaticPresetAccess {
-    universe_presets: FxHashMap<&'static str, UniversePreset>,
-    world_presets: FxHashMap<&'static str, WorldPreset>,
+    universe_presets: FxHashMap<String, UniversePreset>,
+    world_presets: FxHashMap<String, WorldPreset>,
 }
 #[cfg(feature = "presets")]
 lazy_static! {
     pub static ref PRESET_ACCESS: StaticPresetAccess = StaticPresetAccess {
-        universe_presets: bincode::deserialize(include_bytes!(concat!(
-            env!("OUT_DIR"),
-            "/universe_presets"
-        )))
+        universe_presets: ciborium::from_reader(
+            include_bytes!(concat!(env!("OUT_DIR"), "/universe_presets")).as_slice()
+        )
         .unwrap(),
-        world_presets: bincode::deserialize(include_bytes!(concat!(
-            env!("OUT_DIR"),
-            "/world_presets"
-        )))
+        world_presets: ciborium::from_reader(
+            include_bytes!(concat!(env!("OUT_DIR"), "/world_presets")).as_slice()
+        )
         .unwrap()
     };
 }
@@ -78,5 +87,40 @@ impl PresetAccess for StaticPresetAccess {
             .get(identifier)
             .cloned()
             .ok_or_else(|| format!("unknown world preset \"{identifier}\""))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(feature = "loc_data")]
+    #[test]
+    fn loc_data() {
+        let _ = &*LOC_DATA;
+    }
+
+    #[cfg(feature = "state_data")]
+    #[test]
+    fn state_data() {
+        let _ = &*STATE_DATA;
+    }
+
+    #[cfg(feature = "uber_state_data")]
+    #[test]
+    fn uber_state_data() {
+        let _ = &*UBER_STATE_DATA;
+    }
+
+    #[cfg(feature = "snippets")]
+    #[test]
+    fn snippets() {
+        let _ = &*SNIPPET_ACCESS;
+    }
+
+    #[cfg(feature = "presets")]
+    #[test]
+    fn presets() {
+        let _ = &*PRESET_ACCESS;
     }
 }
