@@ -226,8 +226,10 @@ impl Simulate for CommandVoid {
     type Return = ();
 
     fn simulate(&self, world: &mut World, output: &CompilerOutput) -> Self::Return {
-        for common_item in CommonItem::from_command(self) {
-            simulate_common_item(common_item, world);
+        if !matches!(self, CommandVoid::Multi { .. }) {
+            for common_item in CommonItem::from_command(self) {
+                common_item.grant(&mut world.player.inventory);
+            }
         }
 
         match self {
@@ -316,49 +318,6 @@ impl Simulate for CommandVoid {
             | CommandVoid::SwitchWheel { .. }
             | CommandVoid::SetWheelPinned { .. }
             | CommandVoid::ClearAllWheels { .. } => {}
-        }
-    }
-}
-
-// don't want to expose this since it's not useful on its own
-fn simulate_common_item(common_item: CommonItem, world: &mut World) {
-    match common_item {
-        CommonItem::SpiritLight(amount) => {
-            world.player.inventory.spirit_light += amount;
-        }
-        CommonItem::GorlekOre => {
-            world.player.inventory.gorlek_ore += 1;
-        }
-        CommonItem::Keystone => {
-            world.player.inventory.keystones += 1;
-        }
-        CommonItem::ShardSlot => {
-            world.player.inventory.shard_slots += 1;
-        }
-        CommonItem::HealthFragment => {
-            world.player.inventory.health += 5;
-        }
-        CommonItem::EnergyFragment => {
-            world.player.inventory.energy += 0.5;
-        }
-        CommonItem::Skill(skill) => {
-            world.player.inventory.skills.insert(skill);
-        }
-        CommonItem::Shard(shard) => {
-            world.player.inventory.shards.insert(shard);
-        }
-        CommonItem::Teleporter(teleporter) => {
-            world.player.inventory.teleporters.insert(teleporter);
-        }
-        CommonItem::CleanWater => {
-            world.player.inventory.clean_water = true;
-        }
-        CommonItem::WeaponUpgrade(weapon_upgrade) => {
-            world
-                .player
-                .inventory
-                .weapon_upgrades
-                .insert(weapon_upgrade);
         }
     }
 }

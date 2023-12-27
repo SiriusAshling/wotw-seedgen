@@ -1,5 +1,5 @@
 use super::*;
-use crate::{generator::ItemPool, tests::AREAS};
+use crate::{item_pool::ItemPool, tests::AREAS};
 use rand_pcg::Pcg64Mcg;
 use wotw_seedgen_settings::{Difficulty, UniverseSettings, DEFAULT_SPAWN};
 use wotw_seedgen_static_assets::{LOC_DATA, STATE_DATA, UBER_STATE_DATA};
@@ -30,6 +30,8 @@ fn reach_check() {
 
     let mut pool = ItemPool::default();
     for item in pool.drain() {
+        // TODO this isn't really how a reach check should be set up, the input represents what the world already has, and all the consequences have happened already
+        // it would be better to set the inventory directly rather than simulate all the changes
         world.simulate(&item, &output);
     }
     world.modify_spirit_light(10000, &output);
@@ -53,7 +55,7 @@ fn reach_check() {
         let mut diff = all_locations.difference(&reached).collect::<Vec<_>>();
         diff.sort_unstable();
         eprintln!(
-            "difference ({} / {} items): {:?}",
+            "difference (reached {} / {} items): {:?}",
             reached.len(),
             all_locations.len(),
             diff

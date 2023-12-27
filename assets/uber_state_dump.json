@@ -34975,6 +34975,13 @@
           "type": "IntUberState",
           "value": 14.0,
           "value_type": "Integer"
+        },
+        "3": {
+          "name": "shardSlots",
+          "readonly": false,
+          "type": "VirtualUberState",
+          "value": 0.0,
+          "value_type": "Integer"
         }
       }
     },

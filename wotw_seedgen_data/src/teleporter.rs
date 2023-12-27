@@ -1,4 +1,4 @@
-use crate::UberIdentifier;
+use crate::{uber_identifier::teleporter, UberIdentifier};
 #[cfg(feature = "serde")]
 use serde_repr::{Deserialize_repr, Serialize_repr};
 #[cfg(feature = "strum")]
@@ -31,100 +31,46 @@ pub enum Teleporter {
 impl Teleporter {
     pub const fn uber_identifier(self) -> UberIdentifier {
         match self {
-            Teleporter::Inkwater => UberIdentifier::new(21786, 10185),
-            Teleporter::Den => UberIdentifier::new(11666, 61594),
-            Teleporter::Hollow => UberIdentifier::new(937, 26601),
-            Teleporter::Glades => UberIdentifier::new(42178, 42096),
-            Teleporter::Wellspring => UberIdentifier::new(53632, 18181),
-            Teleporter::Burrows => UberIdentifier::new(24922, 42531),
-            Teleporter::WoodsEntrance => UberIdentifier::new(58674, 7071),
-            Teleporter::WoodsExit => UberIdentifier::new(58674, 1965),
-            Teleporter::Reach => UberIdentifier::new(28895, 54235),
-            Teleporter::Depths => UberIdentifier::new(18793, 38871),
-            Teleporter::CentralLuma => UberIdentifier::new(945, 58183),
-            Teleporter::LumaBoss => UberIdentifier::new(945, 1370),
-            Teleporter::FeedingGrounds => UberIdentifier::new(58674, 10029),
-            Teleporter::CentralWastes => UberIdentifier::new(20120, 49994),
-            Teleporter::OuterRuins => UberIdentifier::new(20120, 41398),
-            Teleporter::InnerRuins => UberIdentifier::new(10289, 4928),
-            Teleporter::Willow => UberIdentifier::new(16155, 41465),
-            Teleporter::Shriek => UberIdentifier::new(16155, 50867),
+            Teleporter::Inkwater => teleporter::INKWATER,
+            Teleporter::Den => teleporter::DEN,
+            Teleporter::Hollow => teleporter::HOLLOW,
+            Teleporter::Glades => teleporter::GLADES,
+            Teleporter::Wellspring => teleporter::WELLSPRING,
+            Teleporter::Burrows => teleporter::BURROWS,
+            Teleporter::WoodsEntrance => teleporter::WOODS_ENTRANCE,
+            Teleporter::WoodsExit => teleporter::WOODS_EXIT,
+            Teleporter::Reach => teleporter::REACH,
+            Teleporter::Depths => teleporter::DEPTHS,
+            Teleporter::CentralLuma => teleporter::CENTRAL_LUMA,
+            Teleporter::LumaBoss => teleporter::LUMA_BOSS,
+            Teleporter::FeedingGrounds => teleporter::FEEDING_GROUNDS,
+            Teleporter::CentralWastes => teleporter::CENTRAL_WASTES,
+            Teleporter::OuterRuins => teleporter::OUTER_RUINS,
+            Teleporter::InnerRuins => teleporter::INNER_RUINS,
+            Teleporter::Willow => teleporter::WILLOW,
+            Teleporter::Shriek => teleporter::SHRIEK,
         }
     }
     pub const fn from_uber_identifier(uber_identifier: UberIdentifier) -> Option<Self> {
         match uber_identifier {
-            UberIdentifier {
-                group: 21786,
-                member: 10185,
-            } => Some(Teleporter::Inkwater),
-            UberIdentifier {
-                group: 11666,
-                member: 61594,
-            } => Some(Teleporter::Den),
-            UberIdentifier {
-                group: 937,
-                member: 26601,
-            } => Some(Teleporter::Hollow),
-            UberIdentifier {
-                group: 42178,
-                member: 42096,
-            } => Some(Teleporter::Glades),
-            UberIdentifier {
-                group: 53632,
-                member: 18181,
-            } => Some(Teleporter::Wellspring),
-            UberIdentifier {
-                group: 24922,
-                member: 42531,
-            } => Some(Teleporter::Burrows),
-            UberIdentifier {
-                group: 58674,
-                member: 7071,
-            } => Some(Teleporter::WoodsEntrance),
-            UberIdentifier {
-                group: 58674,
-                member: 1965,
-            } => Some(Teleporter::WoodsExit),
-            UberIdentifier {
-                group: 28895,
-                member: 54235,
-            } => Some(Teleporter::Reach),
-            UberIdentifier {
-                group: 18793,
-                member: 38871,
-            } => Some(Teleporter::Depths),
-            UberIdentifier {
-                group: 945,
-                member: 58183,
-            } => Some(Teleporter::CentralLuma),
-            UberIdentifier {
-                group: 945,
-                member: 1370,
-            } => Some(Teleporter::LumaBoss),
-            UberIdentifier {
-                group: 58674,
-                member: 10029,
-            } => Some(Teleporter::FeedingGrounds),
-            UberIdentifier {
-                group: 20120,
-                member: 49994,
-            } => Some(Teleporter::CentralWastes),
-            UberIdentifier {
-                group: 20120,
-                member: 41398,
-            } => Some(Teleporter::OuterRuins),
-            UberIdentifier {
-                group: 10289,
-                member: 4928,
-            } => Some(Teleporter::InnerRuins),
-            UberIdentifier {
-                group: 16155,
-                member: 41465,
-            } => Some(Teleporter::Willow),
-            UberIdentifier {
-                group: 16155,
-                member: 50867,
-            } => Some(Teleporter::Shriek),
+            teleporter::INKWATER => Some(Teleporter::Inkwater),
+            teleporter::DEN => Some(Teleporter::Den),
+            teleporter::HOLLOW => Some(Teleporter::Hollow),
+            teleporter::GLADES => Some(Teleporter::Glades),
+            teleporter::WELLSPRING => Some(Teleporter::Wellspring),
+            teleporter::BURROWS => Some(Teleporter::Burrows),
+            teleporter::WOODS_ENTRANCE => Some(Teleporter::WoodsEntrance),
+            teleporter::WOODS_EXIT => Some(Teleporter::WoodsExit),
+            teleporter::REACH => Some(Teleporter::Reach),
+            teleporter::DEPTHS => Some(Teleporter::Depths),
+            teleporter::CENTRAL_LUMA => Some(Teleporter::CentralLuma),
+            teleporter::LUMA_BOSS => Some(Teleporter::LumaBoss),
+            teleporter::FEEDING_GROUNDS => Some(Teleporter::FeedingGrounds),
+            teleporter::CENTRAL_WASTES => Some(Teleporter::CentralWastes),
+            teleporter::OUTER_RUINS => Some(Teleporter::OuterRuins),
+            teleporter::INNER_RUINS => Some(Teleporter::InnerRuins),
+            teleporter::WILLOW => Some(Teleporter::Willow),
+            teleporter::SHRIEK => Some(Teleporter::Shriek),
             _ => None,
         }
     }

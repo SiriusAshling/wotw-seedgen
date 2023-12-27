@@ -4,7 +4,7 @@ use rand_pcg::Pcg64Mcg;
 use rustc_hash::FxHashSet;
 use smallvec::smallvec;
 use std::io;
-use wotw_seedgen::{ItemPool, Player, UberStates, World};
+use wotw_seedgen::{item_pool::ItemPool, Player, UberStates, World};
 use wotw_seedgen_assets::{LocData, StateData};
 use wotw_seedgen_data::Skill;
 use wotw_seedgen_logic_language::{

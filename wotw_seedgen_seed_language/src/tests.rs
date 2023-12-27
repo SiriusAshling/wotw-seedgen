@@ -143,7 +143,7 @@ fn snippets() {
     struct TestFileAccess;
     impl SnippetAccess for TestFileAccess {
         fn read_snippet(&self, identifier: &str) -> Result<Source, String> {
-            let id = format!("{}/assets/snippets/{}.wotwrs", *WORKDIR, identifier);
+            let id = format!("{}/assets/snippets/{}.wotws", *WORKDIR, identifier);
             let content = fs::read_to_string(&id).map_err(|err| err.to_string())?;
             Ok(Source { id, content })
         }
@@ -187,7 +187,7 @@ fn snippets() {
     let snippets = fs::read_dir(format!("{}/assets/snippets", *WORKDIR))
         .unwrap()
         .map(|snippet| snippet.unwrap().path())
-        .filter(|path| path.extension() == Some(OsStr::new("wotwrs")))
+        .filter(|path| path.extension() == Some(OsStr::new("wotws")))
         .map(|path| path.file_stem().unwrap().to_string_lossy().to_string())
         .collect::<Vec<_>>();
 
@@ -252,10 +252,10 @@ fn dangerous() {
     struct TestFileAccess;
     impl SnippetAccess for TestFileAccess {
         fn read_snippet(&self, identifier: &str) -> Result<Source, String> {
-            let mut id = format!("{}/assets/dangerous/{}.wotwrs", *WORKDIR, identifier);
+            let mut id = format!("{}/assets/dangerous/{}.wotws", *WORKDIR, identifier);
             let content = fs::read_to_string(&id)
                 .or_else(|_| {
-                    id = format!("{}/assets/snippets/{}.wotwrs", *WORKDIR, identifier);
+                    id = format!("{}/assets/snippets/{}.wotws", *WORKDIR, identifier);
                     fs::read_to_string(&id)
                 })
                 .map_err(|err| err.to_string())?;

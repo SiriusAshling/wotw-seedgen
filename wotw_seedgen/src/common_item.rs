@@ -1,8 +1,14 @@
-use wotw_seedgen_data::{uber_identifier, MapIcon, Shard, Skill, Teleporter, WeaponUpgrade};
+use crate::inventory::Inventory;
+use std::fmt::{self, Display};
+use wotw_seedgen_data::{
+    uber_identifier::{self, weapon_upgrade},
+    MapIcon, Shard, Skill, Teleporter, WeaponUpgrade,
+};
 use wotw_seedgen_seed_language::output::{
     ArithmeticOperator, CommandBoolean, CommandFloat, CommandInteger, CommandVoid, Operation,
 };
 
+#[derive(Clone)]
 pub enum CommonItem {
     SpiritLight(usize),
     GorlekOre,
@@ -15,6 +21,23 @@ pub enum CommonItem {
     Teleporter(Teleporter),
     CleanWater,
     WeaponUpgrade(WeaponUpgrade),
+}
+impl Display for CommonItem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CommonItem::SpiritLight(amount) => write!(f, "{amount} SpiritLight"), // TODO casing
+            CommonItem::GorlekOre => write!(f, "GorlekOre"),
+            CommonItem::Keystone => write!(f, "Keystone"),
+            CommonItem::ShardSlot => write!(f, "ShardSlot"),
+            CommonItem::HealthFragment => write!(f, "HealthFragment"),
+            CommonItem::EnergyFragment => write!(f, "EnergyFragment"),
+            CommonItem::Skill(skill) => skill.fmt(f),
+            CommonItem::Shard(shard) => shard.fmt(f),
+            CommonItem::Teleporter(teleporter) => teleporter.fmt(f),
+            CommonItem::CleanWater => write!(f, "CleanWater"),
+            CommonItem::WeaponUpgrade(weapon_upgrade) => weapon_upgrade.fmt(f),
+        }
+    }
 }
 
 impl CommonItem {
@@ -83,16 +106,20 @@ impl CommonItem {
                         },
                     operator: ArithmeticOperator::Add,
                     right: CommandInteger::Constant { value: amount },
-                } if fetch_identifier == uber_identifier && *amount > 0 => match *uber_identifier {
-                    uber_identifier::SPIRIT_LIGHT => {
-                        vec![CommonItem::SpiritLight(*amount as usize)]
+                } if fetch_identifier == uber_identifier && *amount >= 0 => {
+                    match *uber_identifier {
+                        uber_identifier::SPIRIT_LIGHT => {
+                            vec![CommonItem::SpiritLight(*amount as usize)]
+                        }
+                        uber_identifier::GORLEK_ORE if *amount == 1 => vec![CommonItem::GorlekOre],
+                        uber_identifier::KEYSTONES if *amount == 1 => vec![CommonItem::Keystone],
+                        uber_identifier::SHARD_SLOTS if *amount == 1 => vec![CommonItem::ShardSlot],
+                        uber_identifier::MAX_HEALTH if *amount == 5 => {
+                            vec![CommonItem::HealthFragment]
+                        }
+                        _ => vec![],
                     }
-                    uber_identifier::GORLEK_ORE if *amount == 1 => vec![CommonItem::GorlekOre],
-                    uber_identifier::KEYSTONES if *amount == 1 => vec![CommonItem::Keystone],
-                    uber_identifier::SHARD_SLOTS if *amount == 1 => vec![CommonItem::ShardSlot],
-                    uber_identifier::MAX_HEALTH if *amount == 5 => vec![CommonItem::HealthFragment],
-                    _ => vec![],
-                },
+                }
                 _ => vec![],
             },
             CommandVoid::StoreFloat {
@@ -111,6 +138,81 @@ impl CommonItem {
                 _ => vec![],
             },
             _ => vec![],
+        }
+    }
+
+    pub fn grant(self, inventory: &mut Inventory) {
+        match self {
+            CommonItem::SpiritLight(amount) => {
+                inventory.spirit_light += amount;
+            }
+            CommonItem::GorlekOre => {
+                inventory.gorlek_ore += 1;
+            }
+            CommonItem::Keystone => {
+                inventory.keystones += 1;
+            }
+            CommonItem::ShardSlot => {
+                inventory.shard_slots += 1;
+            }
+            CommonItem::HealthFragment => {
+                inventory.health += 5;
+            }
+            CommonItem::EnergyFragment => {
+                inventory.energy += 0.5;
+            }
+            CommonItem::Skill(skill) => {
+                inventory.skills.insert(skill);
+            }
+            CommonItem::Shard(shard) => {
+                inventory.shards.insert(shard);
+            }
+            CommonItem::Teleporter(teleporter) => {
+                inventory.teleporters.insert(teleporter);
+            }
+            CommonItem::CleanWater => {
+                inventory.clean_water = true;
+            }
+            CommonItem::WeaponUpgrade(weapon_upgrade) => {
+                inventory.weapon_upgrades.insert(weapon_upgrade);
+            }
+        }
+    }
+    pub fn remove(self, inventory: &mut Inventory) {
+        match self {
+            CommonItem::SpiritLight(amount) => {
+                inventory.spirit_light -= amount;
+            }
+            CommonItem::GorlekOre => {
+                inventory.gorlek_ore -= 1;
+            }
+            CommonItem::Keystone => {
+                inventory.keystones -= 1;
+            }
+            CommonItem::ShardSlot => {
+                inventory.shard_slots -= 1;
+            }
+            CommonItem::HealthFragment => {
+                inventory.health -= 5;
+            }
+            CommonItem::EnergyFragment => {
+                inventory.energy -= 0.5;
+            }
+            CommonItem::Skill(skill) => {
+                inventory.skills.remove(&skill);
+            }
+            CommonItem::Shard(shard) => {
+                inventory.shards.remove(&shard);
+            }
+            CommonItem::Teleporter(teleporter) => {
+                inventory.teleporters.remove(&teleporter);
+            }
+            CommonItem::CleanWater => {
+                inventory.clean_water = true;
+            }
+            CommonItem::WeaponUpgrade(weapon_upgrade) => {
+                inventory.weapon_upgrades.remove(&weapon_upgrade);
+            }
         }
     }
 

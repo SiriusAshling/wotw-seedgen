@@ -5,6 +5,44 @@ use super::{
 use itertools::Itertools;
 use std::fmt::{self, Display};
 
+impl Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Literal::UberIdentifier(value) => value.fmt(f),
+            Literal::Boolean(value) => value.fmt(f),
+            Literal::Integer(value) => value.fmt(f),
+            Literal::Float(value) => value.fmt(f),
+            Literal::String(value) => value.fmt(f),
+            Literal::Constant(value) => value.fmt(f),
+            Literal::IconAsset(path) => write!(f, "icon asset: \"{path}\""),
+            Literal::CustomIcon(path) => write!(f, "custom icon: \"{path}\""),
+        }
+    }
+}
+impl Display for StringOrPlaceholder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StringOrPlaceholder::Value(string) => write!(f, "\"{string}\""),
+            StringOrPlaceholder::ZoneOfPlaceholder(action) => write!(f, "zone_of({action})"),
+            StringOrPlaceholder::ItemOnPlaceholder(trigger) => write!(f, "item_on({trigger})"),
+            StringOrPlaceholder::CountInZonePlaceholder(actions, zone) => {
+                write!(
+                    f,
+                    "count_in_zone({zone}, [{}])",
+                    actions.iter().format(", ")
+                )
+            }
+        }
+    }
+}
+impl Display for SharedValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SharedValue::Function(index) => write!(f, "function: {index}"),
+            SharedValue::Literal(literal) => write!(f, "{literal}"),
+        }
+    }
+}
 impl Display for Icon {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

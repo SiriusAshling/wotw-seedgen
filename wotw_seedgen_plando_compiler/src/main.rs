@@ -64,7 +64,7 @@ fn main() -> Result<(), Error> {
 }
 
 fn TEMP() -> Result<(), Error> {
-    // let mut file = File::create("dangerous/reset.wotwrs")?;
+    // let mut file = File::create("dangerous/reset.wotws")?;
 
     // writeln!(file, "!callback(reset)")?;
     // writeln!(file, "!on_callback(reset, world_reset())")?;
@@ -94,7 +94,7 @@ struct Files {
 impl SnippetAccess for Files {
     fn read_snippet(&self, identifier: &str) -> Result<Source, String> {
         let mut filename = PathBuf::from(identifier);
-        filename.set_extension("wotwrs");
+        filename.set_extension("wotws");
 
         let mut path_plando = self.folder.clone();
         path_plando.push(&filename);
@@ -144,7 +144,7 @@ fn try_read(path: &Path) -> Option<Result<Source, String>> {
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
-    /// The plando folder, which should contain "main.wotwrs" as entry point
+    /// The plando folder, which should contain "main.wotws" as entry point
     folder: PathBuf,
 }
 

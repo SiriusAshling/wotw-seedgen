@@ -207,35 +207,35 @@ pub mod uber_identifier {
     }
 
     pub mod teleporter {
-        use crate::{Teleporter, UberIdentifier};
+        use crate::UberIdentifier;
 
-        pub const INKWATER: UberIdentifier = Teleporter::Inkwater.uber_identifier();
-        pub const DEN: UberIdentifier = Teleporter::Den.uber_identifier();
-        pub const HOLLOW: UberIdentifier = Teleporter::Hollow.uber_identifier();
-        pub const GLADES: UberIdentifier = Teleporter::Glades.uber_identifier();
-        pub const WELLSPRING: UberIdentifier = Teleporter::Wellspring.uber_identifier();
-        pub const BURROWS: UberIdentifier = Teleporter::Burrows.uber_identifier();
-        pub const WOODS_ENTRANCE: UberIdentifier = Teleporter::WoodsEntrance.uber_identifier();
-        pub const WOODS_EXIT: UberIdentifier = Teleporter::WoodsExit.uber_identifier();
-        pub const REACH: UberIdentifier = Teleporter::Reach.uber_identifier();
-        pub const DEPTHS: UberIdentifier = Teleporter::Depths.uber_identifier();
-        pub const CENTRAL_LUMA: UberIdentifier = Teleporter::CentralLuma.uber_identifier();
-        pub const LUMA_BOSS: UberIdentifier = Teleporter::LumaBoss.uber_identifier();
-        pub const FEEDING_GROUNDS: UberIdentifier = Teleporter::FeedingGrounds.uber_identifier();
-        pub const CENTRAL_WASTES: UberIdentifier = Teleporter::CentralWastes.uber_identifier();
-        pub const OUTER_RUINS: UberIdentifier = Teleporter::OuterRuins.uber_identifier();
-        pub const INNER_RUINS: UberIdentifier = Teleporter::InnerRuins.uber_identifier();
-        pub const WILLOW: UberIdentifier = Teleporter::Willow.uber_identifier();
-        pub const SHRIEK: UberIdentifier = Teleporter::Shriek.uber_identifier();
+        pub const INKWATER: UberIdentifier = UberIdentifier::new(21786, 10185);
+        pub const DEN: UberIdentifier = UberIdentifier::new(11666, 61594);
+        pub const HOLLOW: UberIdentifier = UberIdentifier::new(937, 26601);
+        pub const GLADES: UberIdentifier = UberIdentifier::new(42178, 42096);
+        pub const WELLSPRING: UberIdentifier = UberIdentifier::new(53632, 18181);
+        pub const BURROWS: UberIdentifier = UberIdentifier::new(24922, 42531);
+        pub const WOODS_ENTRANCE: UberIdentifier = UberIdentifier::new(58674, 7071);
+        pub const WOODS_EXIT: UberIdentifier = UberIdentifier::new(58674, 1965);
+        pub const REACH: UberIdentifier = UberIdentifier::new(28895, 54235);
+        pub const DEPTHS: UberIdentifier = UberIdentifier::new(18793, 38871);
+        pub const CENTRAL_LUMA: UberIdentifier = UberIdentifier::new(945, 58183);
+        pub const LUMA_BOSS: UberIdentifier = UberIdentifier::new(945, 1370);
+        pub const FEEDING_GROUNDS: UberIdentifier = UberIdentifier::new(58674, 10029);
+        pub const CENTRAL_WASTES: UberIdentifier = UberIdentifier::new(20120, 49994);
+        pub const OUTER_RUINS: UberIdentifier = UberIdentifier::new(20120, 41398);
+        pub const INNER_RUINS: UberIdentifier = UberIdentifier::new(10289, 4928);
+        pub const WILLOW: UberIdentifier = UberIdentifier::new(16155, 41465);
+        pub const SHRIEK: UberIdentifier = UberIdentifier::new(16155, 50867);
     }
 
     pub mod weapon_upgrade {
-        use crate::{UberIdentifier, WeaponUpgrade};
+        use crate::UberIdentifier;
 
-        pub const EXPLODING_SPEAR: UberIdentifier = WeaponUpgrade::ExplodingSpear.uber_identifier();
-        pub const SHOCK_HAMMER: UberIdentifier = WeaponUpgrade::HammerShockwave.uber_identifier();
-        pub const STATIC_SHURIKEN: UberIdentifier = WeaponUpgrade::StaticShuriken.uber_identifier();
-        pub const CHARGE_BLAZE: UberIdentifier = WeaponUpgrade::ChargeBlaze.uber_identifier();
-        pub const RAPID_SENTRY: UberIdentifier = WeaponUpgrade::RapidSentry.uber_identifier();
+        pub const EXPLODING_SPEAR: UberIdentifier = UberIdentifier::new(3440, 5687);
+        pub const SHOCK_HAMMER: UberIdentifier = UberIdentifier::new(3440, 46488);
+        pub const STATIC_SHURIKEN: UberIdentifier = UberIdentifier::new(3440, 10776);
+        pub const CHARGE_BLAZE: UberIdentifier = UberIdentifier::new(3440, 61898);
+        pub const RAPID_SENTRY: UberIdentifier = UberIdentifier::new(3440, 57376);
     }
 }

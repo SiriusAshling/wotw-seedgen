@@ -1,20 +1,19 @@
 mod command;
-mod display;
+// TODO remove
+// mod display;
 mod event;
 pub(crate) mod intermediate;
 mod operation;
 
-pub use command::*;
-pub use event::*;
-pub use operation::*;
+pub use command::{
+    Command, CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandVoid, CommandZone,
+};
+pub use event::{ClientEvent, Event, Trigger};
+pub use operation::{ArithmeticOperator, Comparator, EqualityComparator, LogicOperator, Operation};
 
-use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::{self, Display},
-    hash::Hash,
-};
+use std::hash::Hash;
 use wotw_seedgen_data::{
     Equipment, GromIcon, LupoIcon, MapIcon, OpherIcon, Position, Shard, TuleyIcon,
 };
@@ -66,22 +65,6 @@ pub enum StringOrPlaceholder {
     ZoneOfPlaceholder(Box<Command>),
     ItemOnPlaceholder(Box<Trigger>),
     CountInZonePlaceholder(Vec<Command>, wotw_seedgen_data::Zone),
-}
-impl Display for StringOrPlaceholder {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            StringOrPlaceholder::Value(string) => write!(f, "\"{string}\""),
-            StringOrPlaceholder::ZoneOfPlaceholder(action) => write!(f, "zone_of({action})"),
-            StringOrPlaceholder::ItemOnPlaceholder(trigger) => write!(f, "item_on({trigger})"),
-            StringOrPlaceholder::CountInZonePlaceholder(actions, zone) => {
-                write!(
-                    f,
-                    "count_in_zone({zone}, [{}])",
-                    actions.iter().format(", ")
-                )
-            }
-        }
-    }
 }
 impl From<String> for StringOrPlaceholder {
     fn from(value: String) -> Self {

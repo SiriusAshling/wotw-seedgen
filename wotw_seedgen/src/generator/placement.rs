@@ -9,7 +9,8 @@ use crate::{
     log::{trace, warning},
     node_condition, node_trigger,
     orbs::OrbVariants,
-    SeedSpoiler, World,
+    spoiler::SeedSpoiler,
+    World,
 };
 use itertools::Itertools;
 #[cfg(any(feature = "log", test))]
@@ -42,10 +43,9 @@ pub(crate) fn generate_placements(
 
     context.preplacements();
 
-    #[cfg(any(feature = "log", test))]
-    let mut step = 1usize..;
-    loop {
-        trace!("Placement step #{}", step.next().unwrap_or_default());
+    #[cfg_attr(not(any(feature = "log", test)), allow(unused_variables))]
+    for step in 1u16.. {
+        trace!("Placement step #{step}");
         context.update_reached();
         if context.everything_reached() {
             trace!("All locations reached");
@@ -54,7 +54,6 @@ pub(crate) fn generate_placements(
         }
         context.force_keystones();
         if !context.place_random() {
-            trace!("Placing forced progression");
             if let Some((target_world_index, progression)) = context.choose_progression() {
                 context.place_forced(target_world_index, progression);
             }
@@ -118,15 +117,12 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     }
 
     fn preplacements(&mut self) {
-        trace!("Generating preplacements");
-
         for world_context in &mut self.worlds {
             world_context.preplacements();
         }
     }
 
     fn update_reached(&mut self) {
-        trace!("Checking reached locations");
         for world_context in &mut self.worlds {
             world_context.update_reached();
         }
@@ -156,17 +152,25 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                         .then_some(*amount)
                 })
                 .sum::<usize>();
-            if required_keystones <= owned_keystones {
+            let missing_keystones = required_keystones.saturating_sub(owned_keystones);
+            if missing_keystones == 0 {
                 continue;
             }
 
-            trace!(
-                "Placing {} keystones for World {world_index} to avoid keylocks",
-                required_keystones - owned_keystones
-            );
-            for _ in owned_keystones..required_keystones {
-                self.place_command(compile::keystone(), world_index);
+            if world_context.item_pool.inventory().keystones < missing_keystones {
+                todo!()
             }
+
+            trace!(
+                "Placing {missing_keystones} keystones for World {world_index} to avoid keylocks"
+            );
+            let keystone = compile::keystone();
+            for _ in 0..missing_keystones {
+                self.place_command(keystone.clone(), world_index);
+            }
+            self.worlds[world_index]
+                .item_pool
+                .change(keystone, -(missing_keystones as i32));
         }
     }
 
@@ -235,25 +239,29 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
         let mut world_indices = (0..self.worlds.len()).collect::<Vec<_>>();
         world_indices.sort_by_key(|index| self.worlds[*index].placements_remaining());
 
-        for target_world_index in world_indices {
+        for target_world_index in world_indices.into_iter().rev() {
             if let Some(progression) = self.worlds[target_world_index].choose_progression(slots) {
                 return Some((target_world_index, progression));
             }
         }
 
         trace!(
-            "Unable to find any possible forced progression. Unreached locations:\n{}",
+            "Unable to find any possible forced progression\n{}",
             self.worlds
                 .iter()
-                .map(|world_context| format!(
-                    "World {}: {}",
-                    world_context.index,
-                    world_context
-                        .needs_placement
-                        .iter()
-                        .map(|node| node.identifier())
-                        .format(", ")
-                ))
+                .map(|world_context| {
+                    format!(
+                        "[World {}]: {} unreached locations: {}\nwith these items: {}",
+                        world_context.index,
+                        world_context.needs_placement.len(),
+                        world_context
+                            .needs_placement
+                            .iter()
+                            .map(|node| node.identifier())
+                            .format(", "),
+                        world_context.world.player.inventory,
+                    )
+                })
                 .format("\n")
         );
 
@@ -264,7 +272,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     fn progression_slots(&self) -> usize {
         self.worlds
             .iter()
-            .map(|world_context| world_context.progression_slots())
+            .map(|world_context| world_context.progression_slots()) // TODO if the world has force-unshared items left, this could give the wrong result
             .sum()
     }
 
@@ -305,14 +313,17 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     }
 
     fn place_command(&mut self, command: CommandVoid, target_world_index: usize) {
-        trace!("Placing {command} for World {target_world_index}");
-        let origin_world_index = self.choose_origin_world(&command, target_world_index);
+        let origin_world_index = self.choose_origin_world(target_world_index);
         let name = self.name(&command, origin_world_index, target_world_index);
         let origin_world = &mut self.worlds[origin_world_index];
-        match origin_world.choose_placement_node(&command) {
+        match origin_world.choose_placement_node(false) {
             None => {
                 if origin_world.spawn_slots > 0 {
                     origin_world.spawn_slots -= 1;
+                    trace!(
+                        "Placing {} for World {target_world_index} at Spawn in World {origin_world_index}",
+                        self.worlds[target_world_index].log_name(&command)
+                    );
                     self.push_command(
                         Trigger::ClientEvent(ClientEvent::Spawn),
                         command,
@@ -331,16 +342,9 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     }
 
     // TODO might be worth to do some single-world happy paths?
-    fn choose_origin_world(&mut self, command: &CommandVoid, target_world_index: usize) -> usize {
-        trace!("Choosing origin World for {command}");
-
-        if is_spirit_light(command) {
-            trace!("{command} is a spirit light item, chose origin World {target_world_index} to avoid sharing");
-            return target_world_index;
-        }
-
+    fn choose_origin_world(&mut self, target_world_index: usize) -> usize {
         if self.worlds[target_world_index].unshared_items > 0 {
-            trace!("World {target_world_index} is not allowed to share items yet, chose origin World {target_world_index}");
+            trace!("World {target_world_index} is not allowed to share items yet, forcing item placement in own world");
             self.worlds[target_world_index].unshared_items -= 1;
             target_world_index
         } else {
@@ -356,15 +360,13 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                         .find(|index| self.worlds[*index].spawn_slots > 0)
                 })
                 .unwrap(); // TODO handle
-            trace!("Chose origin world {origin_world_index} randomly");
             origin_world_index
         }
     }
 
     fn choose_target_world(&mut self, origin_world_index: usize) -> usize {
-        trace!("Choosing target World for item from World {origin_world_index}");
         if self.worlds[origin_world_index].unshared_items > 0 {
-            trace!("World {origin_world_index} is not allowed to share items yet, chose target World {origin_world_index}");
+            trace!("World {origin_world_index} is not allowed to share items yet, forcing item placement in own world");
             self.worlds[origin_world_index].unshared_items -= 1;
             origin_world_index
         } else {
@@ -375,7 +377,6 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                 .find_or_last(|index| !self.worlds[*index].item_pool.is_empty())
                 .unwrap(); // TODO handle
 
-            trace!("Chose target World {target_world_index}");
             target_world_index
         }
     }
@@ -388,15 +389,17 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     ) -> CommandString {
         let name = self.worlds[target_world_index].name(command);
         if origin_world_index == target_world_index {
-            CommandString::Constant { value: name }
+            name
         } else {
             let right = match name {
-                StringOrPlaceholder::Value(value) => CommandString::Constant {
+                CommandString::Constant {
+                    value: StringOrPlaceholder::Value(value),
+                } => CommandString::Constant {
                     value: format!("'s {value}").into(),
                 },
-                placeholder => CommandString::Concatenate {
+                dynamic => CommandString::Concatenate {
                     left: Box::new(CommandString::Constant { value: "'s".into() }),
-                    right: Box::new(CommandString::Constant { value: placeholder }),
+                    right: Box::new(dynamic),
                 },
             };
 
@@ -418,7 +421,8 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
         target_world_index: usize,
     ) {
         trace!(
-            "Placing {command} for World {target_world_index} at {} in World {origin_world_index}",
+            "Placing {} for World {target_world_index} at {} in World {origin_world_index}",
+            self.worlds[target_world_index].log_name(&command),
             node.identifier()
         );
 
@@ -561,8 +565,9 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             });
             if nodes.is_empty() {
                 warning!(
-                    "[World {}] Failed to preplace {command} in {zone} since no free placement location was available",
+                    "[World {}] Failed to preplace {} in {zone} since no free placement location was available",
                     self.index,
+                    self.log_name(&command)
                 );
             }
             // We prefer generating indices over shuffling the nodes because usually there aren't many zone preplacements (relics)
@@ -570,8 +575,9 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             // TODO shouldn't this remove the node from needs_placement?
             let node = self.needs_placement[node_index];
             trace!(
-                "[World {}] Preplaced {command} at {}",
+                "[World {}] Preplaced {} at {}",
                 self.index,
+                self.log_name(&command),
                 node.identifier()
             );
             self.push_command(node_trigger(node).unwrap(), command);
@@ -593,8 +599,6 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
     }
 
     fn update_reached(&mut self) {
-        trace!("[World {}] Checking reached locations", self.index);
-
         let mut received_placement = mem::take(&mut self.received_placement);
         received_placement.sort();
         for node_index in received_placement.into_iter().rev() {
@@ -613,17 +617,18 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             .collect();
         self.reached_item_locations = self.reached.iter().filter(|node| node.can_place()).count();
         trace!(
-            "[World {}] Reached locations that need placements: {}",
+            "[World {}] {} reached locations that need placements: {}",
             self.index,
+            self.reached_needs_placement.len(),
             self.reached_needs_placement
                 .iter()
                 .map(|index| self.needs_placement[*index].identifier())
-                .join(", ")
+                .format(", ")
         );
     }
 
     fn placements_remaining(&self) -> usize {
-        self.needs_placement.len() - self.received_placement.len()
+        self.needs_placement.len() - self.received_placement.len() + self.placeholders.len()
     }
 
     fn reserve_placeholders(&mut self) -> Vec<&'graph Node> {
@@ -663,7 +668,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
     }
 
     fn progression_slots(&self) -> usize {
-        self.reached_needs_placement.len() + self.placeholders.len()
+        self.reached_needs_placement.len() + self.placeholders.len() + self.spawn_slots
     }
 
     fn choose_progression(&mut self, slots: usize) -> Option<Inventory> {
@@ -681,7 +686,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
                     world_slots,
                 )
             })
-            .filter(|solution| self.item_pool.contains(solution))
+            .filter(|solution| self.item_pool.inventory().contains(solution))
             .collect();
         // TODO is it desirable to filter here again? they have already been filterer per-solutions-call
         filter_redundancies(&mut progressions);
@@ -704,6 +709,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
 
                 let mut weight = 1.0 / inventory.cost() as f32 * (newly_reached + 1) as f32;
 
+                // TODO make it less likely to use spawn slots for later progressions?
                 let begrudgingly_used_slots = (inventory.item_count()
                     + (SPAWN_SLOTS - PREFERRED_SPAWN_SLOTS))
                     .saturating_sub(slots);
@@ -721,12 +727,13 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             let weight_sum = weights.iter().map(|(_, weight)| weight).sum::<f32>();
             let options = weights.iter().map(|(index, weight)| {
                 let inventory = &progressions[*index];
-                let chance = ((*weight / weight_sum) * 1000.).round() * 0.1;
-                format!("{chance}%: {inventory}")
+                let chance = (*weight / weight_sum) * 100.;
+                format!("{chance:.1}%: {inventory}")
             });
             trace!(
-                "[World {}] Options for forced progression:\n{}",
+                "[World {}] {} options for forced progression:\n{}",
                 self.index,
+                weights.len(),
                 options.format("\n")
             );
         }
@@ -754,18 +761,18 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
                 },
                 &mut self.rng,
             );
-            let node = self.choose_placement_node(&command).unwrap();
+            let node = self.choose_placement_node(true).unwrap();
             trace!(
-                "[World {}] Placing {command} at {}",
+                "[World {}] Placing {} at {}",
                 self.index,
+                self.log_name(&command),
                 node.identifier()
             );
             self.push_command(node_trigger(node).unwrap(), command);
         }
     }
 
-    fn choose_placement_node(&mut self, command: &CommandVoid) -> Option<&'graph Node> {
-        let is_spirit_light = is_spirit_light(command);
+    fn choose_placement_node(&mut self, is_spirit_light: bool) -> Option<&'graph Node> {
         if is_spirit_light {
             self.reached_needs_placement
                 .iter()
@@ -784,11 +791,6 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         }
         .map(|index| {
             let node_index = self.reached_needs_placement.swap_remove(index);
-            trace!(
-                "[World {}] Choose {} as placement location for {command}",
-                self.index,
-                self.needs_placement[node_index].identifier()
-            );
             self.received_placement.push(node_index);
             self.needs_placement[node_index]
         })
@@ -826,12 +828,38 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         });
     }
 
-    fn name(&self, command: &CommandVoid) -> StringOrPlaceholder {
+    fn name(&self, command: &CommandVoid) -> CommandString {
         self.output
             .item_metadata
             .get(command)
-            .and_then(|metadata| metadata.name.clone())
-            .unwrap_or_else(|| command.to_string().into()) // TODO to_string usages in here do not seem reasonable?
+            .and_then(|metadata| {
+                metadata
+                    .name
+                    .clone()
+                    .map(|name| CommandString::Constant { value: name })
+            })
+            .or_else(|| find_message(command).cloned())
+            .unwrap() // TODO handle
+    }
+
+    #[cfg(any(feature = "log", test))]
+    fn log_name(&self, command: &CommandVoid) -> String {
+        self.output
+            .item_metadata
+            .get(command)
+            .and_then(|metadata| {
+                metadata.name.clone().and_then(|name| match name {
+                    StringOrPlaceholder::Value(value) => Some(value),
+                    _ => None,
+                })
+            })
+            .or_else(|| {
+                CommonItem::from_command(command)
+                    .into_iter()
+                    .next()
+                    .map(|item| item.to_string())
+            })
+            .unwrap_or_else(|| todo!("{command:#?}")) // TODO handle
     }
 
     fn on_load(&mut self, command: CommandVoid) {
@@ -927,14 +955,13 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
                 )
             };
             trace!(
-                "[World {}] Placing {command} at {}",
+                "[World {}] Placing {} at {}",
                 self.index,
+                self.log_name(&command),
                 node.identifier()
             );
-            let name = CommandString::Constant {
-                value: self.name(&command),
-            };
-            self.shop_item_data(&command, uber_identifier, name.clone());
+            let name = self.name(&command);
+            self.shop_item_data(&command, uber_identifier, name);
             self.push_command(node_trigger(node).unwrap(), command)
         }
         // TODO unreachable items that should be filled
@@ -967,6 +994,14 @@ fn is_spirit_light(command: &CommandVoid) -> bool {
             ..
         }
     )
+}
+
+fn find_message(command: &CommandVoid) -> Option<&CommandString> {
+    match command {
+        CommandVoid::Multi { commands } => commands.iter().find_map(find_message),
+        CommandVoid::QueuedMessage { message, .. } => Some(message),
+        _ => None,
+    }
 }
 
 fn default_icon(command: &CommandVoid) -> Option<Icon> {

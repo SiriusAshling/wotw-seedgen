@@ -54,10 +54,7 @@ impl Inventory {
     }
 
     pub fn item_count(&self) -> usize {
-        self.spirit_light_item_count() + self.world_item_count()
-    }
-    pub fn spirit_light_item_count(&self) -> usize {
-        ((self.spirit_light + 39) / 40).max(0) // this will usually demand more than necessary, but with the placeholder system that shouldn't be a problem
+        item_count_from_spirit_light_amount(self.spirit_light) + self.world_item_count()
     }
     pub fn world_item_count(&self) -> usize {
         self.gorlek_ore
@@ -390,6 +387,7 @@ impl Inventory {
     where
         F: FnOnce(Difficulty) -> SmallVec<[Skill; N]>,
     {
+        // TODO I find the name of this function confusing
         fn damage_per_energy(weapon: Skill, settings: &WorldSettings) -> f32 {
             // (weapon.damage(unsafe_paths) + weapon.burn_damage()) / weapon.energy_cost()
             (10.0
@@ -540,7 +538,6 @@ impl SubAssign for Inventory {
 }
 impl SubAssign<&Self> for Inventory {
     fn sub_assign(&mut self, rhs: &Self) {
-        // TODO do we floor to 0? but why do we have signed integers in the first place?
         self.spirit_light -= rhs.spirit_light;
         self.gorlek_ore -= rhs.gorlek_ore;
         self.keystones -= rhs.keystones;
@@ -560,4 +557,9 @@ impl SubAssign<&Self> for Inventory {
             self.clean_water = false;
         }
     }
+}
+
+// TODO would it be possible to estimate this more accurately?
+pub(crate) fn item_count_from_spirit_light_amount(spirit_light: usize) -> usize {
+    (spirit_light + 39) / 40 // this will usually demand more than necessary, but with the placeholder system that shouldn't be a problem
 }

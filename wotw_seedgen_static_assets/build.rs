@@ -52,7 +52,7 @@ fn main() {
             .flatten()
             .filter_map_ok(|entry| {
                 let name = PathBuf::from(entry.file_name());
-                if name.extension()? != "wotwrs" {
+                if name.extension()? != "wotws" {
                     return None;
                 }
                 let id = entry.path();
@@ -64,6 +64,30 @@ fn main() {
             .unwrap();
 
         write("snippets", &snippets);
+    }
+    #[cfg(feature = "logic")]
+    {
+        println!("cargo:rerun-if-changed=../assets/logic");
+
+        use itertools::Itertools;
+        use std::path::PathBuf;
+
+        let logic = read_optional_dir("../assets/logic")
+            .into_iter()
+            .flatten()
+            .filter_map_ok(|entry| {
+                let name = PathBuf::from(entry.file_name());
+                if name.extension()? != "wotws" {
+                    return None;
+                }
+                let id = entry.path();
+                let content = std::fs::read_to_string(entry.path()).unwrap();
+                Some((id.to_string_lossy().to_string(), content))
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        write("logic", &logic);
     }
     #[cfg(feature = "presets")]
     {

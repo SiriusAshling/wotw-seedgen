@@ -2,9 +2,9 @@ mod delimited;
 mod punctuated;
 mod separated;
 
-pub use delimited::*;
-pub use punctuated::*;
-pub use separated::*;
+pub use delimited::Delimited;
+pub use punctuated::Punctuated;
+pub use separated::{Separated, SeparatedNonEmpty};
 
 use crate::{Ast, Error, Parser, Result, Tokenize};
 use std::ops::ControlFlow;

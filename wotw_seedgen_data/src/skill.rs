@@ -122,15 +122,17 @@ pub enum Skill {
 }
 impl Skill {
     pub const fn uber_identifier(self) -> UberIdentifier {
-        UberIdentifier::new(6, self as i32 + 1000)
+        UberIdentifier::new(24, self as i32)
     }
     #[cfg(feature = "strum")]
     pub const fn from_uber_identifier(uber_identifier: UberIdentifier) -> Option<Self> {
+        const MIN: i32 = u8::MIN as i32;
+        const MAX: i32 = u8::MAX as i32;
         match uber_identifier {
             UberIdentifier {
-                group: 6,
-                member: id @ 1000..=1121,
-            } => Self::from_repr((id - 1000) as u8),
+                group: 24,
+                member: id @ MIN..=MAX,
+            } => Self::from_repr(id as u8),
             _ => None,
         }
     }

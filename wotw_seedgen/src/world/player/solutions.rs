@@ -8,7 +8,7 @@ use wotw_seedgen_data::{Shard, Teleporter};
 use wotw_seedgen_logic_language::output::{Enemy, Requirement};
 use wotw_seedgen_settings::Difficulty;
 
-use crate::inventory::Inventory;
+use crate::inventory::{item_count_from_spirit_light_amount, Inventory};
 use crate::orbs::{OrbVariants, Orbs};
 use crate::world::player::Player;
 
@@ -67,7 +67,7 @@ impl Player<'_> {
         states: &FxHashSet<usize>,
         slots: usize,
         world_slots: usize,
-        item_count: usize,
+        initial_item_count: usize,
     ) {
         match requirement {
             Requirement::Free => {}
@@ -116,13 +116,27 @@ impl Player<'_> {
             }
             Requirement::Combat(enemies) => self.needed_for_combat(solutions, enemies),
             Requirement::And(ands) => ands.iter().for_each(|and| {
-                self.find_solutions(solutions, and, states, slots, world_slots, item_count)
+                self.find_solutions(
+                    solutions,
+                    and,
+                    states,
+                    slots,
+                    world_slots,
+                    initial_item_count,
+                )
             }),
             Requirement::Or(ors) => alternate_solutions(solutions, ors, |solutions, or| {
-                self.find_solutions(solutions, or, states, slots, world_slots, item_count)
+                self.find_solutions(
+                    solutions,
+                    or,
+                    states,
+                    slots,
+                    world_slots,
+                    initial_item_count,
+                )
             }),
         }
-        self.check_slot_limits(solutions, slots, world_slots, item_count);
+        self.check_slot_limits(solutions, slots, world_slots, initial_item_count);
     }
 
     #[cfg(debug_assertions)]
@@ -752,11 +766,13 @@ impl Player<'_> {
         solutions: &mut Vec<TaggedSolution>,
         slots: usize,
         world_slots: usize,
-        item_count: usize,
+        initial_item_count: usize,
     ) {
         solutions.retain(|solution| {
-            let spirit_light_slots = solution.inventory.spirit_light_item_count();
-            solution.inventory.world_item_count() + spirit_light_slots <= item_count + slots
+            let spirit_light_slots = item_count_from_spirit_light_amount(
+                solution.inventory.spirit_light - self.inventory.spirit_light,
+            );
+            solution.inventory.world_item_count() + spirit_light_slots <= initial_item_count + slots
                 && spirit_light_slots <= world_slots
         });
     }
@@ -895,17 +911,17 @@ fn require<F: FnMut(&mut TaggedSolution)>(solutions: &mut [TaggedSolution], f: F
 }
 fn require_spirit_light(solutions: &mut [TaggedSolution], amount: usize) {
     require(solutions, |solution| {
-        solution.inventory.spirit_light += amount;
+        solution.inventory.spirit_light = usize::max(solution.inventory.spirit_light, amount);
     })
 }
 fn require_gorlek_ore(solutions: &mut [TaggedSolution], amount: usize) {
     require(solutions, |solution| {
-        solution.inventory.gorlek_ore += amount;
+        solution.inventory.gorlek_ore = usize::max(solution.inventory.gorlek_ore, amount);
     })
 }
 fn require_keystones(solutions: &mut [TaggedSolution], amount: usize) {
     require(solutions, |solution| {
-        solution.inventory.keystones += amount;
+        solution.inventory.keystones = usize::max(solution.inventory.keystones, amount);
     })
 }
 fn require_skill(solutions: &mut [TaggedSolution], skill: Skill) {

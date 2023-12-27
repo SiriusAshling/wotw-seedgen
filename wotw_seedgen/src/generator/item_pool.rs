@@ -1,27 +1,28 @@
 use super::cost::Cost;
-use crate::inventory::Inventory;
+use crate::{common_item::CommonItem, inventory::Inventory};
 use rand::{seq::SliceRandom, Rng};
 use rand_pcg::Pcg64Mcg;
 use std::iter;
 use wotw_seedgen_data::{Shard, Skill, WeaponUpgrade};
 use wotw_seedgen_seed_language::{compile, output::CommandVoid};
 
+// TODO not so sure this is an efficient item pool, maybe try something else once it's possible to benchmark seedgen again
+// TODO don't really think this should be public
 #[derive(Debug, Clone, PartialEq)]
 pub struct ItemPool {
     items: Vec<usize>,
     item_lookup: Vec<CommandVoid>,
-    // TODO this seems half implemented
     inventory: Inventory,
 }
 impl Default for ItemPool {
     fn default() -> Self {
         Self {
             items: [
-                iter::repeat(2).take(40),
-                iter::repeat(3).take(34),
-                iter::repeat(4).take(5),
-                iter::repeat(0).take(24),
-                iter::repeat(1).take(24),
+                iter::repeat(0).take(40),
+                iter::repeat(1).take(34),
+                iter::repeat(2).take(5),
+                iter::repeat(3).take(24),
+                iter::repeat(4).take(24),
             ]
             .into_iter()
             .flatten()
@@ -179,8 +180,10 @@ impl Default for ItemPool {
     }
 }
 impl ItemPool {
+    // TODO when doing forced keystone placements this should only need a reference to remove
     pub fn change(&mut self, command: CommandVoid, mut amount: i32) {
-        // TODO update the inventory accordingly
+        let common_items = CommonItem::from_command(&command);
+
         let index = self
             .item_lookup
             .iter()
@@ -189,6 +192,10 @@ impl ItemPool {
             .map(|(index, _)| index);
 
         if amount > 0 {
+            for common_item in iter::repeat(common_items).take(amount as usize).flatten() {
+                common_item.grant(&mut self.inventory);
+            }
+
             let index = match index {
                 None => {
                     let index = self.item_lookup.len();
@@ -199,6 +206,10 @@ impl ItemPool {
             };
             self.items.extend(iter::repeat(index).take(amount as usize));
         } else if let Some(index) = index {
+            for common_item in iter::repeat(common_items).take(-amount as usize).flatten() {
+                common_item.remove(&mut self.inventory);
+            }
+
             self.items.retain(|i| {
                 amount == 0
                     || if *i == index {
@@ -228,6 +239,10 @@ impl ItemPool {
             }
         }
 
+        for common_item in CommonItem::from_command(&command) {
+            common_item.remove(&mut self.inventory); // TODO mild inaccuracy: if the pool has multiple, say, skills, placing the first will remove it from the inventory
+        }
+
         Some(command)
     }
 
@@ -240,12 +255,13 @@ impl ItemPool {
         self.items.len()
     }
     #[inline]
-    pub fn contains(&self, inventory: &Inventory) -> bool {
-        self.inventory.contains(inventory)
+    pub fn inventory(&self) -> &Inventory {
+        &self.inventory
     }
 
     #[inline]
     pub fn drain(&mut self) -> Drain<'_> {
+        self.inventory.clear();
         Drain::new(self)
     }
     #[inline]

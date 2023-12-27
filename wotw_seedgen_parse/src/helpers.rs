@@ -174,6 +174,7 @@ impl<const CHAR: char> Display for Symbol<CHAR> {
 /// ```
 ///
 /// [`parse_ast`]: crate::parse_ast
+// TODO I'd rather return a Result<T, Vec<Error>>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NoTrailingInput<T> {
     pub parsed: Result<T>,

@@ -2,8 +2,8 @@ mod compile;
 mod package;
 
 // TODO determine a good standard for reexports
-pub use compile::*;
-pub use package::*;
+pub use compile::{compile_intermediate_output, Compile};
+pub use package::Package;
 pub use wotw_seedgen_data::{
     EquipSlot, Equipment, MapIcon, Position, UberIdentifier, WheelBind, WheelItemPosition,
 };

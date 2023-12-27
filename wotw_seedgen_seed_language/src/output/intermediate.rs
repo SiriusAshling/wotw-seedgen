@@ -16,20 +16,6 @@ pub enum Literal {
     IconAsset(String),
     CustomIcon(String),
 }
-impl Display for Literal {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Literal::UberIdentifier(value) => value.fmt(f),
-            Literal::Boolean(value) => value.fmt(f),
-            Literal::Integer(value) => value.fmt(f),
-            Literal::Float(value) => value.fmt(f),
-            Literal::String(value) => value.fmt(f),
-            Literal::Constant(value) => value.fmt(f),
-            Literal::IconAsset(path) => write!(f, "icon asset: \"{path}\""),
-            Literal::CustomIcon(path) => write!(f, "custom icon: \"{path}\""),
-        }
-    }
-}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumDiscriminants)]
 #[strum_discriminants(derive(EnumString))]
 pub enum Constant {

@@ -6,7 +6,12 @@ mod function;
 mod literal;
 mod preprocess;
 
-pub use function::*;
+pub use function::{
+    clean_water, energy_fragment, gorlek_ore, health_fragment, keystone, shard, shard_slot, skill,
+    spirit_light, teleporter, weapon_upgrade,
+};
+
+pub(crate) use function::FunctionIdentifier;
 
 use self::preprocess::{Preprocessor, PreprocessorOutput};
 use crate::{
@@ -24,7 +29,7 @@ use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
-    fmt::{self, Debug, Display},
+    fmt::Debug,
     io::{self, Write},
 };
 use wotw_seedgen_assets::{SnippetAccess, Source, UberStateData};
@@ -224,14 +229,6 @@ pub(crate) enum SharedValue {
     Function(usize),
     Literal(Literal),
 }
-impl Display for SharedValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SharedValue::Function(index) => write!(f, "function: {index}"),
-            SharedValue::Literal(literal) => write!(f, "{literal}"),
-        }
-    }
-}
 impl<'snippets, 'uberstates> GlobalCompilerData<'snippets, 'uberstates> {
     pub(crate) fn new(
         uber_state_data: &'uberstates UberStateData,
@@ -330,6 +327,7 @@ impl<'compiler, 'source, 'snippets, 'uberstates>
             errors: Default::default(),
         };
         ast.compile(&mut compiler);
+        // TODO feature gate debug?
         if let Some(debug) = &mut compiler.global.output.debug {
             // TODO now it's inefficient that we're returning the whole compiler, could save some clones here
             // ... on the other hand, the things we're cloning are probably supposed to be references anyway
@@ -339,7 +337,7 @@ impl<'compiler, 'source, 'snippets, 'uberstates>
                     variables: compiler
                         .variables
                         .iter()
-                        .map(|(k, v)| (k.to_string(), v.to_string()))
+                        .map(|(k, v)| (k.to_string(), format!("{v:?}")))
                         .collect(),
                     function_indices: compiler.function_indices.clone(),
                 },

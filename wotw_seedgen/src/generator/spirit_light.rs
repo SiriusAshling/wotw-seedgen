@@ -5,6 +5,7 @@ use std::mem;
 
 const MIN_SPIRIT_LIGHT: f32 = 50.;
 
+// TODO it seems like the very last spirit light placement is always zero
 pub struct SpiritLightProvider {
     rng: Pcg64Mcg,
     amount: f32,

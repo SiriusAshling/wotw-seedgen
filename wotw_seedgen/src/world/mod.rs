@@ -92,6 +92,9 @@ impl<'graph, 'settings> World<'graph, 'settings> {
 
         context.reached_locations.reached
     }
+    // TODO there are progressions where the requirements is a pure "Impossible". Are we not optimizing those away?
+    // TODO it seems like we are returning progressions to nodes that are already reached. Maybe we have to filter that in post since they
+    // may have been reached after initially encountering the unmet requirement? This is common for teleporters
     pub(crate) fn reached_and_progressions(&mut self) -> ReachedLocations<'graph> {
         let mut context = ReachContext::default();
         context.progression_check = true;

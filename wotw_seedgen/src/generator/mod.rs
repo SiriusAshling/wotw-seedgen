@@ -1,12 +1,11 @@
 mod cost;
-mod item_pool;
+pub mod item_pool;
 mod placement;
 mod spirit_light;
-mod spoiler;
+pub mod spoiler;
 // TODO pub use placement::*;
-pub use item_pool::*;
-pub use spoiler::*;
 
+use self::spoiler::SeedSpoiler;
 use crate::{
     constants::RETRIES,
     generator::placement::generate_placements,
@@ -63,7 +62,7 @@ pub fn generate_seed<F: SnippetAccess, W: io::Write>(
 
     let uber_states = UberStates::new(uber_state_data);
 
-    for attempt in 0..RETRIES {
+    for attempt in 1..=RETRIES {
         trace!("Attempt #{attempt} to generate");
 
         let worlds = snippet_outputs
@@ -80,11 +79,14 @@ pub fn generate_seed<F: SnippetAccess, W: io::Write>(
 
         match generate_placements(&mut rng, worlds) {
             Ok(seed) => {
-                if attempt > 0 {
+                if attempt > 1 {
                     info!(
-                        "Generated seed after {} attempts{}",
-                        attempt + 1,
-                        if attempt < RETRIES / 2 { "" } else { " (phew)" }
+                        "Generated seed after {attempt} attempts{}",
+                        if attempt <= RETRIES / 2 {
+                            ""
+                        } else {
+                            " (phew)"
+                        }
                     );
                 }
 
