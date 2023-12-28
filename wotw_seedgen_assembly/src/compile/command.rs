@@ -290,10 +290,9 @@ impl Compile for input::CommandVoid {
                 (vec![Command::Equip(slot, equipment)], MemoryUsed::ZERO)
             }
             Self::Unequip { equipment } => (vec![Command::Unequip(equipment)], MemoryUsed::ZERO),
-            Self::TriggerKeybind { bind } => (
-                vec![Command::TriggerKeybind(unwrap_string_placeholder(bind))],
-                MemoryUsed::ZERO,
-            ),
+            Self::TriggerKeybind { bind } => {
+                (vec![Command::TriggerKeybind(bind)], MemoryUsed::ZERO)
+            }
             Self::EnableServerSync { uber_identifier } => (
                 vec![Command::EnableServerSync(uber_identifier)],
                 MemoryUsed::ZERO,

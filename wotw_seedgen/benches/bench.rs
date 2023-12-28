@@ -1,6 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use lazy_static::lazy_static;
-use rand_pcg::Pcg64Mcg;
 use rustc_hash::FxHashSet;
 use smallvec::smallvec;
 use std::io;

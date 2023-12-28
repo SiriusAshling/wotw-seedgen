@@ -24,9 +24,13 @@ lazy_static! {
 fn some_seeds() {
     env_logger::Builder::from_env(Env::default().default_filter_or("trace"))
         .format_timestamp(None)
+        .is_test(true)
         .init();
 
     let mut universe_settings = UniverseSettings::new(String::default());
+    universe_settings.world_settings[0]
+        .snippets
+        .push("teleporters".to_string()); // TODO for debugging convenience, remove
     let mut graph = Graph::compile(
         AREAS.clone(),
         LOC_DATA.clone(),
@@ -64,7 +68,7 @@ fn some_seeds() {
     )
     .unwrap();
 
-    universe_settings.world_settings[0].headers.extend([
+    universe_settings.world_settings[0].snippets.extend([
         "bingo".to_string(),
         "bonus+".to_string(),
         "glades_done".to_string(),
@@ -74,7 +78,7 @@ fn some_seeds() {
         "no_ks_doors".to_string(),
         "no_quests".to_string(),
         "no_willow_hearts".to_string(),
-        "open_mode".to_string(),
+        // "open_mode".to_string(), // TODO migrate?
         "spawn_with_sword".to_string(),
         "util_twillen".to_string(),
         "vanilla_opher_upgrades".to_string(),

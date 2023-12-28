@@ -36,8 +36,8 @@ impl Inventory {
     pub fn spawn() -> Self {
         Inventory {
             shard_slots: 3,
-            health: 60,
-            energy: 6.,
+            health: 30,
+            energy: 3.,
             ..Default::default()
         }
     }

@@ -1,5 +1,5 @@
-use crate::{CreateGame, Difficulty, HeaderConfig, InlineHeader, Spawn, Trick};
-use rustc_hash::FxHashSet;
+use crate::{CreateGame, Difficulty, Spawn, Trick};
+use rustc_hash::{FxHashMap, FxHashSet};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -114,17 +114,12 @@ pub struct WorldPreset {
     /// Logically assume hard in-game difficulty
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub hard: Option<bool>,
-    /// Names of headers to use
-    ///
-    /// When generating a seed with these settings, the headers will be searched as .wotwrh files in the current and /headers child directory
+    /// Names of snippets to use
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    pub headers: Option<FxHashSet<String>>,
-    /// Configuration parameters to pass to headers
+    pub snippets: Option<Vec<String>>,
+    /// Configuration to pass to snippets
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    pub header_config: Option<Vec<HeaderConfig>>,
-    /// Inline header syntax
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    pub inline_headers: Option<Vec<InlineHeader>>,
+    pub snippet_config: Option<FxHashMap<String, FxHashMap<String, String>>>,
 }
 
 /// Information for the user about a [`UniversePreset`] or [`WorldPreset`]

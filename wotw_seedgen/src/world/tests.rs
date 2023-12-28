@@ -1,6 +1,5 @@
 use super::*;
 use crate::{item_pool::ItemPool, tests::AREAS};
-use rand_pcg::Pcg64Mcg;
 use wotw_seedgen_settings::{Difficulty, UniverseSettings, DEFAULT_SPAWN};
 use wotw_seedgen_static_assets::{LOC_DATA, STATE_DATA, UBER_STATE_DATA};
 

@@ -264,7 +264,7 @@ pub enum CommandVoid {
     /// Unequip `equipment` from any slot it may be equipped in
     Unequip { equipment: Equipment },
     /// Act as though the user would have pressed `bind`
-    TriggerKeybind { bind: StringOrPlaceholder },
+    TriggerKeybind { bind: String },
     /// Start syncing `uber_identifier` in co-op
     EnableServerSync { uber_identifier: UberIdentifier },
     /// Stop syncing `uber_identifier` in co-op

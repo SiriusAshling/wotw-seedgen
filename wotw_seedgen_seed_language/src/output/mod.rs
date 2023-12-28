@@ -25,9 +25,9 @@ pub struct CompilerOutput {
     pub events: Vec<Event>,
     pub command_lookup: Vec<Command>,
     pub icons: Vec<(String, Vec<u8>)>, // TODO poor memory
-    pub flags: FxHashSet<StringOrPlaceholder>,
+    pub flags: Vec<String>,
     pub item_pool_changes: FxHashMap<CommandVoid, i32>,
-    pub item_metadata: FxHashMap<CommandVoid, ItemMetadata>,
+    pub item_metadata: ItemMetadata,
     pub logical_state_sets: FxHashSet<String>,
     pub preplacements: Vec<(CommandVoid, wotw_seedgen_data::Zone)>,
     pub success: bool,
@@ -46,9 +46,31 @@ pub struct SnippetDebugOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct ItemMetadata {
+pub struct ItemMetadata(pub(crate) FxHashMap<CommandVoid, ItemMetadataEntry>);
+impl ItemMetadata {
+    pub fn name(&self, command: &CommandVoid) -> Option<StringOrPlaceholder> {
+        self.0.get(command).and_then(|entry| entry.name.clone())
+    }
+    pub fn shop_data(
+        &self,
+        command: &CommandVoid,
+    ) -> (Option<CommandInteger>, Option<CommandString>, Option<Icon>) {
+        self.0.get(command).map_or((None, None, None), |entry| {
+            (
+                entry.price.clone(),
+                entry.description.clone(),
+                entry.icon.clone(),
+            )
+        })
+    }
+    pub fn map_icon(&self, command: &CommandVoid) -> Option<MapIcon> {
+        self.0.get(command).and_then(|entry| entry.map_icon)
+    }
+}
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ItemMetadataEntry {
     /// Generic name used when sending the item to another world and in the spoiler
-    pub name: Option<StringOrPlaceholder>,
+    pub name: Option<StringOrPlaceholder>, // TODO why not commandstring
     /// Base price used when placed in a shop
     pub price: Option<CommandInteger>,
     /// Description used when placed in a shop
@@ -62,9 +84,9 @@ pub struct ItemMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum StringOrPlaceholder {
     Value(String),
-    ZoneOfPlaceholder(Box<Command>),
+    ZoneOfPlaceholder(Box<CommandVoid>),
     ItemOnPlaceholder(Box<Trigger>),
-    CountInZonePlaceholder(Vec<Command>, wotw_seedgen_data::Zone),
+    CountInZonePlaceholder(Vec<CommandVoid>, wotw_seedgen_data::Zone),
 }
 impl From<String> for StringOrPlaceholder {
     fn from(value: String) -> Self {

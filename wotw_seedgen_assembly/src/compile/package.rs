@@ -1,15 +1,11 @@
-use super::{compile_into_lookup, unwrap_string_placeholder};
+use super::compile_into_lookup;
 use crate::{Compile, Event, SeedWorld, Spawn};
 use rustc_hash::FxHashMap;
 use std::collections::hash_map::Entry;
 use wotw_seedgen_seed_language::output::CompilerOutput;
 
 pub fn compile_intermediate_output(output: CompilerOutput) -> (SeedWorld, Vec<(String, Vec<u8>)>) {
-    let mut flags = output
-        .flags
-        .into_iter()
-        .map(unwrap_string_placeholder)
-        .collect::<Vec<_>>();
+    let mut flags = output.flags;
     flags.sort();
     let spawn = output
         .spawn

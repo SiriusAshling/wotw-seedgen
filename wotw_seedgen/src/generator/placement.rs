@@ -3,7 +3,6 @@ use super::{
 };
 use crate::{
     common_item::CommonItem,
-    constants::{KEYSTONE_DOORS, PREFERRED_SPAWN_SLOTS, SPAWN_SLOTS, UNSHARED_ITEMS},
     filter_redundancies,
     inventory::Inventory,
     log::{trace, warning},
@@ -25,17 +24,41 @@ use rand_pcg::Pcg64Mcg;
 use rustc_hash::FxHashMap;
 use std::{iter, mem, ops::RangeFrom};
 use wotw_seedgen_assembly::{compile_intermediate_output, ClientEvent, Icon, Spawn};
-use wotw_seedgen_data::{uber_identifier, Equipment, MapIcon, OpherIcon, Skill, UberIdentifier};
+use wotw_seedgen_data::{Equipment, MapIcon, OpherIcon, Skill, Teleporter, UberIdentifier};
 use wotw_seedgen_logic_language::output::{Node, Requirement};
 use wotw_seedgen_seed_language::{
     compile,
     output::{
-        CommandInteger, CommandString, CommandVoid, CompilerOutput, Event, StringOrPlaceholder,
-        Trigger,
+        CommandInteger, CommandString, CommandVoid, CompilerOutput, Event, ItemMetadata,
+        StringOrPlaceholder, Trigger,
     },
 };
 
-pub(crate) fn generate_placements(
+// TODO implement this
+const SPAWN_GRANTS: &[(&str, CommandVoid)] = &[(
+    "EastPools.Teleporter",
+    compile::set_boolean_value(Teleporter::CentralLuma.uber_identifier(), true),
+)];
+const KEYSTONE_DOORS: &[(&str, usize)] = &[
+    ("MarshSpawn.KeystoneDoor", 2),
+    ("HowlsDen.KeystoneDoor", 2),
+    ("MarshPastOpher.EyestoneDoor", 2),
+    ("MidnightBurrows.KeystoneDoor", 4),
+    ("WoodsEntry.KeystoneDoor", 2),
+    ("WoodsMain.KeystoneDoor", 4),
+    ("LowerReach.KeystoneDoor", 4),
+    ("UpperReach.KeystoneDoor", 4),
+    ("UpperDepths.EntryKeystoneDoor", 2),
+    ("UpperDepths.CentralKeystoneDoor", 2),
+    ("UpperPools.KeystoneDoor", 4),
+    ("UpperWastes.KeystoneDoor", 2),
+];
+const SPAWN_SLOTS: usize = 7;
+const PREFERRED_SPAWN_SLOTS: usize = 3;
+const _: usize = SPAWN_SLOTS - PREFERRED_SPAWN_SLOTS; // check that SPAWN_SLOTS >= PREFERRED_SPAWN_SLOTS
+const UNSHARED_ITEMS: usize = 5; // How many items to place per world that are guaranteed not being sent to another world
+
+pub fn generate_placements(
     rng: &mut Pcg64Mcg,
     worlds: Vec<(World, CompilerOutput)>,
 ) -> Result<Seed, String> {
@@ -48,7 +71,6 @@ pub(crate) fn generate_placements(
         trace!("Placement step #{step}");
         context.update_reached();
         if context.everything_reached() {
-            trace!("All locations reached");
             context.place_remaining();
             break;
         }
@@ -63,16 +85,16 @@ pub(crate) fn generate_placements(
     Ok(context.finish())
 }
 
-struct Context<'graph, 'settings> {
+pub struct Context<'graph, 'settings> {
     rng: Pcg64Mcg,
-    worlds: Vec<WorldContext<'graph, 'settings>>,
+    pub worlds: Vec<WorldContext<'graph, 'settings>>,
     /// next multiworld uberState id to use
     multiworld_state_index: RangeFrom<i32>,
 }
-struct WorldContext<'graph, 'settings> {
+pub struct WorldContext<'graph, 'settings> {
     rng: Pcg64Mcg,
-    world: World<'graph, 'settings>,
-    output: CompilerOutput,
+    pub world: World<'graph, 'settings>,
+    pub output: CompilerOutput,
     /// world index of this world
     #[cfg_attr(not(any(feature = "log", test)), allow(unused))]
     index: usize,
@@ -175,7 +197,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     }
 
     fn place_remaining(&mut self) {
-        trace!("Placing remaining items");
+        trace!("All locations reached. Placing remaining items");
         for target_world_index in 0..self.worlds.len() {
             for command in self.worlds[target_world_index]
                 .item_pool
@@ -265,6 +287,9 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                 .format("\n")
         );
 
+        self.worlds[0].update_reached();
+        self.worlds[0].choose_progression(slots);
+
         self.flush_item_pool();
         None
     }
@@ -272,7 +297,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     fn progression_slots(&self) -> usize {
         self.worlds
             .iter()
-            .map(|world_context| world_context.progression_slots()) // TODO if the world has force-unshared items left, this could give the wrong result
+            .map(|world_context| world_context.progression_slots())
             .sum()
     }
 
@@ -313,7 +338,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     }
 
     fn place_command(&mut self, command: CommandVoid, target_world_index: usize) {
-        let origin_world_index = self.choose_origin_world(target_world_index);
+        let origin_world_index = self.choose_origin_world();
         let name = self.name(&command, origin_world_index, target_world_index);
         let origin_world = &mut self.worlds[origin_world_index];
         match origin_world.choose_placement_node(false) {
@@ -342,26 +367,20 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     }
 
     // TODO might be worth to do some single-world happy paths?
-    fn choose_origin_world(&mut self, target_world_index: usize) -> usize {
-        if self.worlds[target_world_index].unshared_items > 0 {
-            trace!("World {target_world_index} is not allowed to share items yet, forcing item placement in own world");
-            self.worlds[target_world_index].unshared_items -= 1;
-            target_world_index
-        } else {
-            let mut world_indices = (0..self.worlds.len()).collect::<Vec<_>>();
-            world_indices.shuffle(&mut self.rng);
-            let origin_world_index = world_indices
-                .iter()
-                .find(|index| !self.worlds[**index].reached_needs_placement.is_empty())
-                .copied()
-                .or_else(|| {
-                    world_indices
-                        .into_iter()
-                        .find(|index| self.worlds[*index].spawn_slots > 0)
-                })
-                .unwrap(); // TODO handle
-            origin_world_index
-        }
+    fn choose_origin_world(&mut self) -> usize {
+        let mut world_indices = (0..self.worlds.len()).collect::<Vec<_>>();
+        world_indices.shuffle(&mut self.rng);
+        let origin_world_index = world_indices
+            .iter()
+            .find(|index| !self.worlds[**index].reached_needs_placement.is_empty())
+            .copied()
+            .or_else(|| {
+                world_indices
+                    .into_iter()
+                    .find(|index| self.worlds[*index].spawn_slots > 0)
+            })
+            .unwrap(); // TODO handle
+        origin_world_index
     }
 
     fn choose_target_world(&mut self, origin_world_index: usize) -> usize {
@@ -372,12 +391,10 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
         } else {
             let mut world_indices = (0..self.worlds.len()).collect::<Vec<_>>();
             world_indices.shuffle(&mut self.rng);
-            let target_world_index = world_indices
+            world_indices
                 .into_iter()
                 .find_or_last(|index| !self.worlds[*index].item_pool.is_empty())
-                .unwrap(); // TODO handle
-
-            target_world_index
+                .unwrap() // TODO handle
         }
     }
 
@@ -482,7 +499,9 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
         }
     }
 
-    fn finish(self) -> Seed {
+    fn finish(mut self) -> Seed {
+        self.resolve_placeholders();
+
         Seed {
             worlds: self
                 .worlds
@@ -812,8 +831,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         let icon = self
             .output
             .item_metadata
-            .get(command)
-            .and_then(|metadata| metadata.map_icon)
+            .map_icon(command)
             .unwrap_or_else(|| {
                 CommonItem::from_command(command)
                     .into_iter()
@@ -828,30 +846,18 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         });
     }
 
-    fn name(&self, command: &CommandVoid) -> CommandString {
-        self.output
-            .item_metadata
-            .get(command)
-            .and_then(|metadata| {
-                metadata
-                    .name
-                    .clone()
-                    .map(|name| CommandString::Constant { value: name })
-            })
-            .or_else(|| find_message(command).cloned())
-            .unwrap() // TODO handle
+    pub fn name(&self, command: &CommandVoid) -> CommandString {
+        command_name(command, &self.output.item_metadata)
     }
 
     #[cfg(any(feature = "log", test))]
     fn log_name(&self, command: &CommandVoid) -> String {
         self.output
             .item_metadata
-            .get(command)
-            .and_then(|metadata| {
-                metadata.name.clone().and_then(|name| match name {
-                    StringOrPlaceholder::Value(value) => Some(value),
-                    _ => None,
-                })
+            .name(command)
+            .and_then(|name| match name {
+                StringOrPlaceholder::Value(value) => Some(value),
+                _ => None,
             })
             .or_else(|| {
                 CommonItem::from_command(command)
@@ -872,14 +878,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         uber_identifier: UberIdentifier,
         name: CommandString,
     ) {
-        let (price, description, icon) = self
-            .output
-            .item_metadata
-            .get(command)
-            .cloned()
-            .map_or((None, None, None), |metadata| {
-                (metadata.price, metadata.description, metadata.icon)
-            });
+        let (price, description, icon) = self.output.item_metadata.shop_data(command);
 
         let price = price.unwrap_or_else(|| CommandInteger::Constant {
             value: self.shop_price(command),
@@ -986,17 +985,14 @@ fn total_reach_check<'graph>(
     world.reached()
 }
 
-fn is_spirit_light(command: &CommandVoid) -> bool {
-    matches!(
-        command,
-        CommandVoid::StoreInteger {
-            uber_identifier: uber_identifier::SPIRIT_LIGHT,
-            ..
-        }
-    )
+pub fn command_name(command: &CommandVoid, item_metadata: &ItemMetadata) -> CommandString {
+    item_metadata
+        .name(command)
+        .map(|value| CommandString::Constant { value })
+        .or_else(|| find_message(command).cloned())
+        .unwrap() // TODO handle
 }
-
-fn find_message(command: &CommandVoid) -> Option<&CommandString> {
+pub fn find_message(command: &CommandVoid) -> Option<&CommandString> {
     match command {
         CommandVoid::Multi { commands } => commands.iter().find_map(find_message),
         CommandVoid::QueuedMessage { message, .. } => Some(message),

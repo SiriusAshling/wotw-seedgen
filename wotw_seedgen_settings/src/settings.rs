@@ -188,17 +188,10 @@ pub struct WorldSettings {
     pub tricks: FxHashSet<Trick>,
     /// Logically assume hard in-game difficulty
     pub hard: bool,
+    /// Names of snippets to use
     pub snippets: Vec<String>,
+    /// Configuration to pass to snippets
     pub snippet_config: FxHashMap<String, FxHashMap<String, String>>,
-    // TODO delete below
-    /// Names of headers to use
-    ///
-    /// When generating a seed with these settings, the headers will be searched as .wotwrh files in the current and /headers child directory
-    pub headers: FxHashSet<String>,
-    /// Configuration parameters to pass to headers
-    pub header_config: Vec<HeaderConfig>,
-    /// Fully qualified header syntax
-    pub inline_headers: Vec<InlineHeader>,
 }
 
 impl WorldSettings {
@@ -236,9 +229,8 @@ impl WorldSettings {
             tricks,
             spawn,
             hard,
-            headers,
-            header_config,
-            inline_headers,
+            snippets,
+            snippet_config,
         } = preset;
 
         if let Some(includes) = includes {
@@ -260,14 +252,16 @@ impl WorldSettings {
         if let Some(hard) = hard {
             self.hard = hard;
         }
-        if let Some(headers) = headers {
-            self.headers.extend(headers);
+        if let Some(snippets) = snippets {
+            self.snippets.extend(snippets);
         }
-        if let Some(mut header_config) = header_config {
-            self.header_config.append(&mut header_config);
-        }
-        if let Some(mut inline_headers) = inline_headers {
-            self.inline_headers.append(&mut inline_headers);
+        if let Some(snippet_config) = snippet_config {
+            for (snippet_name, config) in snippet_config {
+                let entry = self.snippet_config.entry(snippet_name).or_default();
+                for (config_name, value) in config {
+                    entry.insert(config_name, value);
+                }
+            }
         }
 
         Ok(())
@@ -400,34 +394,4 @@ pub enum CreateGame {
     DiscoveryBingo,
     /// Create a lockout bingo game, which can optionally be used for co-op and multiworld
     LockoutBingo,
-}
-
-/// Configuration parameter for a header
-#[derive(Debug, Default, Clone, PartialEq)]
-#[cfg_attr(
-    feature = "serde",
-    derive(Serialize, Deserialize),
-    serde(rename_all = "camelCase", deny_unknown_fields)
-)]
-pub struct HeaderConfig {
-    /// The name of the header
-    pub header_name: String,
-    /// The name of the configuration parameter
-    pub config_name: String,
-    /// The value to use for the configuration parameter
-    pub config_value: String,
-}
-
-/// Headers passed through explicit syntax
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(
-    feature = "serde",
-    derive(Serialize, Deserialize),
-    serde(rename_all = "camelCase", deny_unknown_fields)
-)]
-pub struct InlineHeader {
-    /// The name of the header
-    pub name: Option<String>,
-    /// Contained header syntax
-    pub content: String,
 }

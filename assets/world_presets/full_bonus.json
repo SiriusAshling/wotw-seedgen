@@ -3,62 +3,19 @@
     "name": "Full Bonus",
     "description": "All of the Bonus, None of the Balance"
   },
-  "headers": [
-    "bonus_items",
-    "jumpgrades",
-    "skill_velocity",
-    "bonus+"
-  ],
-  "headerConfig": [
-    {
-      "headerName": "bonus_items",
-      "configName": "extraJumps",
-      "configValue": "4"
-    },
-    {
-      "headerName": "bonus_items",
-      "configName": "extraDashes",
-      "configValue": "2"
-    },
-    {
-      "headerName": "bonus_items",
-      "configName": "blazeEfficiency",
-      "configValue": "2"
-    },
-    {
-      "headerName": "bonus_items",
-      "configName": "spikeEfficiency",
-      "configValue": "2"
-    },
-    {
-      "headerName": "bonus_items",
-      "configName": "shurikenEfficiency",
-      "configValue": "2"
-    },
-    {
-      "headerName": "bonus_items",
-      "configName": "sentryEfficiency",
-      "configValue": "2"
-    },
-    {
-      "headerName": "bonus_items",
-      "configName": "bowEfficiency",
-      "configValue": "2"
-    },
-    {
-      "headerName": "bonus_items",
-      "configName": "regenEfficiency",
-      "configValue": "2"
-    },
-    {
-      "headerName": "bonus_items",
-      "configName": "flashEfficiency",
-      "configValue": "2"
-    },
-    {
-      "headerName": "bonus_items",
-      "configName": "grenadeEfficiency",
-      "configValue": "2"
+  "snippets": ["bonus_items", "jumpgrades", "skill_velocity", "bonus+"],
+  "snippetConfig": {
+    "bonus_items": {
+      "extraJumps": "4",
+      "extraDashes": "2",
+      "blazeEfficiency": "2",
+      "spikeEfficiency": "2",
+      "shurikenEfficiency": "2",
+      "sentryEfficiency": "2",
+      "bowEfficiency": "2",
+      "regenEfficiency": "2",
+      "flashEfficiency": "2",
+      "grenadeEfficiency": "2"
     }
-  ]
+  }
 }

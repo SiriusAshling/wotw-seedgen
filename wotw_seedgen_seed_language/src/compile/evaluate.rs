@@ -64,6 +64,18 @@ impl EvaluateFrom for OrderedFloat<f32> {
         }
     }
 }
+impl EvaluateFrom for String {
+    type From = CommandString;
+
+    fn evaluate(from: Self::From) -> Option<Self> {
+        match from {
+            Self::From::Constant {
+                value: StringOrPlaceholder::Value(value),
+            } => Some(value),
+            _ => None,
+        }
+    }
+}
 impl EvaluateFrom for StringOrPlaceholder {
     type From = CommandString;
 

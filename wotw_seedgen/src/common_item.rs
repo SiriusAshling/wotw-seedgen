@@ -1,9 +1,6 @@
 use crate::inventory::Inventory;
 use std::fmt::{self, Display};
-use wotw_seedgen_data::{
-    uber_identifier::{self, weapon_upgrade},
-    MapIcon, Shard, Skill, Teleporter, WeaponUpgrade,
-};
+use wotw_seedgen_data::{uber_identifier, MapIcon, Shard, Skill, Teleporter, WeaponUpgrade};
 use wotw_seedgen_seed_language::output::{
     ArithmeticOperator, CommandBoolean, CommandFloat, CommandInteger, CommandVoid, Operation,
 };

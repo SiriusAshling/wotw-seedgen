@@ -9,7 +9,6 @@
 #![allow(clippy::struct_excessive_bools)]
 
 mod common_item;
-mod constants;
 mod generator;
 mod inventory;
 mod logical_difficulty;
@@ -22,11 +21,11 @@ mod world;
 // maybe since this is the top crate it should reexport everything?
 pub use generator::{generate_seed, item_pool, spoiler, Seed};
 pub use world::{Player, Simulate, UberStates, World};
-// pub use reach_check::reach_check;
 
 pub(crate) use world::{filter_redundancies, node_condition, node_trigger};
 
 // TODO use this and also set the other metadata: current world, format version, settings
+// TODO look into having the commit hash again
 pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"));
 
 mod log {

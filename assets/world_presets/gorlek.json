@@ -4,11 +4,9 @@
     "description": "For advanced players, requires some hard paths and doesn't spawn with sword",
     "group": "Base"
   },
-  "includes": [
-    "qol"
-  ],
+  "includes": ["qol"],
   "difficulty": "Gorlek",
-  "headers": [
+  "snippets": [
     "shrine_hints",
     "trial_hints",
     "teleporters",
@@ -16,6 +14,7 @@
     "key_hints",
     "black_market",
     "zone_hints",
+    "spawn_tuley",
     "no_rain",
     "knowledge_hints"
   ]

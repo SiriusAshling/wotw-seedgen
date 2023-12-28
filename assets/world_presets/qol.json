@@ -3,12 +3,11 @@
     "name": "Quality of Life",
     "description": "Enables some quality of life settings (e.g. autoplant, cutscene skips etc.)"
   },
-  "headers": [
+  "snippets": [
     "progress_helper",
     "better_stomp",
     "autoplants",
     "no_cutscenes",
-    "tp_refill",
-    "quest_autoadvance"
+    "tp_refill"
   ]
 }

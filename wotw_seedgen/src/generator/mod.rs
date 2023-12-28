@@ -1,13 +1,13 @@
-mod cost;
 pub mod item_pool;
+pub mod spoiler;
+
+mod cost;
 mod placement;
 mod spirit_light;
-pub mod spoiler;
-// TODO pub use placement::*;
+mod string_placeholders;
 
 use self::spoiler::SeedSpoiler;
 use crate::{
-    constants::RETRIES,
     generator::placement::generate_placements,
     log::{info, trace, warning},
     logical_difficulty,
@@ -31,6 +31,8 @@ pub struct Seed {
     /// Spoiler data for the generation process
     pub spoiler: SeedSpoiler,
 }
+
+const RETRIES: u16 = 10; // How many retries to allow when generating a seed
 
 pub fn generate_seed<F: SnippetAccess, W: io::Write>(
     graph: &Graph,
@@ -102,6 +104,8 @@ pub fn generate_seed<F: SnippetAccess, W: io::Write>(
     ))
 }
 
+const SEED_FAILED_MESSAGE: &str = "Failed to seed child RNG";
+
 fn parse_snippets<W: io::Write>(
     snippets: &[String],
     mut compiler: Compiler,
@@ -166,8 +170,6 @@ fn choose_spawn(
     };
     Ok(spawn)
 }
-
-const SEED_FAILED_MESSAGE: &str = "Failed to seed child RNG";
 
 // TODO migrate
 // fn block_spawn_sets(preplacement: &header::Pickup, world: &mut World) {

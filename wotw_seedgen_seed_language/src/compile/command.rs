@@ -3,7 +3,7 @@
 use super::{Compile, SharedValue, SnippetCompiler};
 use crate::{
     ast::{self, UberStateType},
-    output::{intermediate::Literal, Command, CommandVoid, ItemMetadata, StringOrPlaceholder},
+    output::{intermediate::Literal, Command, CommandVoid, ItemMetadataEntry, StringOrPlaceholder},
 };
 use ordered_float::OrderedFloat;
 use rand::Rng;
@@ -321,7 +321,7 @@ impl<'source> Compile<'source> for ast::FlagArg<'source> {
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
         if let Some(flag) = self.0.evaluate(compiler) {
-            compiler.global.output.flags.insert(flag);
+            compiler.global.output.flags.push(flag);
         }
     }
 }
@@ -512,9 +512,10 @@ impl<'source> Compile<'source> for ast::ItemDataArgs<'source> {
                 .global
                 .output
                 .item_metadata
+                .0
                 .insert(
                     item,
-                    ItemMetadata {
+                    ItemMetadataEntry {
                         name,
                         price,
                         description,
@@ -597,7 +598,7 @@ impl<'source> Compile<'source> for ast::ItemDataIconArgs<'source> {
         }
     }
 }
-fn insert_item_data<T, F: FnOnce(&mut ItemMetadata) -> &mut Option<T>>(
+fn insert_item_data<T, F: FnOnce(&mut ItemMetadataEntry) -> &mut Option<T>>(
     compiler: &mut SnippetCompiler,
     item: CommandVoid,
     span: Range<usize>,
@@ -610,6 +611,7 @@ fn insert_item_data<T, F: FnOnce(&mut ItemMetadata) -> &mut Option<T>>(
             .global
             .output
             .item_metadata
+            .0
             .entry(item)
             .or_default()),
         Some(value),
@@ -653,7 +655,12 @@ impl<'source> Compile<'source> for ast::ZoneOfArgs<'source> {
     type Output = ();
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
-        if let Some(item) = self.item.compile(compiler) {
+        let span = self.item.span();
+        let item = self
+            .item
+            .compile(compiler)
+            .and_then(|command| command.expect_void(compiler, span));
+        if let Some(item) = item {
             compiler.variables.insert(
                 self.identifier.data,
                 Literal::String(StringOrPlaceholder::ZoneOfPlaceholder(Box::new(item))),
@@ -684,12 +691,16 @@ impl<'source> Compile<'source> for ast::CountInZoneArgs<'source> {
             .flatten()
             .flatten()
             .flatten();
-        let items = self
-            .items
-            .compile(compiler)
+        let items = compiler
+            .consume_result(self.items.content)
             .into_iter()
             .flatten()
-            .flatten()
+            .filter_map(|action| {
+                let span = action.span();
+                action
+                    .compile(compiler)
+                    .and_then(|command| command.expect_void(compiler, span))
+            })
             .collect::<Vec<_>>();
 
         for (identifier, zone) in zone_bindings {

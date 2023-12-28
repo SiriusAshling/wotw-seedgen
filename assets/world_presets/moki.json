@@ -4,11 +4,9 @@
     "description": "Default game paths and always spawn with sword, best choice for beginners. Quests are disabled",
     "group": "Base"
   },
-  "includes": [
-    "qol"
-  ],
+  "includes": ["qol"],
   "difficulty": "Moki",
-  "headers": [
+  "snippets": [
     "no_quests",
     "shrine_hints",
     "no_trials",
@@ -18,6 +16,7 @@
     "black_market",
     "zone_hints",
     "spawn_with_sword",
+    "spawn_tuley",
     "no_rain",
     "knowledge_hints"
   ]

@@ -1004,6 +1004,22 @@ impl_constants_coerce_from!(
     Alignment,
     ScreenPosition,
 );
+impl CompileIntoLiteral for String {
+    fn coerce_literal(
+        literal: Literal,
+        span: Range<usize>,
+        compiler: &mut SnippetCompiler,
+    ) -> Option<Self> {
+        let result = match literal {
+            Literal::String(value) => match value {
+                StringOrPlaceholder::Value(value) => Ok(value),
+                _ => Err(Error::custom("expected string literal".to_string(), span)),
+            },
+            other => Err(type_error(other.literal_type(), Type::String, span)),
+        };
+        compiler.consume_result(result)
+    }
+}
 impl CompileIntoLiteral for StringOrPlaceholder {
     fn coerce_literal(
         literal: Literal,

@@ -9,6 +9,5 @@ mod settings;
 pub use access::{NoPresetAccess, PresetAccess};
 pub use preset::{PresetGroup, PresetInfo, UniversePreset, WorldPreset};
 pub use settings::{
-    CreateGame, Difficulty, HeaderConfig, InlineHeader, Spawn, Trick, UniverseSettings,
-    WorldSettings, DEFAULT_SPAWN,
+    CreateGame, Difficulty, Spawn, Trick, UniverseSettings, WorldSettings, DEFAULT_SPAWN,
 };
