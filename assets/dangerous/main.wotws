@@ -55,6 +55,7 @@ on lagoonStateGroup.kwolokBossState == 3 {
         store(gameStateGroup.gameDifficultyMode, 1)
 }
 
+// TODO wither item
 // TODO easter egg for doing the seeds on balanced
 // TODO make hand to hand clearer, people always just look at the mapstone fragment in purple
 // TODO something about Shuriken at the end of basically every trick
@@ -113,6 +114,7 @@ on lagoonStateGroup.kwolokBossState == 3 {
 // 7 - 4
 // 4 - -1
 
+// TODO wastes teleporter on flash tree?
 // Balanced progression line:
 // Sword on RegenTree                                         \
 // |-- Poison Drain on EastHollow.BashTree                    | Chapter 1 - Lost

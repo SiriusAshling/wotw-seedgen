@@ -63,7 +63,7 @@ on WindtornRuins.HandToHandComplete {
 fun read_mapstone() {
     set_string("critical_clue", "")
     if critical == false set_string("critical_clue", "(@Critical@ may be required)\n")
-    free_message("active_message",
+    free_message("message_1",
         "Reading the writings engraved in the <purple>Mapstone</>, you unveil one of this world's secrets...\n" +
         "A *Light* is hiding, in search of a sanctuary. It cannot be found, but might it be lured?\n" +
         get_string("critical_clue") +

@@ -182,7 +182,7 @@ pub enum Command {
     /// Hide free message `id`
     FreeMessageHide(/*id*/ usize),
     /// Set the position of free message `id` to (Float Memory 0, Float Memory 1)
-    FreeMessagePosition(/*id*/ usize, /*world_cordinates*/ bool),
+    FreeMessagePosition(/*id*/ usize /*TODO, /*world_cordinates*/ bool*/),
     /// Set the `alignment` of free message `id`
     FreeMessageAlignment(/*id*/ usize, /*alignment*/ Alignment),
     /// Set the `screen_position` of free message `id`

@@ -219,7 +219,7 @@ fun update_cells_wheel() {
 on finished_achievement finished()
 fun finished() {
     free_message(
-        "active_message",
+        "message_1",
         "*Achievement completed*\n" +
         finished_string +
         "\n[Binding1] Close"
@@ -229,7 +229,7 @@ fun finished() {
 on true_ending_achievement true_ending()
 fun true_ending() {
     free_message(
-        "active_message",
+        "message_1",
         "*Achievement completed*\n" +
         true_ending_string +
         "\n[Binding1] Close"
@@ -239,7 +239,7 @@ fun true_ending() {
 on ores_achievement ores()
 fun ores() {
     free_message(
-        "active_message",
+        "message_1",
         "*Achievement completed*\n" +
         ores_string +
         "\n[Binding1] Close"
@@ -249,7 +249,7 @@ fun ores() {
 on shiny_ores_achievement shiny_ores()
 fun shiny_ores() {
     free_message(
-        "active_message",
+        "message_1",
         "*Achievement completed*\n" +
         shiny_ores_string +
         "\n[Binding1] Close"
@@ -259,7 +259,7 @@ fun shiny_ores() {
 on trials_achievement trials()
 fun trials() {
     free_message(
-        "active_message",
+        "message_1",
         "*Achievement completed*\n" +
         trials_string +
         "\n[Binding1] Close"
@@ -269,7 +269,7 @@ fun trials() {
 on cells_achievement cells()
 fun cells() {
     free_message(
-        "active_message",
+        "message_1",
         "*Achievement completed*\n" +
         cells_string +
         "\n[Binding1] Close"

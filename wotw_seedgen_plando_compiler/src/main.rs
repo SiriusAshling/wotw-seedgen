@@ -3,8 +3,8 @@ use rustc_hash::FxHashMap;
 use serde::Serialize;
 use std::{
     fmt::{self, Debug},
-    fs,
-    io::{self, ErrorKind},
+    fs::{self, File},
+    io::{self, ErrorKind, Write},
     mem,
     path::{Path, PathBuf},
 };
@@ -59,6 +59,11 @@ fn main() -> Result<(), Error> {
     package.add_data("debug", serde_json::to_vec_pretty(&metadata)?)?;
 
     package.finish()?;
+
+    let mut old = File::create("seeds/out/out_old.wotwr")?;
+    write!(old, "wotwr,0.0.1,p\n")?;
+    let seed = serde_json::to_string(&seed_world)?.replace("File", "Path");
+    write!(old, "{seed}")?;
 
     Ok(())
 }

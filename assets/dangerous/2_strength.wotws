@@ -137,6 +137,7 @@ on MarshSpawn.CrusherSwimEX {
         item_message("So close, yet so far...")
     }
     if skills.shuriken == false {
+        // TODO warping out of water misbehaves in latest client
         warp(-13, -4267)
         store(kwolokGroupDescriptor.stompableFloorB, true)
         // TODO there was a delayed autosave here
@@ -183,7 +184,7 @@ on WestGlades.LeftOre {
 on WestGlades.ShrineHC gorlek_ore_pre_water()
 on WestGlades.CombatShrine {
     if critical gorlek_ore_pre_water()
-    if critical == false resource(Resource::ShardSlot)
+    if critical == false shard_slot()
 }
 
 on GladesTown.FamilyReunionKey {

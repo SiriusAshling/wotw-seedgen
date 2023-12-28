@@ -93,7 +93,7 @@ fun shop_message() {
     )
 
     free_message(
-        "active_message",
+        "message_1",
         get_string("name") + "\n" +
         get_string("actions")
     )
@@ -129,7 +129,7 @@ on binding_3 if bind_pointer == shop_shuriken_efficiency
     || bind_pointer == shop_ancestral_light
     || bind_pointer == shop_pendant
 {
-    destroy_message("active_message")
+    destroy_message("message_1")
     store(bind_pointer, 0)
 }
 

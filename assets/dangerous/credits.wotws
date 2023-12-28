@@ -17,11 +17,16 @@
 !use("achievements", cells_title)
 !include("bind_pointer")
 !use("bind_pointer", bind_pointer)
+!include("fancy_strings")
+!use("fancy_strings", zre)
+!use("fancy_strings", eiko)
+!use("fancy_strings", wolf)
 
 // TODO this probably breaks horribly if the user skips the final cutscene
 
 !state(timer, Float)
 !state(timer_active, Boolean)
+on reload define_timer(timer, timer_active)
 
 on willowsEndGroup.petrifiedOwlBossState == 5 {
     store(finished_achievement, true)
@@ -65,8 +70,7 @@ on timer > 60. {
     priority_message("*Inspirations from*\nspinesheath\n$Co" + get_string("s") + "micAngel$", 10)
 }
 on timer > 70. {
-    // TODO zre color? check credits I guess
-    priority_message("*oriHugs* to\n*EikoTheBlue*, $BadWolf$ and zre\nfor making this insanity reality", 10)
+    priority_message("*oriHugs* to\n" + eiko + ", " + wolf + " and " + zre + "\nfor making this insanity reality", 10)
 }
 on timer > 80. {
     priority_message("more *oriHugs* to\nXemsys, Dr. Tuen, Guard, Jaychalke, yoburg, Bastixx, deeperpurple\n...and every other Ori out there", 10)

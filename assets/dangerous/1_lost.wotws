@@ -12,11 +12,18 @@
 !use("items", gorlek_ore_pre_shuriken)
 !use("items", ability_cell)
 
+!state(torch_hint, Boolean)
+
 // ~ Area: Cave ~
 
-// TODO point out the torch?
+// TODO on tick doesn't work
+on tick if is_in_hitbox(-644, -4390, -632, -4381) store(torch_hint, true)
+on torch_hint item_message("You hear #fire crackling# nearby...")
 
-on swampStateGroup.torchHolded store(swampStateGroup.torchHolded, false)
+on swampStateGroup.torchHolded {
+    store(swampStateGroup.torchHolded, false)
+    store_without_triggers(torch_hint, true)
+}
 on MarshSpawn.RockHC || MarshSpawn.LogBroken store(gladesProjects.spiritWellBuilt, true)
 
 on MarshSpawn.RockHC energy_fragment()

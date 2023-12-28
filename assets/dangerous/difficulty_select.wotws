@@ -4,43 +4,77 @@
 !use("bind_pointer", select_difficulty)
 !use("bind_pointer", confirm_balanced)
 !use("bind_pointer", confirm_critical)
+!use("bind_pointer", destroy_messages)
+!include("fancy_strings")
+!use("fancy_strings", lime_green)
+!use("fancy_strings", balanced_string)
+!use("fancy_strings", balanced_string_behind)
+!use("fancy_strings", critical_string)
+!use("fancy_strings", critical_string_behind)
 
 !state(critical, Boolean)
 !share(critical)
 
+// TODO specialized command to get a timer
 !state(timer, Float)
 !state(timer_active, Boolean)
+on reload define_timer(timer_active, timer)
+
+// TODO can we do position transitions? Then this could move the selected difficulty text to the top or smth
+// TODO setting the positions is awkward because the set the center of the box. Is there someway we could set the top of it instead?
+// TODO the crossfade isn't the best...
 
 !share(difficulty_menu)
 fun difficulty_menu() {
-    free_message(
-        "active_message",
-        "$Select a difficulty$\n" +
-        "#Balanced#                   @Critical@\n" +
-        "[Binding1]        [Binding2]"
-    )
+    free_message("message_1", "<s_1.25>Select a difficulty")
+    set_message_screen_position("message_1", ScreenPosition::TopCenter)
+    set_message_position("message_1", 0, -1)
+    // TODO order is inconsistent here, probably expose z position?
+    free_message("message_2", "<s_1.25>" + balanced_string_behind + "\n<>")
+    set_message_screen_position("message_2", ScreenPosition::TopCenter)
+    set_message_position("message_2", -1.015, -1.75)
+    free_message("message_3", "<s_1.25>" + balanced_string + "</>\n[Binding1]")
+    set_message_screen_position("message_3", ScreenPosition::TopCenter)
+    set_message_position("message_3", -1, -1.75)
+    set_message_background("message_3", false)
+    free_message("message_4", "<s_1.25>" + critical_string_behind + "\n<>")
+    set_message_screen_position("message_4", ScreenPosition::TopCenter)
+    set_message_position("message_4", 0.985, -1.75)
+    free_message("message_5", "<s_1.25>" + critical_string + "</>\n[Binding2]")
+    set_message_screen_position("message_5", ScreenPosition::TopCenter)
+    set_message_position("message_5", 1, -1.75)
+    set_message_background("message_5", false)
     store(bind_pointer, select_difficulty)
 }
-// TODO there were ordering issues here, check other menues if they have the same problem
 on binding_1 {
     set_integer("bind_pointer", bind_pointer)
     if get_integer("bind_pointer") == select_difficulty {
-        destroy_message("active_message")
-        free_message(
-            "active_message",
-            "#Balanced#\n" +
-            "There will be a difficulty curve and multiple paths to progress.\n" +
-            "$Confirm$                   @Go back@\n" +
-            "[Binding1]        [Binding2]"
-        )
+        // TODO tried to clear the message text before destroying but the client doesn't seem to like that
+        destroy_messages()
+        free_message("message_1", "<s_1.25>" + balanced_string_behind)
+        set_message_screen_position("message_1", ScreenPosition::TopCenter)
+        set_message_position("message_1", -0.015, -1)
+        free_message("message_2", "<s_1.25>" + balanced_string)
+        set_message_screen_position("message_2", ScreenPosition::TopCenter)
+        set_message_position("message_2", 0, -1)
+        set_message_background("message_2", false)
+        free_message("message_3", "There will be a difficulty curve and multiple paths to progress")
+        set_message_screen_position("message_3", ScreenPosition::TopCenter)
+        set_message_position("message_3", 0, -1.55)
+        free_message("message_4", lime_green + "Confirm\n[Binding1]")
+        set_message_screen_position("message_4", ScreenPosition::TopCenter)
+        set_message_position("message_4", -1, -2.25)
+        free_message("message_5", "@Go back\n[Binding2]")
+        set_message_screen_position("message_5", ScreenPosition::TopCenter)
+        set_message_position("message_5", 1, -2.25)
         store(bind_pointer, confirm_balanced)
     }
     if get_integer("bind_pointer") == confirm_balanced {
-        destroy_message("active_message")
+        destroy_messages()
         start()
     }
     if get_integer("bind_pointer") == confirm_critical {
-        destroy_message("active_message")
+        destroy_messages()
         store(critical, true)
         start()
     }
@@ -48,22 +82,31 @@ on binding_1 {
 on binding_2 {
     set_integer("bind_pointer", bind_pointer)
     if get_integer("bind_pointer") == select_difficulty {
-        destroy_message("active_message")
-        free_message(
-            "active_message",
-            "@Critical@\n" +
-            "A challenge with no restraints. It is recommended to finish Balanced first\n" +
-            "$Confirm$                   @Go back@\n" +
-            "[Binding1]        [Binding2]"
-        )
+        destroy_messages()
+        free_message("message_1", "<s_1.25>" + critical_string_behind)
+        set_message_screen_position("message_1", ScreenPosition::TopCenter)
+        set_message_position("message_1", -0.015, -1)
+        free_message("message_2", "<s_1.25>" + critical_string)
+        set_message_screen_position("message_2", ScreenPosition::TopCenter)
+        set_message_position("message_2", 0, -1)
+        set_message_background("message_2", false)
+        free_message("message_3", "A challenge with no restraints. It is recommended to finish Balanced first")
+        set_message_screen_position("message_3", ScreenPosition::TopCenter)
+        set_message_position("message_3", 0, -1.55)
+        free_message("message_4", lime_green + "Confirm\n[Binding1]")
+        set_message_screen_position("message_4", ScreenPosition::TopCenter)
+        set_message_position("message_4", -1, -2.25)
+        free_message("message_5", "@Go back\n[Binding2]")
+        set_message_screen_position("message_5", ScreenPosition::TopCenter)
+        set_message_position("message_5", 1, -2.25)
         store(bind_pointer, confirm_critical)
     }
     if get_integer("bind_pointer") == confirm_balanced {
-        destroy_message("active_message")
+        destroy_messages()
         difficulty_menu()
     }
     if get_integer("bind_pointer") == confirm_critical {
-        destroy_message("active_message")
+        destroy_messages()
         difficulty_menu()
     }
 }
@@ -82,9 +125,11 @@ fun start() {
     // TODO how to make it available, but not completed?
     store(gladesProjects.beautifyBuilt, false)
     // TODO weird that these aren't used...
-    // they should probably at least be hidden then
+    set_shop_item_hidden(LupoShop.ShardMapIcon, true)
     store(LupoShop.ShardMapIcon, 1)
+    set_shop_item_hidden(LupoShop.ECMapIcon, true)
     store(LupoShop.ECMapIcon, 1)
+    set_shop_item_hidden(LupoShop.HCMapIcon, true)
     store(LupoShop.HCMapIcon, 1)
     store(swampStateGroup.finishedIntroTop, false)
     warp(-799, -4310) // TODO preload
@@ -111,6 +156,6 @@ on timer > 10.33 {
     )
 }
 on timer > 20.67 {
-    item_message_with_timeout("*Chapter 1* - Lost", 7.5)
+    priority_message("*Chapter 1* - Lost", 7.5)
     store(timer_active, false)
 }

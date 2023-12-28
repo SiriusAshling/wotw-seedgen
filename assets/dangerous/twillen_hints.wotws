@@ -702,56 +702,56 @@ on TwillenShop.TripleJump if critical critical_secret_hint()
 
 fun critical_shuriken_hint() {
     free_message(
-        "active_message", // TODO why isn't everything using the same message id and bind pointer for this???
+        "message_1", // TODO why isn't everything using the same message id and bind pointer for this???
         "It is far to the east. #A Door# will block your way, but never despair!"
     )
     store(bind_pointer, close)
 }
 fun critical_deflector_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "A #creature of the skies# holds a shard of power."
     )
     store(bind_pointer, close)
 }
 fun critical_clean_water_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "#Climb#, up, ever higher. There is no limit to the sky. Let the #Wheels turn# and the #Waters flow#."
     )
     store(bind_pointer, close)
 }
 fun critical_depths_key_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "A #Corruption Taken Form# hides the means to continue. Step ahead as the #Challenger of Light#."
     )
     store(bind_pointer, close)
 }
 fun critical_health_fragments_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "Seek #Stone#, Seek #Sand#, Seek #Darkness# - Those hide what you must gain."
     )
     store(bind_pointer, close)
 }
 fun critical_double_jump_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "The #Sands of Cultures Past# hold a great treasure, a #Power without Limits#."
     )
     store(bind_pointer, close)
 }
 fun critical_flap_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "Draw power from your #Newest Strength#. #Tempt the Darkness# and return, unafraid of its power."
     )
     store(bind_pointer, close)
 }
 fun critical_secret_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "???" // TODO write hint
     )
     store(bind_pointer, close)
@@ -768,56 +768,56 @@ on TwillenShop.TripleJump if critical == false balanced_secret_hint()
 
 fun balanced_glades_hint() {
     free_message(
-        "active_message", // TODO why isn't everything using the same message id and bind pointer for this???
+        "message_1", // TODO why isn't everything using the same message id and bind pointer for this???
         "It is far to the east. #A Door# will block your way, but never despair!"
     )
     store(bind_pointer, close)
 }
 fun balanced_resilience_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "A #creature of the skies# holds a shard of power."
     )
     store(bind_pointer, close)
 }
 fun balanced_woods_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "#Climb#, up, ever higher. There is no limit to the sky. Let the #Wheels turn# and the #Waters flow#."
     )
     store(bind_pointer, close)
 }
 fun balanced_double_jump_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "A #Corruption Taken Form# hides the means to continue. Step ahead as the #Challenger of Light#."
     )
     store(bind_pointer, close)
 }
 fun balanced_clean_water_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "Seek #Stone#, Seek #Sand#, Seek #Darkness# - Those hide what you must gain."
     )
     store(bind_pointer, close)
 }
 fun balanced_flap_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "The #Sands of Cultures Past# hold a great treasure, a #Power without Limits#."
     )
     store(bind_pointer, close)
 }
 fun balanced_grenade_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "Draw power from your #Newest Strength#. #Tempt the Darkness# and return, unafraid of its power."
     )
     store(bind_pointer, close)
 }
 fun balanced_secret_hint() {
     free_message(
-        "active_message",
+        "message_1",
         "???" // TODO write hint
     )
     store(bind_pointer, close)

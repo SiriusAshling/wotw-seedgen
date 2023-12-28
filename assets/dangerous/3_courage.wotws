@@ -97,7 +97,7 @@ on WoodsMain.YellowWallEX {
 }
 on WoodsMain.CombatShrine {
     if critical gorlek_ore_pre_double_jump()
-    if critical == false resource(Resource::ShardSlot)
+    if critical == false shard_slot()
 }
 
 on WoodsEntry.LedgeOre door_leaf()

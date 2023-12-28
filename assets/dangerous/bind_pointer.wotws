@@ -54,8 +54,15 @@ on bind_pointer > 0 {
     store(player.inputLocked, true)
     store(disable_keybinds, true)
 }
-
 on binding_1 if bind_pointer == close {
-    destroy_message("active_message")
+    destroy_messages()
     store(bind_pointer, 0)
+}
+!share(destroy_messages)
+fun destroy_messages() {
+    destroy_message("message_1")
+    destroy_message("message_2")
+    destroy_message("message_3")
+    destroy_message("message_4")
+    destroy_message("message_5")
 }

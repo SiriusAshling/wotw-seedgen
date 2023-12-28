@@ -1,4 +1,5 @@
-!include_icon(test_icon, "icons/notinstock-modified.png")
+// TODO test !include_icon(test_icon, "icons/notinstock-modified.png")
+!use_icon(test_icon, "assets/icons/game/message.png")
 !use_icon(message_icon, "assets/icons/game/message.png")
 
 !include("bind_pointer")
@@ -79,7 +80,7 @@ on reload {
 on binding_1 {
     if bind_pointer == shops_explanation_next {
         set_message_text(
-            "active_message",
+            "message_1",
             "You can recall everything you have been told in the [RandoWheel] #randomizer wheel#\n" +
             "[Binding1] Ok"
         )
@@ -559,8 +560,9 @@ on OpherShop.Blaze deflector_refresh()
 
 // TODO invent all kinds of variants for Ok so Ori doesn't just always say Ok
 fun shops_explanation() {
+    // TODO improve defaults for free message
     free_message(
-        "shops_explanation",
+        "message_1",
         "Niwen's people will help you on your way.\n" +
         "#Opher# can teach you how to use your weapons,\n" +
         "*Twillen* knows where to search in the world if you're stuck.\n" +
@@ -571,7 +573,7 @@ fun shops_explanation() {
 
 fun downswing_lift() {
     free_message(
-        "active_message",
+        "message_1",
         "Before a #downwards swing# forces you to drop, it lifts you upwards - it gives #far more height#\nthan an upswing. This is especially useful to get #on a semisolid# or #over a ledge#.\n" +
         "[Binding1] Ok"
     )
@@ -579,7 +581,7 @@ fun downswing_lift() {
 }
 fun spring_plant_boost() {
     free_message(
-        "active_message",
+        "message_1",
         "You can get #higher jumps# off Spring Plants in a variety of ways. One of them is to upslash\n#the moment you touch# the spring plant - this gets much easier with #low vertical momentum#.\n" +
         "[Binding1] Ok"
     )
@@ -587,7 +589,7 @@ fun spring_plant_boost() {
 }
 fun upslash_turnaround() {
     free_message(
-        "active_message",
+        "message_1",
         "You'll find yourself using an #upslash to reach a wall above you# sometimes. To make this easier, upslash #facing away from the wall# and then do a #forward slash in the other direction#.\n" +
         "[Binding1] Ok"
     )
@@ -595,7 +597,7 @@ fun upslash_turnaround() {
 }
 fun slash_acceleration() {
     free_message(
-        "active_message",
+        "message_1",
         "If you #jump out of a swordslash# holding a direction, it will immediately accelerate you to max speed. This is especially useful in the air, using an #upslash into Double Jump# to perform a #rapid turnaround#.\n" +
         "[Binding1] Ok"
     )
@@ -604,7 +606,7 @@ fun slash_acceleration() {
 
 fun projectile_range() {
     free_message(
-        "active_message",
+        "message_1",
         "Shooting enemies have an #enormous range# - if you have enough distance from them.\nWith sufficient movement, you can guide them to #break barriers#.\n" +
         "[Binding1] Ok"
     )
@@ -612,7 +614,7 @@ fun projectile_range() {
 }
 fun projectile_pogo() {
     free_message(
-        "active_message",
+        "message_1",
         "Sword's downslash can #pogo off enemies# - but #also their projectiles#. A projectile pogo is less powerful than an enemy pogo, but still provides additional height and mobility.\n" +
         "[Binding1] Ok"
     )
@@ -620,7 +622,7 @@ fun projectile_pogo() {
 }
 fun multi_pogo() {
     free_message(
-        "active_message",
+        "message_1",
         "If you align them properly, you can pogo off #multiple targets in quick succession#. You will get the full upwards momentum #on each of them#, resulting in much more height.\n" +
         "[Binding1] Ok"
     )
@@ -629,7 +631,7 @@ fun multi_pogo() {
 
 fun shuriken_hop() {
     free_message(
-        "active_message",
+        "message_1",
         "Throwing a Shuriken #gives you a bit of height#. Unlike Sword it also #accelerates your horizontal speed# instead of slowing it down. Throwing a Shuriken #after an upslash# can make it easier to get up ledges.\n" +
         "[Binding1] Ok"
     )
@@ -637,7 +639,7 @@ fun shuriken_hop() {
 }
 fun shuriken_acceleration() {
     free_message(
-        "active_message",
+        "message_1",
         "You can use Shuriken's acceleration to #cancel spike knockback#. This is possible with sword as well but #easier and stronger with Shuriken#.\n" +
         "[Binding1] Ok"
     )
@@ -645,7 +647,7 @@ fun shuriken_acceleration() {
 }
 fun shuriken_slashes() {
     free_message(
-        "active_message",
+        "message_1",
         "You can #throw a Shuriken horizontally# and then #hit it multiple times with your Sword combo#. Normally, you can only sword hover once in the air, but this way it can be #repeated endlessly#.\n" +
         "[Binding1] Ok"
     )
@@ -653,7 +655,7 @@ fun shuriken_slashes() {
 }
 fun shuriken_clip() {
     free_message(
-        "active_message",
+        "message_1",
         "By touching a wall, floor or ceiling and throwing #multiple Shuriken# at it, some\nof them will #pass through#. This can break #one-way walls# from the other side.\n" +
         "[Binding1] Ok"
     )
@@ -661,7 +663,7 @@ fun shuriken_clip() {
 }
 fun shuriken_pogo() {
     free_message(
-        "active_message",
+        "message_1",
         "A Shuriken #is a projectile#. This means all rules of enemy projectiles apply, and you can #pogo off your Shuriken#.\n" +
         "[Binding1] Ok"
     )
@@ -669,7 +671,7 @@ fun shuriken_pogo() {
 }
 fun wall_shuriken_pogo() {
     free_message(
-        "active_message",
+        "message_1",
         "To Shuriken pogo #off a wall#, sit on the wall, throw it #diagonally down#, then wall jump and pogo.\n" +
         "[Binding1] Ok"
     )
@@ -677,7 +679,7 @@ fun wall_shuriken_pogo() {
 }
 fun ground_shuriken_pogo() {
     free_message(
-        "active_message",
+        "message_1",
         "To Shuriken pogo #off the ground#, jump with neutral movement, throw it #vertically down#, then pogo.\n" +
         "[Binding1] Ok"
     )
@@ -685,7 +687,7 @@ fun ground_shuriken_pogo() {
 }
 fun air_shuriken_pogo() {
     free_message(
-        "active_message",
+        "message_1",
         "To Shuriken pogo #in the air#, throw it #diagonally down#, forward slash to stall, then pogo.\n" +
         "[Binding1] Ok"
     )
@@ -693,7 +695,7 @@ fun air_shuriken_pogo() {
 }
 fun shuriken_leak() {
     free_message(
-        "active_message",
+        "message_1",
         "Shuriken has a #memory leak#: If you throw a couple hundred of them, the game may start lagging.\nIf you notice this, restarting the game will fix it.\n" +
         "[Binding1] Ok"
     )
@@ -701,7 +703,7 @@ fun shuriken_leak() {
 }
 fun double_shuriken() {
     free_message(
-        "active_message",
+        "message_1",
         "Usually you can only have one *Shuriken* at a time. If you clip one out of bounds however, you can follow up with two *Shurikens*, and keep juggling them until you catch both again.\nThis is much easier to utilize #without the Shuriken Upgrade#.\n" +
         "[Binding1] Ok"
     )
@@ -710,7 +712,7 @@ fun double_shuriken() {
 
 fun deflector_refresh() {
     free_message(
-        "active_message",
+        "message_1",
         "Deflector is #more than it seems#. The sound of striking your Shuriken changes - with Deflector equipped projectile slashes #count like enemy slashes#, refreshing Double Jump and all other abilities on each contact.\n" +
         "[Binding1] Ok"
     )

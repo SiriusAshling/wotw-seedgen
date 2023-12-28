@@ -232,7 +232,7 @@ impl Compile for input::CommandVoid {
             Self::FreeMessagePosition { id, x, y } => Args::new(2, command_lookup)
                 .float(x)
                 .float(y)
-                .call(Command::FreeMessagePosition(id, false)),
+                .call(Command::FreeMessagePosition(id)),
             Self::FreeMessageAlignment { id, alignment } => (
                 vec![Command::FreeMessageAlignment(id, alignment)],
                 MemoryUsed::ZERO,

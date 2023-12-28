@@ -78,6 +78,7 @@ pub enum ClientEvent {
     Reload,
     /// Trigger when respawning after death, void etc.
     Respawn,
+    // TODO on input <bind>?
     /// Trigger on keybind
     Binding1,
     /// Trigger on keybind
@@ -90,47 +91,6 @@ pub enum ClientEvent {
     Binding5,
     /// Trigger on Teleport
     Teleport,
-    /// Trigger on Jump
-    Jump,
-    /// Trigger on Double Jump
-    DoubleJump,
-    /// Trigger on Dash
-    Dash,
-    /// Trigger on Bash
-    Bash,
-    /// Trigger on Glide
-    Glide,
-    /// Trigger on Sword
-    Sword,
-    /// Trigger on Hammer
-    Hammer,
-    // TODO update names
-    /// Trigger on Spike
-    Spike,
-    /// Trigger on Spirit Star
-    SpiritStar,
-    /// Trigger on Light Burst
-    LightBurst,
-    /// Trigger on Bow
-    Bow,
-    /// Trigger on Blaze
-    Blaze,
-    /// Trigger on Sentry
-    Sentry,
-    /// Trigger on Flash
-    Flash,
-    /// Trigger on Launch
-    Launch,
-    /// Trigger on Wall Jump
-    WallJump,
-    /// Trigger on Burrow
-    Burrow,
-    /// Trigger on Water Dash
-    WaterDash,
-    /// Trigger on Flap
-    Flap,
-    /// Trigger on Regenerate
-    Regenerate,
     /// Trigger on the Show Progress keybind
     ProgressMessage,
     /// Trigger every frame

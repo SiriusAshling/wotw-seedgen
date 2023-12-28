@@ -4,6 +4,7 @@
 !include("items")
 !use("items", mapstone_fragment)
 
+// TODO broken
 on EastHollow.HandToHandMap herb_pouch()
 on LowerReach.HandToHandSoup if critical wanderers_pouch()
 on InnerWellspring.HandToHandHerbs if critical spyglass()

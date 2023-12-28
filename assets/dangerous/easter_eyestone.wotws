@@ -16,6 +16,8 @@ on MarshPastOpher.LeftEyestone {
 
 on skills.bow store_without_triggers(MarshPastOpher.LeftEyestone, true)
 
+// TODO didn't work
+// For one, setting the tree to false doesn't seem to fire immediately, but also it didn't even get set to false
 on teleport if skills.sword == false {
     store(WestHollow.CrusherEX, false)
     store(WestHollow.AboveDashEX, false)
