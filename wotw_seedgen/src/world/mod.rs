@@ -23,11 +23,11 @@ use crate::inventory::Inventory;
 use self::reached::ReachContext;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::smallvec;
-use wotw_seedgen_assembly::{ArithmeticOperator, Operation};
+use wotw_seedgen_assembly::{ArithmeticOperator, ClientEvent, Operation};
 use wotw_seedgen_data::{uber_identifier, Shard, Skill, Teleporter, UberIdentifier, WeaponUpgrade};
 use wotw_seedgen_logic_language::output::{Graph, Node};
 use wotw_seedgen_seed_language::output::{
-    CommandBoolean, CommandFloat, CommandInteger, CommandVoid, CompilerOutput,
+    CommandBoolean, CommandFloat, CommandInteger, CommandVoid, CompilerOutput, Trigger,
 };
 use wotw_seedgen_settings::WorldSettings;
 
@@ -108,6 +108,15 @@ impl<'graph, 'settings> World<'graph, 'settings> {
     #[inline]
     pub fn simulate<T: Simulate>(&mut self, t: &T, output: &CompilerOutput) -> T::Return {
         t.simulate(self, output)
+    }
+    pub fn simulate_client_event(&mut self, client_event: ClientEvent, output: &CompilerOutput) {
+        output
+            .events
+            .iter()
+            .filter(|event| event.trigger == Trigger::ClientEvent(client_event))
+            .for_each(|event| {
+                event.command.simulate(self, output);
+            })
     }
     pub fn set_boolean(
         &mut self,

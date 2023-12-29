@@ -7,9 +7,6 @@ edition = "2021"
 repository = "https://github.com/ori-community/wotw-seedgen"
 license = "MIT"
 
-[features]
-fs = []
-
 [dependencies]
 wotw_seedgen_seed_language = { path = "../wotw_seedgen_seed_language", version = "0.1" }
 wotw_seedgen_settings = { path = "../wotw_seedgen_settings", version = "0.1" }

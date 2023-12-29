@@ -1,4 +1,4 @@
-use crate::{CreateGame, Difficulty, Spawn, Trick};
+use crate::{Difficulty, Spawn, Trick};
 use rustc_hash::{FxHashMap, FxHashSet};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -35,7 +35,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
-    serde(rename_all = "camelCase", deny_unknown_fields)
+    serde(rename_all = "camelCase")
 )]
 pub struct UniversePreset {
     /// User-targetted information about the preset
@@ -46,23 +46,12 @@ pub struct UniversePreset {
     /// When applying the parent preset, these presets will be searched as .json files in the current and /presets child directory
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub includes: Option<FxHashSet<String>>,
-    /// The individual settings for each world of the seed
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    pub world_settings: Option<Vec<WorldPreset>>,
-    /// Whether the in-logic map filter should be offered
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    pub disable_logic_filter: Option<bool>,
-    /// Require an online connection to play the seed
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    pub online: Option<bool>,
     /// The seed's seed
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub seed: Option<String>,
-    /// Automatically create an online game when generating the seed
-    ///
-    /// This exists for future compability, but does not have any effect currently
+    /// The individual settings for each world of the seed
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
-    pub create_game: Option<CreateGame>,
+    pub world_settings: Option<Vec<WorldPreset>>,
 }
 
 /// A collection of settings that can be applied to one world of the existing settings
@@ -91,7 +80,7 @@ pub struct UniversePreset {
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
-    serde(rename_all = "camelCase", deny_unknown_fields)
+    serde(rename_all = "camelCase")
 )]
 pub struct WorldPreset {
     /// User-targetted information about the preset
@@ -127,7 +116,7 @@ pub struct WorldPreset {
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
-    serde(rename_all = "camelCase", deny_unknown_fields)
+    serde(rename_all = "camelCase")
 )]
 pub struct PresetInfo {
     /// Display name

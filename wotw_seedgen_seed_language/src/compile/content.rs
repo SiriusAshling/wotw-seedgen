@@ -110,8 +110,7 @@ impl<'source> Compile<'source> for ast::FunctionDefinition<'source> {
             .function_indices
             .get(self.identifier.data.0)
             .unwrap();
-        compiler.global.output.command_lookup[*index] =
-            Command::Void(CommandVoid::Multi { commands });
+        compiler.global.output.command_lookup[*index] = CommandVoid::Multi { commands };
     }
 }
 

@@ -17,7 +17,7 @@ use self::preprocess::{Preprocessor, PreprocessorOutput};
 use crate::{
     ast::{self, UberStateType},
     output::{
-        self, intermediate::Literal, ArithmeticOperator, Command, CommandBoolean, CommandFloat,
+        self, intermediate::Literal, ArithmeticOperator, CommandBoolean, CommandFloat,
         CommandInteger, CommandVoid, CompilerOutput, Operation, SnippetDebugOutput,
     },
     token::TOKENIZER,
@@ -312,7 +312,7 @@ impl<'compiler, 'source, 'snippets, 'uberstates>
             .zip(global.output.command_lookup.len()..)
             .collect();
         global.output.command_lookup.extend(vec![
-            Command::Void(CommandVoid::Multi { commands: vec![] }); // Fill with placeholders for all the functions, this also ensures a sane result if some of the functions fail to compile
+            CommandVoid::Multi { commands: vec![] }; // Fill with placeholders for all the functions, this also ensures a sane result if some of the functions fail to compile
             preprocessed.functions.len()
         ]);
         let mut compiler = Self {

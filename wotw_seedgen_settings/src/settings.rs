@@ -26,7 +26,7 @@ use strum::{Display, EnumString};
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
-    serde(rename_all = "camelCase", deny_unknown_fields)
+    serde(rename_all = "camelCase")
 )]
 pub struct UniverseSettings {
     /// The seed that determines all randomness
@@ -35,16 +35,6 @@ pub struct UniverseSettings {
     ///
     /// This is assumed never to be empty
     pub world_settings: Vec<WorldSettings>,
-    /// Whether the in-logic map filter should be offered
-    pub disable_logic_filter: bool,
-    /// Require an online connection to play the seed
-    ///
-    /// This is needed for Co-op, Multiworld and Bingo
-    pub online: bool,
-    /// Automatically create an online game when generating the seed
-    ///
-    /// This exists for future compability, but does not have any effect currently
-    pub create_game: CreateGame,
 }
 
 impl UniverseSettings {
@@ -52,9 +42,6 @@ impl UniverseSettings {
         Self {
             seed,
             world_settings: vec![WorldSettings::default()],
-            disable_logic_filter: false,
-            online: false,
-            create_game: CreateGame::default(),
         }
     }
 
@@ -88,16 +75,17 @@ impl UniverseSettings {
             info: _,
             includes,
             world_settings,
-            disable_logic_filter,
-            online,
             seed,
-            create_game,
         } = preset;
 
         if let Some(includes) = includes {
             for nested_preset in includes {
                 self.apply_nested_preset(nested_preset, already_applied, preset_access)?;
             }
+        }
+
+        if let Some(seed) = seed {
+            self.seed = seed;
         }
 
         let setting_worlds = self.world_count();
@@ -132,19 +120,6 @@ impl UniverseSettings {
             }
         }
 
-        if let Some(disable_logic_filter) = disable_logic_filter {
-            self.disable_logic_filter = disable_logic_filter;
-        }
-        if let Some(online) = online {
-            self.online = online;
-        }
-        if let Some(seed) = seed {
-            self.seed = seed;
-        }
-        if let Some(create_game) = create_game {
-            self.create_game = create_game;
-        }
-
         Ok(())
     }
 
@@ -177,7 +152,7 @@ impl UniverseSettings {
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
-    serde(rename_all = "camelCase", deny_unknown_fields)
+    serde(rename_all = "camelCase")
 )]
 pub struct WorldSettings {
     /// Spawn destination
@@ -377,21 +352,4 @@ pub enum Trick {
     GlideHammerJump,
     /// Storing a grounded jump into the air with Spear
     SpearJump,
-}
-
-/// Placeholder for a potential future feature
-#[derive(Debug, Clone, PartialEq, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum CreateGame {
-    /// Don't create an online game
-    #[default]
-    None,
-    /// Create a normal online game suited for co-op and multiworld
-    Normal,
-    /// Create a bingo game, which can optionally be used for co-op and multiworld
-    Bingo,
-    /// Create a discovery bingo game with two starting squares, which can optionally be used for co-op and multiworld
-    DiscoveryBingo,
-    /// Create a lockout bingo game, which can optionally be used for co-op and multiworld
-    LockoutBingo,
 }

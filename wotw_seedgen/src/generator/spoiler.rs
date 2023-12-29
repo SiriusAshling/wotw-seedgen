@@ -10,8 +10,19 @@ use wotw_seedgen_logic_language::output::Node;
 pub struct SeedSpoiler {
     /// Anchor identifier of all the spawn locations
     pub spawns: Vec<String>,
+    /// An ordered list describing the preplaced items
+    pub preplacements: Vec<SpoilerPlacement>,
     /// Each [`SpoilerGroup`] represents one "step" of placements
     pub groups: Vec<SpoilerGroup>,
+}
+impl SeedSpoiler {
+    pub(super) fn new(spawns: Vec<String>) -> Self {
+        Self {
+            spawns,
+            preplacements: vec![],
+            groups: vec![],
+        }
+    }
 }
 /// One "step" of placements in a [`SeedSpoiler`]
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -21,9 +32,7 @@ pub struct SpoilerGroup {
     pub reachable: Vec<Vec<NodeSummary>>,
     /// The set of items that were placed as forced progression, if any
     pub forced_items: Inventory,
-    /// An ordered list detailing the [`Placement`]s
-    ///
-    /// [`Placement`]: super::Placement
+    /// An ordered list describing the placed items
     pub placements: Vec<SpoilerPlacement>,
 }
 /// One item placed on one location
@@ -51,12 +60,18 @@ pub struct NodeSummary {
     pub zone: Option<Zone>,
 }
 impl NodeSummary {
-    // TODO populate spoiler
-    pub(crate) fn new(node: &Node) -> Self {
+    pub(super) fn new(node: &Node) -> Self {
         Self {
             identifier: node.identifier().to_string(),
             position: node.position().copied(),
             zone: node.zone(),
+        }
+    }
+    pub(super) fn spawn() -> Self {
+        Self {
+            identifier: "Spawn".to_string(),
+            position: None,
+            zone: Some(Zone::Spawn),
         }
     }
 }

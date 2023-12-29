@@ -23,7 +23,7 @@ use wotw_seedgen_data::{
 pub struct CompilerOutput {
     pub spawn: Option<Position>,
     pub events: Vec<Event>,
-    pub command_lookup: Vec<Command>,
+    pub command_lookup: Vec<CommandVoid>,
     pub icons: Vec<(String, Vec<u8>)>, // TODO poor memory
     pub flags: Vec<String>,
     pub item_pool_changes: FxHashMap<CommandVoid, i32>,

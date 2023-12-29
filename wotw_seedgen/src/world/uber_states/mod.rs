@@ -128,6 +128,7 @@ impl PartialOrd<OrderedFloat<f32>> for UberStateValue {
 }
 
 impl UberStates {
+    // TODO unclear api, is it possible to prevent getting UberStates without registering all triggers?
     pub fn register_trigger(&mut self, trigger: &Trigger) {
         for uber_identifier in contained_uber_identifiers(trigger) {
             match self.states.get_mut(&uber_identifier) {

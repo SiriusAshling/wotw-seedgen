@@ -8,7 +8,7 @@ use crate::{
     log::{trace, warning},
     node_condition, node_trigger,
     orbs::OrbVariants,
-    spoiler::SeedSpoiler,
+    spoiler::{NodeSummary, SeedSpoiler, SpoilerGroup, SpoilerPlacement},
     World,
 };
 use itertools::Itertools;
@@ -24,7 +24,7 @@ use rand_pcg::Pcg64Mcg;
 use rustc_hash::FxHashMap;
 use std::{iter, mem, ops::RangeFrom};
 use wotw_seedgen_assembly::{compile_intermediate_output, ClientEvent, Icon, Spawn};
-use wotw_seedgen_data::{Equipment, MapIcon, OpherIcon, Skill, Teleporter, UberIdentifier};
+use wotw_seedgen_data::{Equipment, MapIcon, OpherIcon, Skill, UberIdentifier};
 use wotw_seedgen_logic_language::output::{Node, Requirement};
 use wotw_seedgen_seed_language::{
     compile,
@@ -34,11 +34,6 @@ use wotw_seedgen_seed_language::{
     },
 };
 
-// TODO implement this
-const SPAWN_GRANTS: &[(&str, CommandVoid)] = &[(
-    "EastPools.Teleporter",
-    compile::set_boolean_value(Teleporter::CentralLuma.uber_identifier(), true),
-)];
 const KEYSTONE_DOORS: &[(&str, usize)] = &[
     ("MarshSpawn.KeystoneDoor", 2),
     ("HowlsDen.KeystoneDoor", 2),
@@ -62,21 +57,24 @@ pub fn generate_placements(
     rng: &mut Pcg64Mcg,
     worlds: Vec<(World, CompilerOutput)>,
 ) -> Result<Seed, String> {
+    assert!(
+        !worlds.is_empty(),
+        "Need at least one world to generate a seed"
+    );
     let mut context = Context::new(rng, worlds);
 
     context.preplacements();
 
-    #[cfg_attr(not(any(feature = "log", test)), allow(unused_variables))]
-    for step in 1u16.. {
-        trace!("Placement step #{step}");
+    loop {
+        context.next_step();
         context.update_reached();
-        if context.everything_reached() {
+        if context.is_everything_reached() {
             context.place_remaining();
             break;
         }
         context.force_keystones();
         if !context.place_random() {
-            if let Some((target_world_index, progression)) = context.choose_progression() {
+            if let Some((target_world_index, progression)) = context.choose_progression()? {
                 context.place_forced(target_world_index, progression);
             }
         }
@@ -90,6 +88,10 @@ pub struct Context<'graph, 'settings> {
     pub worlds: Vec<WorldContext<'graph, 'settings>>,
     /// next multiworld uberState id to use
     multiworld_state_index: RangeFrom<i32>,
+    /// current placement step
+    step: usize,
+    /// spoiler being populated over the course of generation
+    spoiler: SeedSpoiler,
 }
 pub struct WorldContext<'graph, 'settings> {
     rng: Pcg64Mcg,
@@ -127,30 +129,63 @@ pub struct WorldContext<'graph, 'settings> {
 
 impl<'graph, 'settings> Context<'graph, 'settings> {
     fn new(rng: &mut Pcg64Mcg, worlds: Vec<(World<'graph, 'settings>, CompilerOutput)>) -> Self {
+        let worlds = worlds
+            .into_iter()
+            .enumerate()
+            .map(|(index, (world, output))| WorldContext::new(rng, world, output, index))
+            .collect::<Vec<_>>();
+        let spawns = worlds
+            .iter()
+            .map(|world_context| {
+                world_context.world.graph.nodes[world_context.world.spawn]
+                    .identifier()
+                    .to_string()
+            })
+            .collect();
+        let spoiler = SeedSpoiler::new(spawns);
         Self {
             rng: Pcg64Mcg::from_rng(&mut *rng).expect(SEED_FAILED_MESSAGE),
-            worlds: worlds
-                .into_iter()
-                .enumerate()
-                .map(|(index, (world, output))| WorldContext::new(rng, world, output, index))
-                .collect(),
+            worlds,
             multiworld_state_index: 0..,
+            step: 0,
+            spoiler,
         }
     }
 
     fn preplacements(&mut self) {
         for world_context in &mut self.worlds {
-            world_context.preplacements();
+            world_context.preplacements(&mut self.spoiler.preplacements);
         }
+    }
+
+    fn next_step(&mut self) {
+        self.step += 1;
+        trace!("Placement step #{}", self.step);
+        self.spoiler.groups.push(SpoilerGroup::default());
     }
 
     fn update_reached(&mut self) {
         for world_context in &mut self.worlds {
             world_context.update_reached();
         }
+        self.write_reachable_spoiler()
     }
 
-    fn everything_reached(&self) -> bool {
+    fn write_reachable_spoiler(&mut self) {
+        self.spoiler.groups[self.step - 1].reachable = self
+            .worlds
+            .iter()
+            .map(|world_context| {
+                world_context
+                    .reached_needs_placement
+                    .iter()
+                    .map(|index| NodeSummary::new(&world_context.needs_placement[*index]))
+                    .collect()
+            })
+            .collect();
+    }
+
+    fn is_everything_reached(&self) -> bool {
         self.worlds
             .iter()
             .all(|world| world.reached_needs_placement.len() == world.needs_placement.len())
@@ -179,16 +214,18 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                 continue;
             }
 
-            if world_context.item_pool.inventory().keystones < missing_keystones {
-                todo!()
+            let item_pool_keystones = world_context.item_pool.inventory().keystones;
+            if item_pool_keystones < missing_keystones {
+                warning!("Need to place {missing_keystones} to avoid keylocks, but the item pool only has {item_pool_keystones} left. Placing regardless", );
+            } else {
+                trace!("Placing {missing_keystones} keystones for World {world_index} to avoid keylocks");
             }
 
-            trace!(
-                "Placing {missing_keystones} keystones for World {world_index} to avoid keylocks"
-            );
+            self.spoiler.groups[self.step - 1].forced_items.keystones += missing_keystones;
+
             let keystone = compile::keystone();
             for _ in 0..missing_keystones {
-                self.place_command(keystone.clone(), world_index);
+                self.force_place_command(keystone.clone(), world_index);
             }
             self.worlds[world_index]
                 .item_pool
@@ -204,11 +241,11 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                 .drain_random(&mut self.rng)
                 .collect::<Vec<_>>()
             {
-                self.place_command(command, target_world_index);
+                self.force_place_command(command, target_world_index);
             }
         }
         for world_context in &mut self.worlds {
-            world_context.fill_remaining();
+            world_context.fill_remaining(&mut self.spoiler.groups[self.step - 1].placements);
         }
     }
 
@@ -220,12 +257,12 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                 any_placed = true;
                 let origin_world = &mut self.worlds[origin_world_index];
                 let placements_remaining = origin_world.placements_remaining();
-                let place_spirit_light = self.rng.gen_bool(f64::max(
+                let should_place_spirit_light = self.rng.gen_bool(f64::max(
                     1. - origin_world.item_pool.len() as f64 / placements_remaining as f64,
                     0.,
                 ));
 
-                let (target_world_index, command) = if place_spirit_light {
+                let (target_world_index, command) = if should_place_spirit_light {
                     let batch = origin_world
                         .spirit_light_provider
                         .take(placements_remaining);
@@ -239,7 +276,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                         ),
                     )
                 } else {
-                    let target_world_index = self.choose_target_world(origin_world_index);
+                    let target_world_index = self.choose_target_world_for_random_placement();
                     (
                         target_world_index,
                         self.worlds[target_world_index]
@@ -256,14 +293,14 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
         any_placed
     }
 
-    fn choose_progression(&mut self) -> Option<(usize, Inventory)> {
+    fn choose_progression(&mut self) -> Result<Option<(usize, Inventory)>, String> {
         let slots = self.progression_slots();
         let mut world_indices = (0..self.worlds.len()).collect::<Vec<_>>();
         world_indices.sort_by_key(|index| self.worlds[*index].placements_remaining());
 
         for target_world_index in world_indices.into_iter().rev() {
             if let Some(progression) = self.worlds[target_world_index].choose_progression(slots) {
-                return Some((target_world_index, progression));
+                return Ok(Some((target_world_index, progression)));
             }
         }
 
@@ -287,11 +324,8 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                 .format("\n")
         );
 
-        self.worlds[0].update_reached();
-        self.worlds[0].choose_progression(slots);
-
-        self.flush_item_pool();
-        None
+        self.flush_item_pool()?;
+        Ok(None)
     }
 
     fn progression_slots(&self) -> usize {
@@ -301,13 +335,44 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
             .sum()
     }
 
-    fn flush_item_pool(&mut self) {
+    fn flush_item_pool(&mut self) -> Result<(), String> {
         trace!("Placing items which modify uberStates to attempt recovery");
 
-        todo!()
+        let initial_reached = self
+            .worlds
+            .iter()
+            .map(|world_context| world_context.reached.len())
+            .collect::<Vec<_>>();
+
+        // TODO unbelievably inefficient
+        let commands = self
+            .worlds
+            .iter()
+            .flat_map(|world_context| {
+                world_context
+                    .item_pool
+                    .items()
+                    .filter(|command| modifies_uberstate(command, &world_context.output))
+                    .cloned()
+                    .map(|command| (world_context.index, command))
+            })
+            .collect::<Vec<_>>();
+        for (target_world_index, command) in commands {
+            self.force_place_command(command.clone(), target_world_index);
+            let world_context = &mut self.worlds[target_world_index];
+            world_context.item_pool.change(command, -1);
+            if world_context.world.reached().len() > initial_reached[target_world_index] {
+                trace!("World {target_world_index} reached additional locations, resuming normal placement loop");
+                return Ok(());
+            }
+        }
+
+        Err("Failed to reach all locations".to_string())
     }
 
     fn place_forced(&mut self, target_world_index: usize, progression: Inventory) {
+        self.spoiler.groups[self.step - 1].forced_items += progression.clone();
+
         let Inventory {
             spirit_light,
             gorlek_ore,
@@ -322,7 +387,10 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
             weapon_upgrades,
         } = progression;
 
-        self.worlds[target_world_index].place_spirit_light(spirit_light);
+        self.worlds[target_world_index].place_spirit_light(
+            spirit_light,
+            &mut self.spoiler.groups[self.step - 1].placements,
+        );
         iter::repeat_with(compile::gorlek_ore)
             .take(gorlek_ore)
             .chain(iter::repeat_with(compile::keystone).take(keystones))
@@ -334,11 +402,11 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
             .chain(teleporters.into_iter().map(compile::teleporter))
             .chain(clean_water.then(compile::clean_water))
             .chain(weapon_upgrades.into_iter().map(compile::weapon_upgrade))
-            .for_each(|command| self.place_command(command, target_world_index));
+            .for_each(|command| self.force_place_command(command, target_world_index));
     }
 
-    fn place_command(&mut self, command: CommandVoid, target_world_index: usize) {
-        let origin_world_index = self.choose_origin_world();
+    fn force_place_command(&mut self, command: CommandVoid, target_world_index: usize) {
+        let origin_world_index = self.choose_origin_world_for_forced_placement(target_world_index);
         let name = self.name(&command, origin_world_index, target_world_index);
         let origin_world = &mut self.worlds[origin_world_index];
         match origin_world.choose_placement_node(false) {
@@ -349,16 +417,25 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                         "Placing {} for World {target_world_index} at Spawn in World {origin_world_index}",
                         self.worlds[target_world_index].log_name(&command)
                     );
-                    self.push_command(
-                        Trigger::ClientEvent(ClientEvent::Spawn),
-                        command,
-                        name,
-                        origin_world_index,
-                        target_world_index,
-                    );
                 } else {
-                    panic!("Not enough space to place item"); // TODO this can actually happen, should maybe be a warning
+                    warning!(
+                        "Not enough space to place {} for World {target_world_index}, placing at Spawn despite already having too many spawn items",
+                        self.worlds[target_world_index].log_name(&command)
+                    );
                 }
+                self.write_placement_spoiler(
+                    origin_world_index,
+                    target_world_index,
+                    NodeSummary::spawn(),
+                    &command,
+                );
+                self.push_command(
+                    Trigger::ClientEvent(ClientEvent::Spawn),
+                    command,
+                    name,
+                    origin_world_index,
+                    target_world_index,
+                );
             }
             Some(node) => {
                 self.place_command_at(command, name, node, origin_world_index, target_world_index);
@@ -367,35 +444,38 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     }
 
     // TODO might be worth to do some single-world happy paths?
-    fn choose_origin_world(&mut self) -> usize {
-        let mut world_indices = (0..self.worlds.len()).collect::<Vec<_>>();
-        world_indices.shuffle(&mut self.rng);
-        let origin_world_index = world_indices
-            .iter()
-            .find(|index| !self.worlds[**index].reached_needs_placement.is_empty())
-            .copied()
-            .or_else(|| {
-                world_indices
-                    .into_iter()
-                    .find(|index| self.worlds[*index].spawn_slots > 0)
-            })
-            .unwrap(); // TODO handle
-        origin_world_index
-    }
-
-    fn choose_target_world(&mut self, origin_world_index: usize) -> usize {
-        if self.worlds[origin_world_index].unshared_items > 0 {
-            trace!("World {origin_world_index} is not allowed to share items yet, forcing item placement in own world");
-            self.worlds[origin_world_index].unshared_items -= 1;
-            origin_world_index
+    fn choose_origin_world_for_forced_placement(&mut self, target_world_index: usize) -> usize {
+        if self.worlds[target_world_index].unshared_items > 0 {
+            trace!("World {target_world_index} is not allowed to share items yet, forcing item placement in own world");
+            self.worlds[target_world_index].unshared_items -= 1;
+            target_world_index
         } else {
             let mut world_indices = (0..self.worlds.len()).collect::<Vec<_>>();
             world_indices.shuffle(&mut self.rng);
-            world_indices
-                .into_iter()
-                .find_or_last(|index| !self.worlds[*index].item_pool.is_empty())
-                .unwrap() // TODO handle
+            // TODO we're doing some redundant work here
+            // we already figure out whether we have to use the spawn slots here but later we don't use that information
+            // and have to recalculate it
+            let origin_world_index = world_indices
+                .iter()
+                .find(|index| !self.worlds[**index].reached_needs_placement.is_empty())
+                .copied()
+                .or_else(|| {
+                    world_indices
+                        .into_iter()
+                        .find(|index| self.worlds[*index].spawn_slots > 0)
+                })
+                .unwrap_or(target_world_index); // Overplace spawn slots if there's no other way
+            origin_world_index
         }
+    }
+
+    fn choose_target_world_for_random_placement(&mut self) -> usize {
+        let mut world_indices = (0..self.worlds.len()).collect::<Vec<_>>();
+        world_indices.shuffle(&mut self.rng);
+        world_indices
+            .into_iter()
+            .find_or_last(|index| !self.worlds[*index].item_pool.is_empty())
+            .unwrap()
     }
 
     fn name(
@@ -450,6 +530,12 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
             self.worlds[origin_world_index].shop_item_data(&command, uber_identifier, name.clone());
         }
 
+        self.write_placement_spoiler(
+            origin_world_index,
+            target_world_index,
+            NodeSummary::new(node),
+            &command,
+        );
         self.push_command(
             node_trigger(node).unwrap(),
             command,
@@ -499,6 +585,23 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
         }
     }
 
+    fn write_placement_spoiler(
+        &mut self,
+        origin_world_index: usize,
+        target_world_index: usize,
+        location: NodeSummary,
+        command: &CommandVoid,
+    ) {
+        self.spoiler.groups[self.step - 1]
+            .placements
+            .push(SpoilerPlacement {
+                origin_world_index,
+                target_world_index,
+                location,
+                item_name: self.worlds[target_world_index].log_name(command),
+            });
+    }
+
     fn finish(mut self) -> Seed {
         self.resolve_placeholders();
 
@@ -508,7 +611,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                 .into_iter()
                 .map(|world_context| {
                     let (mut seed, icons) = compile_intermediate_output(world_context.output);
-                    assert!(icons.is_empty(), "custom icons in seedgen aren't supported"); // TODO
+                    assert!(icons.is_empty(), "custom icons in seedgen aren't supported"); // TODO custom icons in snippets
                     let spawn = &world_context.world.graph.nodes[world_context.world.spawn];
                     seed.spawn = Spawn {
                         position: *spawn.position().unwrap(),
@@ -517,11 +620,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                     seed
                 })
                 .collect(),
-            spoiler: SeedSpoiler {
-                // TODO spoiler
-                spawns: vec![],
-                groups: vec![],
-            },
+            spoiler: self.spoiler,
         }
     }
 }
@@ -529,7 +628,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
 impl<'graph, 'settings> WorldContext<'graph, 'settings> {
     fn new(
         rng: &mut Pcg64Mcg,
-        world: World<'graph, 'settings>,
+        mut world: World<'graph, 'settings>,
         mut output: CompilerOutput,
         index: usize,
     ) -> Self {
@@ -539,13 +638,19 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             item_pool.change(command, amount);
         }
 
+        world.simulate_client_event(ClientEvent::Spawn, &output);
+        world.simulate_client_event(ClientEvent::Reload, &output);
+
         let mut needs_placement = total_reach_check(&world, &output, &item_pool);
-        // TODO optimize based on shape of events, many of which can't possibly be loc_data events
-        needs_placement.retain(|node| node.can_place()
-            && !output.events.iter().any(|event|
-                matches!(&event.trigger, Trigger::Condition(condition) if Some(condition) == node_condition(node).as_ref())
-            )
-        );
+        // TODO maybe optimize based on shape of events, many of which can't possibly be loc_data events
+        needs_placement.retain(|node| {
+            node.can_place() && {
+                let condition = node_condition(node).unwrap();
+                !world.simulate(&condition, &output) && !output.events.iter().any(|event|
+                    matches!(&event.trigger, Trigger::Condition(trigger) if trigger == &condition)
+                )
+            }
+        });
 
         Self {
             rng: Pcg64Mcg::from_rng(&mut *rng).expect(SEED_FAILED_MESSAGE),
@@ -567,10 +672,10 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         }
     }
 
-    fn preplacements(&mut self) {
+    fn preplacements(&mut self, preplacement_spoiler: &mut Vec<SpoilerPlacement>) {
         trace!("[World {}] Generating preplacements", self.index);
 
-        self.hi_sigma();
+        self.hi_sigma(preplacement_spoiler);
 
         let mut zone_needs_placement = FxHashMap::default();
         for (command, zone) in mem::take(&mut self.output.preplacements) {
@@ -591,7 +696,6 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             }
             // We prefer generating indices over shuffling the nodes because usually there aren't many zone preplacements (relics)
             let node_index = nodes.swap_remove(self.rng.gen_range(0..nodes.len()));
-            // TODO shouldn't this remove the node from needs_placement?
             let node = self.needs_placement[node_index];
             trace!(
                 "[World {}] Preplaced {} at {}",
@@ -599,22 +703,32 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
                 self.log_name(&command),
                 node.identifier()
             );
+            self.write_placement_spoiler(node, &command, preplacement_spoiler);
             self.push_command(node_trigger(node).unwrap(), command);
             self.received_placement.push(node_index);
         }
     }
 
-    fn hi_sigma(&mut self) {
-        let node = self
-            .needs_placement
-            .swap_remove(self.rng.gen_range(0..self.needs_placement.len())); // TODO handle empty
-        trace!(
-            "[World {}] Placed something very important at {}",
-            self.index,
-            node.identifier()
-        );
+    fn hi_sigma(&mut self, preplacement_spoiler: &mut Vec<SpoilerPlacement>) {
         let command = compile::spirit_light(CommandInteger::Constant { value: 1 }, &mut self.rng);
-        self.push_command(node_trigger(node).unwrap(), command);
+        if self.needs_placement.is_empty() {
+            warning!(
+                "[World {}] Failed to preplace {} since no free placement location was available",
+                self.index,
+                self.log_name(&command)
+            );
+        } else {
+            let node = self
+                .needs_placement
+                .swap_remove(self.rng.gen_range(0..self.needs_placement.len()));
+            trace!(
+                "[World {}] Placed something very important at {}",
+                self.index,
+                node.identifier()
+            );
+            self.write_placement_spoiler(node, &command, preplacement_spoiler);
+            self.push_command(node_trigger(node).unwrap(), command);
+        }
     }
 
     fn update_reached(&mut self) {
@@ -655,7 +769,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             .extend(self.reached_needs_placement.clone());
         let desired_placeholders = usize::max(
             usize::max(3, self.placeholders.len()),
-            self.reached_needs_placement.len() / 3,
+            self.reached_needs_placement.len() / 2,
         );
         let new_placeholders = usize::min(desired_placeholders, self.reached_needs_placement.len());
         let kept_placeholders = usize::min(
@@ -760,7 +874,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         let index = weights
             .choose_weighted(&mut self.rng, |(_, weight)| *weight)
             .ok()?
-            .0; // TODO handle
+            .0;
         let progression = progressions.swap_remove(index);
         trace!(
             "[World {}] Chose forced progression: {progression}",
@@ -770,7 +884,11 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         Some(progression)
     }
 
-    fn place_spirit_light(&mut self, mut amount: usize) {
+    fn place_spirit_light(
+        &mut self,
+        mut amount: usize,
+        placement_spoiler: &mut Vec<SpoilerPlacement>,
+    ) {
         while amount > 0 {
             let batch = self.spirit_light_provider.take(self.placements_remaining());
             amount -= batch;
@@ -787,6 +905,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
                 self.log_name(&command),
                 node.identifier()
             );
+            self.write_placement_spoiler(node, &command, placement_spoiler);
             self.push_command(node_trigger(node).unwrap(), command);
         }
     }
@@ -850,7 +969,6 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         command_name(command, &self.output.item_metadata)
     }
 
-    #[cfg(any(feature = "log", test))]
     fn log_name(&self, command: &CommandVoid) -> String {
         self.output
             .item_metadata
@@ -865,7 +983,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
                     .next()
                     .map(|item| item.to_string())
             })
-            .unwrap_or_else(|| todo!("{command:#?}")) // TODO handle
+            .unwrap_or_else(|| "<Unnamed custom command>".to_string()) // TODO improve
     }
 
     fn on_load(&mut self, command: CommandVoid) {
@@ -930,7 +1048,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         (base_price * self.price_distribution.sample(&mut self.rng)).round() as i32
     }
 
-    fn fill_remaining(&mut self) {
+    fn fill_remaining(&mut self, placement_spoiler: &mut Vec<SpoilerPlacement>) {
         trace!(
             "[World {}] Filling remaining locations with spirit light",
             self.index
@@ -943,8 +1061,10 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         for (placements_remaining, node) in needs_placement.into_iter().enumerate().rev() {
             let uber_identifier = node.uber_identifier().unwrap();
             let command = if uber_identifier.is_shop() {
-                // TODO warn and also try to avoid
-                compile::gorlek_ore()
+                // TODO try to avoid
+                let command = compile::gorlek_ore();
+                warning!("[World {}] Placing more {} than intended to avoid placing Spirit Light in a shop", self.index, self.log_name(&command));
+                command
             } else {
                 compile::spirit_light(
                     CommandInteger::Constant {
@@ -961,15 +1081,30 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             );
             let name = self.name(&command);
             self.shop_item_data(&command, uber_identifier, name);
+            self.write_placement_spoiler(node, &command, placement_spoiler);
             self.push_command(node_trigger(node).unwrap(), command)
         }
         // TODO unreachable items that should be filled
     }
 
     fn push_command(&mut self, trigger: Trigger, command: CommandVoid) {
-        self.world.uber_states.register_trigger(&trigger);
+        self.world.uber_states.register_trigger(&trigger); // TODO unnecessary?
         self.world.simulate(&command, &self.output);
         self.output.events.push(Event { trigger, command });
+    }
+
+    fn write_placement_spoiler(
+        &self,
+        node: &Node,
+        command: &CommandVoid,
+        into: &mut Vec<SpoilerPlacement>,
+    ) {
+        into.push(SpoilerPlacement {
+            origin_world_index: self.index,
+            target_world_index: self.index,
+            location: NodeSummary::new(node),
+            item_name: self.log_name(command),
+        });
     }
 }
 
@@ -990,7 +1125,18 @@ pub fn command_name(command: &CommandVoid, item_metadata: &ItemMetadata) -> Comm
         .name(command)
         .map(|value| CommandString::Constant { value })
         .or_else(|| find_message(command).cloned())
-        .unwrap() // TODO handle
+        .or_else(|| {
+            CommonItem::from_command(command)
+                .into_iter()
+                .next()
+                .map(|item| CommandString::Constant {
+                    value: item.to_string().into(),
+                })
+        })
+        .unwrap_or_else(|| {
+            warning!("No name specified for custom command. Using \"?\" as placeholder"); // TODO improve
+            CommandString::Constant { value: "?".into() }
+        })
 }
 pub fn find_message(command: &CommandVoid) -> Option<&CommandString> {
     match command {
@@ -1058,4 +1204,19 @@ fn default_icon(command: &CommandVoid) -> Option<Icon> {
             CommonItem::CleanWater => Some(Icon::File("assets/icons/game/water.png".to_string())),
             _ => None,
         })
+}
+
+// TODO make a generic contained_commands iterator?
+// This catches common cases but would fail to detect edge case commands
+fn modifies_uberstate(command: &CommandVoid, output: &CompilerOutput) -> bool {
+    match command {
+        CommandVoid::Multi { commands } => commands
+            .iter()
+            .any(|command| modifies_uberstate(command, output)),
+        CommandVoid::Lookup { index } => modifies_uberstate(&output.command_lookup[*index], output),
+        CommandVoid::StoreBoolean { .. }
+        | CommandVoid::StoreInteger { .. }
+        | CommandVoid::StoreFloat { .. } => true,
+        _ => false,
+    }
 }

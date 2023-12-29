@@ -7,6 +7,7 @@ use wotw_seedgen_data::{Shard, Skill, WeaponUpgrade};
 use wotw_seedgen_seed_language::{compile, output::CommandVoid};
 
 // TODO not so sure this is an efficient item pool, maybe try something else once it's possible to benchmark seedgen again
+// in particular, I think maybe simply cloning the items would be more efficient than the item_lookup
 // TODO don't really think this should be public
 #[derive(Debug, Clone, PartialEq)]
 pub struct ItemPool {
@@ -253,6 +254,10 @@ impl ItemPool {
     #[inline]
     pub fn len(&self) -> usize {
         self.items.len()
+    }
+    #[inline]
+    pub fn items(&self) -> impl Iterator<Item = &CommandVoid> {
+        self.items.iter().map(|index| &self.item_lookup[*index])
     }
     #[inline]
     pub fn inventory(&self) -> &Inventory {

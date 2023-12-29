@@ -3,7 +3,7 @@
 use super::{Compile, SharedValue, SnippetCompiler};
 use crate::{
     ast::{self, UberStateType},
-    output::{intermediate::Literal, Command, CommandVoid, ItemMetadataEntry, StringOrPlaceholder},
+    output::{intermediate::Literal, CommandVoid, ItemMetadataEntry, StringOrPlaceholder},
 };
 use ordered_float::OrderedFloat;
 use rand::Rng;
@@ -154,7 +154,7 @@ impl<'source> Compile<'source> for ast::CallbackArgs<'source> {
             .global
             .output
             .command_lookup
-            .push(Command::Void(CommandVoid::Multi { commands: vec![] }));
+            .push(CommandVoid::Multi { commands: vec![] });
         compiler
             .global
             .callbacks
@@ -200,7 +200,7 @@ impl<'source> Compile<'source> for ast::OnCallbackArgs<'source> {
             .and_then(|command| command.expect_void(compiler, span));
 
         if let (Some(callback), Some(action)) = (callback, action) {
-            if let Command::Void(CommandVoid::Multi { commands }) =
+            if let CommandVoid::Multi { commands } =
                 &mut compiler.global.output.command_lookup[callback]
             {
                 match action {
