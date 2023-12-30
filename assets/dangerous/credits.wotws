@@ -24,9 +24,7 @@
 
 // TODO this probably breaks horribly if the user skips the final cutscene
 
-!state(timer, Float)
-!state(timer_active, Boolean)
-on reload define_timer(timer, timer_active)
+!timer(timer_active, timer)
 
 on willowsEndGroup.petrifiedOwlBossState == 5 {
     store(finished_achievement, true)

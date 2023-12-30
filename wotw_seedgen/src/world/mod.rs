@@ -23,11 +23,11 @@ use crate::inventory::Inventory;
 use self::reached::ReachContext;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::smallvec;
-use wotw_seedgen_assembly::{ArithmeticOperator, ClientEvent, Operation};
 use wotw_seedgen_data::{uber_identifier, Shard, Skill, Teleporter, UberIdentifier, WeaponUpgrade};
 use wotw_seedgen_logic_language::output::{Graph, Node};
 use wotw_seedgen_seed_language::output::{
-    CommandBoolean, CommandFloat, CommandInteger, CommandVoid, CompilerOutput, Trigger,
+    ArithmeticOperator, ClientEvent, CommandBoolean, CommandFloat, CommandInteger, CommandVoid,
+    CompilerOutput, Operation, Trigger,
 };
 use wotw_seedgen_settings::WorldSettings;
 

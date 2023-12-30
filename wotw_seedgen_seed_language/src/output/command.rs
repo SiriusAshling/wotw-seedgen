@@ -3,13 +3,14 @@ use super::{
     StringOrPlaceholder,
 };
 use ordered_float::OrderedFloat;
+use serde::{Deserialize, Serialize};
 use wotw_seedgen_data::{
     Alignment, EquipSlot, Equipment, MapIcon, ScreenPosition, UberIdentifier, WheelBind,
     WheelItemPosition, Zone,
 };
 
 /// A Command, which may be used to affect the world, player or client state
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Command {
     /// Commands returning [`bool`]
     Boolean(CommandBoolean),
@@ -26,7 +27,7 @@ pub enum Command {
 }
 
 /// Command which returns [`bool`]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CommandBoolean {
     /// Return `value`
     Constant { value: bool },
@@ -75,7 +76,7 @@ pub enum CommandBoolean {
 }
 
 /// Command which returns [`i32`]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CommandInteger {
     /// Return `value`
     Constant { value: i32 },
@@ -98,7 +99,7 @@ pub enum CommandInteger {
 }
 
 /// Command which returns [`f32`]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CommandFloat {
     /// Return `value`
     Constant { value: OrderedFloat<f32> },
@@ -120,7 +121,7 @@ pub enum CommandFloat {
 }
 
 /// Command which returns [`StringOrPlaceholder`]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CommandString {
     /// Return `value`
     Constant { value: StringOrPlaceholder },
@@ -148,7 +149,7 @@ pub enum CommandString {
 }
 
 /// Command which returns [`Zone`]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CommandZone {
     /// Return `value`
     Constant { value: Zone },
@@ -162,7 +163,7 @@ pub enum CommandZone {
 }
 
 /// Command which returns nothing
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CommandVoid {
     /// Execute `commands`
     Multi { commands: Vec<CommandVoid> },
@@ -245,11 +246,6 @@ pub enum CommandVoid {
     SetFloat { id: usize, value: CommandFloat },
     /// Temporarily store `value` under `id`. The value should live at least until the next tick
     SetString { id: usize, value: CommandString },
-    /// Until the next reload, on every tick where `toggle` is true, increment `timer` by the amount of seconds passed
-    DefineTimer {
-        toggle: UberIdentifier,
-        timer: UberIdentifier,
-    },
     /// Perform a "hard" save like an autosave
     Save {},
     /// Perform a "soft" checkpoint like a boss fight checkpoint

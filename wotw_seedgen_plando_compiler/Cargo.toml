@@ -5,8 +5,6 @@ edition = "2021"
 
 [dependencies]
 wotw_seedgen_static_assets = { path = "../wotw_seedgen_static_assets", features = ["loc_data", "state_data", "uber_state_data"] }
-wotw_seedgen_assets = { path = "../wotw_seedgen_assets" }
-wotw_seedgen_seed_language = { path = "../wotw_seedgen_seed_language" }
 wotw_seedgen_assembly = { path = "../wotw_seedgen_assembly" }
 clap = { version = "4.4", features = ["derive"] }
 rand = "0.8"

@@ -246,7 +246,6 @@ pub(crate) enum FunctionIdentifier {
     SetInteger,
     SetFloat,
     SetString,
-    DefineTimer,
     Save,
     Checkpoint,
     Warp,
@@ -650,10 +649,6 @@ impl<'source> Compile<'source> for ast::FunctionCall<'source> {
                 id: string_id(&mut context)?,
                 value: arg(&mut context)?,
             }),
-            FunctionIdentifier::DefineTimer => Command::Void(CommandVoid::DefineTimer {
-                toggle: arg(&mut context)?,
-                timer: arg(&mut context)?,
-            }),
             FunctionIdentifier::Save => Command::Void(CommandVoid::Save {}),
             FunctionIdentifier::Checkpoint => Command::Void(CommandVoid::Checkpoint {}),
             FunctionIdentifier::Warp => Command::Void(CommandVoid::Warp {
@@ -986,30 +981,10 @@ fn shard_string(shard: Shard, remove: bool) -> CommandString {
     CommandString::Constant { value }
 }
 fn teleporter_string(teleporter: Teleporter, remove: bool) -> CommandString {
-    let name = match teleporter {
-        Teleporter::Inkwater => "Inkwater Marsh",
-        Teleporter::Den => "Howl's Den",
-        Teleporter::Hollow => "Kwolok's Hollow",
-        Teleporter::Glades => "Glades",
-        Teleporter::Wellspring => "Wellspring",
-        Teleporter::Burrows => "Midnight Burrows",
-        Teleporter::WoodsEntrance => "Woods Entrance",
-        Teleporter::WoodsExit => "Woods Exit",
-        Teleporter::Reach => "Baur's Reach",
-        Teleporter::Depths => "Mouldwood Depths",
-        Teleporter::CentralLuma => "Central Luma",
-        Teleporter::LumaBoss => "Luma Boss",
-        Teleporter::FeedingGrounds => "Feeding Grounds",
-        Teleporter::CentralWastes => "Central Wastes",
-        Teleporter::OuterRuins => "Outer Ruins",
-        Teleporter::InnerRuins => "Inner Ruins",
-        Teleporter::Willow => "Willow's End",
-        Teleporter::Shriek => "Shriek",
-    };
     let value = if remove {
-        format!("@Remove {name} Teleporter@")
+        format!("@Remove {teleporter}@")
     } else {
-        format!("#{name} Teleporter#")
+        format!("#{teleporter}#")
     }
     .into();
     CommandString::Constant { value }

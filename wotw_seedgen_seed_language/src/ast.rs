@@ -311,6 +311,7 @@ pub enum Command<'source> {
     ),
     Config(Spanned<Config>, CommandArgs<ConfigArgs<'source>>),
     State(Spanned<State>, CommandArgs<StateArgs<'source>>),
+    Timer(Spanned<Timer>, CommandArgs<TimerArgs<'source>>),
     Let(Spanned<Let>, CommandArgs<LetArgs<'source>>),
     If(Spanned<If>, CommandIf<'source>),
     Repeat(Spanned<Repeat>, CommandRepeat<'source>),
@@ -448,6 +449,15 @@ pub struct StateArgs<'source> {
     pub identifier: Spanned<Identifier<'source>>,
     pub comma: Symbol<','>,
     pub ty: Spanned<UberStateType>,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Ast)]
+#[ast(case = "snake")]
+pub struct Timer;
+#[derive(Debug, Clone, PartialEq, Eq, Ast, Span)]
+pub struct TimerArgs<'source> {
+    pub toggle_identifier: Spanned<Identifier<'source>>,
+    pub comma: Symbol<','>,
+    pub timer_identifier: Spanned<Identifier<'source>>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Ast)]
 #[ast(case = "snake")]

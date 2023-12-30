@@ -3,13 +3,11 @@ use crate::common_item::CommonItem;
 use super::{uber_states::UberStateValue, World};
 use ordered_float::OrderedFloat;
 use std::ops::{Add, Div, Mul, Sub};
-use wotw_seedgen_assembly::{
-    ArithmeticOperator, Comparator, EqualityComparator, LogicOperator, Operation,
-};
 use wotw_seedgen_data::{UberIdentifier, Zone};
 use wotw_seedgen_seed_language::output::{
-    Command, CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandVoid, CommandZone,
-    CompilerOutput, StringOrPlaceholder, Trigger,
+    ArithmeticOperator, Command, CommandBoolean, CommandFloat, CommandInteger, CommandString,
+    CommandVoid, CommandZone, Comparator, CompilerOutput, EqualityComparator, LogicOperator,
+    Operation, StringOrPlaceholder, Trigger,
 };
 
 pub trait Simulate {
@@ -289,7 +287,6 @@ impl Simulate for CommandVoid {
             | CommandVoid::FreeMessagePosition { .. }
             | CommandVoid::FreeMessageAlignment { .. }
             | CommandVoid::FreeMessageScreenPosition { .. }
-            | CommandVoid::DefineTimer { .. }
             | CommandVoid::CreateWarpIcon { .. }
             | CommandVoid::DestroyWarpIcon { .. }
             | CommandVoid::Lookup { .. }

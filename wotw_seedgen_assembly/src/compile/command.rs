@@ -179,10 +179,7 @@ impl Compile for input::CommandZone {
             Self::Constant { value } => (vec![Command::SetInteger(value as i32)], MemoryUsed::ZERO),
             Self::Multi { commands, last } => multi_with_return(commands, *last, command_lookup),
             Self::CurrentZone {} => (
-                vec![Command::FetchInteger(UberIdentifier {
-                    group: 5,
-                    member: 50,
-                })],
+                vec![Command::FetchInteger(UberIdentifier::new(5, 50))],
                 MemoryUsed::ZERO,
             ),
         }
@@ -277,9 +274,6 @@ impl Compile for input::CommandVoid {
             Self::SetString { id, value } => Args::new(1, command_lookup)
                 .string(value)
                 .call(Command::CopyString(0, id)),
-            Self::DefineTimer { toggle, timer } => {
-                (vec![Command::DefineTimer(toggle, timer)], MemoryUsed::ZERO)
-            }
             Self::Save {} => (vec![Command::Save], MemoryUsed::ZERO),
             Self::Checkpoint {} => (vec![Command::Checkpoint], MemoryUsed::ZERO),
             Self::Warp { x, y } => Args::new(2, command_lookup)

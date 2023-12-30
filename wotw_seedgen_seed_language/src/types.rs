@@ -4,7 +4,7 @@ use crate::{
         UberStateType,
     },
     compile::{FunctionIdentifier, SnippetCompiler},
-    output::intermediate,
+    output::intermediate::{self, ConstantDiscriminants},
     token::Tokenizer,
 };
 use serde::Deserialize;
@@ -23,7 +23,6 @@ pub enum Type {
     String,
     Action,
     Function,
-    Resource,
     Skill,
     Shard,
     Teleporter,
@@ -209,7 +208,6 @@ impl InferType for FunctionCall<'_> {
             | FunctionIdentifier::SetBoolean
             | FunctionIdentifier::SetInteger
             | FunctionIdentifier::SetFloat
-            | FunctionIdentifier::DefineTimer
             | FunctionIdentifier::Save
             | FunctionIdentifier::Checkpoint
             | FunctionIdentifier::Warp
@@ -272,6 +270,7 @@ impl Expression<'_> {
     }
 }
 impl InferType for Literal<'_> {
+    // TODO unused, not sure any infertype implementation here is used...
     fn infer_type(&self, compiler: &mut SnippetCompiler) -> Option<Type> {
         match self {
             Literal::UberIdentifier(_) => Some(Type::UberIdentifier),
@@ -285,23 +284,29 @@ impl InferType for Literal<'_> {
 }
 impl InferType for Constant<'_> {
     fn infer_type(&self, _compiler: &mut SnippetCompiler) -> Option<Type> {
-        match self.kind.data.0 {
-            "Resource" => Some(Type::Resource),
-            "Skill" => Some(Type::Skill),
-            "Shard" => Some(Type::Shard),
-            "Teleporter" => Some(Type::Teleporter),
-            "WeaponUpgrade" => Some(Type::WeaponUpgrade),
-            "Equipment" => Some(Type::Equipment),
-            "Zone" => Some(Type::Zone),
-            "OpherIcon" => Some(Type::OpherIcon),
-            "LupoIcon" => Some(Type::LupoIcon),
-            "GromIcon" => Some(Type::GromIcon),
-            "TuleyIcon" => Some(Type::TuleyIcon),
-            "EquipSlot" => Some(Type::EquipSlot),
-            "WheelItemPosition" => Some(Type::WheelItemPosition),
-            "WheelBind" => Some(Type::WheelBind),
-            _ => None,
-        }
+        self.kind
+            .data
+            .0
+            .parse()
+            .ok()
+            .map(|discriminant| match discriminant {
+                ConstantDiscriminants::Skill => Type::Skill,
+                ConstantDiscriminants::Shard => Type::Shard,
+                ConstantDiscriminants::Teleporter => Type::Teleporter,
+                ConstantDiscriminants::WeaponUpgrade => Type::WeaponUpgrade,
+                ConstantDiscriminants::Equipment => Type::Equipment,
+                ConstantDiscriminants::Zone => Type::Zone,
+                ConstantDiscriminants::OpherIcon => Type::OpherIcon,
+                ConstantDiscriminants::LupoIcon => Type::LupoIcon,
+                ConstantDiscriminants::GromIcon => Type::GromIcon,
+                ConstantDiscriminants::TuleyIcon => Type::TuleyIcon,
+                ConstantDiscriminants::MapIcon => Type::MapIcon,
+                ConstantDiscriminants::EquipSlot => Type::EquipSlot,
+                ConstantDiscriminants::WheelItemPosition => Type::WheelItemPosition,
+                ConstantDiscriminants::WheelBind => Type::WheelBind,
+                ConstantDiscriminants::Alignment => Type::Alignment,
+                ConstantDiscriminants::ScreenPosition => Type::ScreenPosition,
+            })
     }
 }
 impl InferType for Spanned<Identifier<'_>> {

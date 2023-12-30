@@ -1,6 +1,6 @@
 use super::{
-    Command, CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandVoid, CommandZone,
-    Event, Icon, Operation, Trigger,
+    intermediate::Literal, Command, CommandBoolean, CommandFloat, CommandInteger, CommandString,
+    CommandVoid, CommandZone, Event, Icon, Operation, StringOrPlaceholder, Trigger,
 };
 use itertools::Itertools;
 use std::fmt::{self, Display};
@@ -32,14 +32,6 @@ impl Display for StringOrPlaceholder {
                     actions.iter().format(", ")
                 )
             }
-        }
-    }
-}
-impl Display for SharedValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SharedValue::Function(index) => write!(f, "function: {index}"),
-            SharedValue::Literal(literal) => write!(f, "{literal}"),
         }
     }
 }
@@ -153,7 +145,7 @@ impl Display for CommandFloat {
 impl Display for CommandString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CommandString::Constant { value } => write!(f, "\"{value}\""),
+            CommandString::Constant { value } => write!(f, "{value}"),
             CommandString::Multi { commands, last } => {
                 write!(f, "{{ {}, {} }}", commands.iter().format(", "), last)
             }
@@ -275,9 +267,6 @@ impl Display for CommandVoid {
             CommandVoid::SetInteger { id, value } => write!(f, "set_integer({id}, {value})"),
             CommandVoid::SetFloat { id, value } => write!(f, "set_float({id}, {value})"),
             CommandVoid::SetString { id, value } => write!(f, "set_string({id}, {value})"),
-            CommandVoid::DefineTimer { toggle, timer } => {
-                write!(f, "define_timer({toggle}, {timer})")
-            }
             CommandVoid::Save {} => write!(f, "save()"),
             CommandVoid::Checkpoint {} => write!(f, "checkpoint()"),
             CommandVoid::Warp { x, y } => write!(f, "warp({x}, {y})"),

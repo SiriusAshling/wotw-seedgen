@@ -1,12 +1,14 @@
+use std::fmt::{self, Display};
+
 use crate::{uber_identifier::teleporter, UberIdentifier};
 #[cfg(feature = "serde")]
 use serde_repr::{Deserialize_repr, Serialize_repr};
 #[cfg(feature = "strum")]
-use strum::{Display, EnumString};
+use strum::EnumString;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize_repr, Serialize_repr))]
-#[cfg_attr(feature = "strum", derive(Display, EnumString))]
+#[cfg_attr(feature = "strum", derive(EnumString))]
 #[repr(u8)]
 pub enum Teleporter {
     Inkwater = 16,
@@ -27,6 +29,30 @@ pub enum Teleporter {
     InnerRuins = 14,
     Willow = 12,
     Shriek = 15,
+}
+impl Display for Teleporter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Teleporter::Inkwater => write!(f, "Inkwater Marsh Teleporter"),
+            Teleporter::Den => write!(f, "Howl's Den Teleporter"),
+            Teleporter::Hollow => write!(f, "Kwolok's Hollow Teleporter"),
+            Teleporter::Glades => write!(f, "Glades Teleporter"),
+            Teleporter::Wellspring => write!(f, "Wellspring Teleporter"),
+            Teleporter::Burrows => write!(f, "Midnight Burrows Teleporter"),
+            Teleporter::WoodsEntrance => write!(f, "Woods Entrance Teleporter"),
+            Teleporter::WoodsExit => write!(f, "Woods Exit Teleporter"),
+            Teleporter::Reach => write!(f, "Baur's Reach Teleporter"),
+            Teleporter::Depths => write!(f, "Mouldwood Depths Teleporter"),
+            Teleporter::CentralLuma => write!(f, "Central Luma Teleporter"),
+            Teleporter::LumaBoss => write!(f, "Luma Boss Teleporter"),
+            Teleporter::FeedingGrounds => write!(f, "Feeding Grounds Teleporter"),
+            Teleporter::CentralWastes => write!(f, "Central Wastes Teleporter"),
+            Teleporter::OuterRuins => write!(f, "Outer Ruins Teleporter"),
+            Teleporter::InnerRuins => write!(f, "Inner Ruins Teleporter"),
+            Teleporter::Willow => write!(f, "Willow's End Teleporter"),
+            Teleporter::Shriek => write!(f, "Shriek Teleporter"),
+        }
+    }
 }
 impl Teleporter {
     pub const fn uber_identifier(self) -> UberIdentifier {

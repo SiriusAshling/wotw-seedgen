@@ -13,7 +13,5 @@ members = [
     "wotw_seedgen_seed_language",
     "wotw_seedgen_settings",
     "wotw_seedgen_static_assets", # TODO move into a feature module of assets?
-    # TODO "wotw_seedgen_stats",
+    "wotw_seedgen_stats",
 ]
-
-# TODO try out strum

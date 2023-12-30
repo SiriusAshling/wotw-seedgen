@@ -4,12 +4,12 @@ use crate::world::{node_condition, node_trigger};
 
 use super::placement::{command_name, Context};
 use rustc_hash::FxHashMap;
-use wotw_seedgen_assembly::{ArithmeticOperator, Comparator, EqualityComparator, Operation};
 use wotw_seedgen_data::Zone;
 use wotw_seedgen_logic_language::output::Node;
 use wotw_seedgen_seed_language::output::{
-    Command, CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandVoid, CommandZone,
-    Event, ItemMetadata, StringOrPlaceholder, Trigger,
+    ArithmeticOperator, Command, CommandBoolean, CommandFloat, CommandInteger, CommandString,
+    CommandVoid, CommandZone, Comparator, EqualityComparator, Event, ItemMetadata, Operation,
+    StringOrPlaceholder, Trigger,
 };
 
 impl Context<'_, '_> {
@@ -408,7 +408,6 @@ impl ResolvePlaceholders for CommandVoid {
             | Self::MessageDestroy { .. }
             | Self::FreeMessageAlignment { .. }
             | Self::FreeMessageScreenPosition { .. }
-            | Self::DefineTimer { .. }
             | Self::Save {}
             | Self::Checkpoint {}
             | Self::Equip { .. }

@@ -1,11 +1,12 @@
 pub use crate::ast::ClientEvent;
 
 use super::{CommandBoolean, CommandVoid};
+use serde::{Deserialize, Serialize};
 use wotw_seedgen_data::UberIdentifier;
 
 /// The main event (:badumtsss:)
 // TODO improve documentation
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Event {
     /// The Trigger defines when to give the Action
     pub trigger: Trigger,
@@ -14,7 +15,7 @@ pub struct Event {
 }
 
 /// Trigger for an [`Event`]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Trigger {
     /// Specific client events
     ClientEvent(ClientEvent),

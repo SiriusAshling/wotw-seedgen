@@ -1,6 +1,7 @@
-use wotw_seedgen_assembly::{Comparator, EqualityComparator, Operation};
 use wotw_seedgen_logic_language::output::Node;
-use wotw_seedgen_seed_language::output::{CommandBoolean, CommandInteger, Trigger};
+use wotw_seedgen_seed_language::output::{
+    CommandBoolean, CommandInteger, Comparator, EqualityComparator, Operation, Trigger,
+};
 
 pub fn node_condition(node: &Node) -> Option<CommandBoolean> {
     node.uber_identifier()

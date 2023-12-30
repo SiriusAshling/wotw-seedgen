@@ -33,7 +33,7 @@ pub use zone_unlock::ZoneUnlockStats;
 
 use std::{cmp::Ordering, num::NonZeroUsize};
 
-use wotw_seedgen::generator::SeedSpoiler;
+use wotw_seedgen::spoiler::SeedSpoiler;
 
 /// Trait for types that may analyze seeds and generate statistics
 ///

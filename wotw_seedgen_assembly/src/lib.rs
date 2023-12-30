@@ -1,20 +1,22 @@
+pub use wotw_seedgen_data as data;
+pub use wotw_seedgen_seed_language as seed_language;
+pub use wotw_seedgen_settings::UniverseSettings;
+
 mod compile;
 mod package;
 
-// TODO determine a good standard for reexports
-pub use compile::{compile_intermediate_output, Compile};
+pub use compile::compile_intermediate_output;
 pub use package::Package;
-pub use wotw_seedgen_data::{
-    EquipSlot, Equipment, MapIcon, Position, UberIdentifier, WheelBind, WheelItemPosition,
-};
-pub use wotw_seedgen_seed_language::output::{
-    ArithmeticOperator, ClientEvent, Comparator, EqualityComparator, Icon, LogicOperator, Operation,
-};
-pub use wotw_seedgen_settings::UniverseSettings;
 
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use wotw_seedgen_data::{Alignment, ScreenPosition};
+use wotw_seedgen_data::{
+    EquipSlot, Equipment, MapIcon, Position, UberIdentifier, WheelBind, WheelItemPosition,
+};
+use wotw_seedgen_seed_language::output::{
+    ArithmeticOperator, ClientEvent, Comparator, EqualityComparator, Icon, LogicOperator, Timer,
+};
 use wotw_seedgen_settings::DEFAULT_SPAWN;
 
 pub type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -28,6 +30,8 @@ pub struct SeedWorld {
     pub flags: Vec<String>,
     /// Starting location
     pub spawn: Spawn,
+    /// List of timers
+    pub timers: Vec<Timer>,
     /// Events from generation and snippets
     pub events: Vec<Event>,
     /// [`Command`]s that may be referenced from elsewhere by index
@@ -151,11 +155,6 @@ pub enum Command {
     IntegerToString,
     /// Convert Float Memory 0 to a string and store it in String Memory 0
     FloatToString,
-    /// Until the next reload, on every tick where `toggle` is true, increment `timer` by the amount of seconds passed
-    DefineTimer(
-        /*toggle*/ UberIdentifier,
-        /*timer*/ UberIdentifier,
-    ),
     /// Check if Ori is in the hitbox defined by (Float Memory 0, Float Memory 1) and (Float Memory 2, Float Memory 3) and store the result in Boolean Memory 0
     IsInHitbox,
     /// Store the name of world number `index` in String Memory 0

@@ -15,10 +15,7 @@
 !state(critical, Boolean)
 !share(critical)
 
-// TODO specialized command to get a timer
-!state(timer, Float)
-!state(timer_active, Boolean)
-on reload define_timer(timer_active, timer)
+!timer(timer_active, timer)
 
 // TODO can we do position transitions? Then this could move the selected difficulty text to the top or smth
 // TODO setting the positions is awkward because the set the center of the box. Is there someway we could set the top of it instead?

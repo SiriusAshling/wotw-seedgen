@@ -1,5 +1,5 @@
-use super::command::MemoryUsed;
-use crate::{Command, Compile};
+use super::{command::MemoryUsed, Compile};
+use crate::Command;
 use rustc_hash::FxHashMap;
 use wotw_seedgen_seed_language::{
     compile::RESERVED_MEMORY,

@@ -1,6 +1,5 @@
 mod command;
-// TODO remove
-// mod display;
+mod display;
 mod event;
 pub(crate) mod intermediate;
 mod operation;
@@ -15,13 +14,14 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 use wotw_seedgen_data::{
-    Equipment, GromIcon, LupoIcon, MapIcon, OpherIcon, Position, Shard, TuleyIcon,
+    Equipment, GromIcon, LupoIcon, MapIcon, OpherIcon, Position, Shard, TuleyIcon, UberIdentifier,
 };
 
 // TODO check all the public derives
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CompilerOutput {
     pub spawn: Option<Position>,
+    pub timers: Vec<Timer>,
     pub events: Vec<Event>,
     pub command_lookup: Vec<CommandVoid>,
     pub icons: Vec<(String, Vec<u8>)>, // TODO poor memory
@@ -32,6 +32,13 @@ pub struct CompilerOutput {
     pub preplacements: Vec<(CommandVoid, wotw_seedgen_data::Zone)>,
     pub success: bool,
     pub debug: Option<DebugOutput>,
+}
+
+/// Timers should increment their `timer` uberState each frame by the deltaTime as long as their `toggle` is `true`
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Timer {
+    pub toggle: UberIdentifier,
+    pub timer: UberIdentifier,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -81,7 +88,7 @@ pub struct ItemMetadataEntry {
     pub map_icon: Option<MapIcon>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum StringOrPlaceholder {
     Value(String),
     ZoneOfPlaceholder(Box<CommandVoid>),

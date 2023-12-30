@@ -1,7 +1,5 @@
-!state(timer, Float)
-!state(timer_active, Boolean)
+!timer(timer_active, timer)
 on reload {
-    define_timer(timer_active, timer)
     store(timer_active, true)
     store(timer, 0)
     free_message("msg", "")

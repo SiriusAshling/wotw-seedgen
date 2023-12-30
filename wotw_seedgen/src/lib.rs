@@ -8,6 +8,13 @@
 #![allow(clippy::too_many_lines)]
 #![allow(clippy::struct_excessive_bools)]
 
+pub use wotw_seedgen_assembly as assembly;
+pub use wotw_seedgen_assets as assets;
+pub use wotw_seedgen_data as data;
+pub use wotw_seedgen_logic_language as logic_language;
+pub use wotw_seedgen_seed_language as seed_language;
+pub use wotw_seedgen_settings as settings;
+
 mod common_item;
 mod generator;
 mod inventory;
@@ -17,8 +24,7 @@ mod orbs;
 mod tests;
 mod world;
 
-// TODO update imports
-// maybe since this is the top crate it should reexport everything?
+pub use common_item::CommonItem;
 pub use generator::{generate_seed, item_pool, spoiler, Seed};
 pub use world::{Player, Simulate, UberStates, World};
 

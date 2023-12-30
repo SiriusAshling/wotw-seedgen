@@ -82,6 +82,7 @@ pub struct UniversePreset {
     derive(Serialize, Deserialize),
     serde(rename_all = "camelCase")
 )]
+// TODO replace hashsets with vecs?
 pub struct WorldPreset {
     /// User-targetted information about the preset
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]

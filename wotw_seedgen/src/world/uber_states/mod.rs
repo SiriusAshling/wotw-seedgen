@@ -5,11 +5,11 @@ use ordered_float::OrderedFloat;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cmp::Ordering;
 use strum::AsRefStr;
-use wotw_seedgen_assembly::Operation;
 use wotw_seedgen_assets::UberStateData;
 use wotw_seedgen_data::UberIdentifier;
 use wotw_seedgen_seed_language::output::{
-    CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandVoid, CommandZone, Trigger,
+    CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandVoid, CommandZone,
+    Operation, Trigger,
 };
 
 #[derive(Debug, Clone)]

@@ -8,9 +8,15 @@ use std::{
     mem,
     path::{Path, PathBuf},
 };
-use wotw_seedgen_assembly::{compile_intermediate_output, Command, Package};
-use wotw_seedgen_assets::{SnippetAccess, Source};
-use wotw_seedgen_seed_language::{compile::Compiler, output::DebugOutput};
+use wotw_seedgen_assembly::{
+    compile_intermediate_output,
+    seed_language::{
+        assets::{SnippetAccess, Source},
+        compile::Compiler,
+        output::DebugOutput,
+    },
+    Command, Package,
+};
 use wotw_seedgen_static_assets::UBER_STATE_DATA;
 
 fn main() -> Result<(), Error> {

@@ -23,14 +23,14 @@ use rand::{
 use rand_pcg::Pcg64Mcg;
 use rustc_hash::FxHashMap;
 use std::{iter, mem, ops::RangeFrom};
-use wotw_seedgen_assembly::{compile_intermediate_output, ClientEvent, Icon, Spawn};
+use wotw_seedgen_assembly::{compile_intermediate_output, Spawn};
 use wotw_seedgen_data::{Equipment, MapIcon, OpherIcon, Skill, UberIdentifier};
 use wotw_seedgen_logic_language::output::{Node, Requirement};
 use wotw_seedgen_seed_language::{
     compile,
     output::{
-        CommandInteger, CommandString, CommandVoid, CompilerOutput, Event, ItemMetadata,
-        StringOrPlaceholder, Trigger,
+        ClientEvent, CommandInteger, CommandString, CommandVoid, CompilerOutput, Event, Icon,
+        ItemMetadata, StringOrPlaceholder, Trigger,
     },
 };
 
@@ -159,6 +159,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     }
 
     fn next_step(&mut self) {
+        // TODO sort spoiler placements
         self.step += 1;
         trace!("Placement step #{}", self.step);
         self.spoiler.groups.push(SpoilerGroup::default());
@@ -252,20 +253,23 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     fn place_random(&mut self) -> bool {
         let mut any_placed = false;
         for origin_world_index in 0..self.worlds.len() {
-            let needs_random_placement = self.worlds[origin_world_index].reserve_placeholders();
+            let origin_world = &mut self.worlds[origin_world_index];
+            let needs_random_placement = origin_world.reserve_placeholders();
+            let mut placements_remaining =
+                origin_world.placements_remaining() + needs_random_placement.len();
+            let mut spirit_light_placements_remaining =
+                placements_remaining - origin_world.item_pool.len();
             for node in needs_random_placement {
-                any_placed = true;
+                any_placed = true; // TODO pull out of loop and skip some more calculations that way
                 let origin_world = &mut self.worlds[origin_world_index];
-                let placements_remaining = origin_world.placements_remaining();
-                let should_place_spirit_light = self.rng.gen_bool(f64::max(
-                    1. - origin_world.item_pool.len() as f64 / placements_remaining as f64,
-                    0.,
-                ));
+                let should_place_spirit_light = self.rng.gen_bool(
+                    spirit_light_placements_remaining as f64 / placements_remaining as f64,
+                );
 
                 let (target_world_index, command) = if should_place_spirit_light {
                     let batch = origin_world
                         .spirit_light_provider
-                        .take(placements_remaining);
+                        .take(spirit_light_placements_remaining);
                     (
                         origin_world_index,
                         compile::spirit_light(
@@ -288,6 +292,9 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
 
                 let name = self.name(&command, origin_world_index, target_world_index);
                 self.place_command_at(command, name, node, origin_world_index, target_world_index);
+
+                placements_remaining -= 1;
+                spirit_light_placements_remaining -= 1;
             }
         }
         any_placed
@@ -598,6 +605,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                 origin_world_index,
                 target_world_index,
                 location,
+                command: command.clone(),
                 item_name: self.worlds[target_world_index].log_name(command),
             });
     }
@@ -764,12 +772,16 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         self.needs_placement.len() - self.received_placement.len() + self.placeholders.len()
     }
 
+    fn spirit_light_placements_remaining(&self) -> usize {
+        self.placements_remaining() - self.item_pool.len()
+    }
+
     fn reserve_placeholders(&mut self) -> Vec<&'graph Node> {
         self.received_placement
             .extend(self.reached_needs_placement.clone());
         let desired_placeholders = usize::max(
             usize::max(3, self.placeholders.len()),
-            self.reached_needs_placement.len() / 2,
+            (self.reached_needs_placement.len() + self.placeholders.len()) / 2,
         );
         let new_placeholders = usize::min(desired_placeholders, self.reached_needs_placement.len());
         let kept_placeholders = usize::min(
@@ -890,7 +902,9 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
         placement_spoiler: &mut Vec<SpoilerPlacement>,
     ) {
         while amount > 0 {
-            let batch = self.spirit_light_provider.take(self.placements_remaining());
+            let batch = self
+                .spirit_light_provider
+                .take(self.spirit_light_placements_remaining());
             amount -= batch;
             let command = compile::spirit_light(
                 CommandInteger::Constant {
@@ -970,20 +984,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
     }
 
     fn log_name(&self, command: &CommandVoid) -> String {
-        self.output
-            .item_metadata
-            .name(command)
-            .and_then(|name| match name {
-                StringOrPlaceholder::Value(value) => Some(value),
-                _ => None,
-            })
-            .or_else(|| {
-                CommonItem::from_command(command)
-                    .into_iter()
-                    .next()
-                    .map(|item| item.to_string())
-            })
-            .unwrap_or_else(|| "<Unnamed custom command>".to_string()) // TODO improve
+        self.name(command).to_string()
     }
 
     fn on_load(&mut self, command: CommandVoid) {
@@ -1068,7 +1069,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             } else {
                 compile::spirit_light(
                     CommandInteger::Constant {
-                        value: self.spirit_light_provider.take(placements_remaining) as i32,
+                        value: self.spirit_light_provider.take(1 + placements_remaining) as i32,
                     },
                     &mut self.rng,
                 )
@@ -1103,6 +1104,7 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
             origin_world_index: self.index,
             target_world_index: self.index,
             location: NodeSummary::new(node),
+            command: command.clone(),
             item_name: self.log_name(command),
         });
     }
@@ -1134,8 +1136,11 @@ pub fn command_name(command: &CommandVoid, item_metadata: &ItemMetadata) -> Comm
                 })
         })
         .unwrap_or_else(|| {
-            warning!("No name specified for custom command. Using \"?\" as placeholder"); // TODO improve
-            CommandString::Constant { value: "?".into() }
+            let value = command.to_string();
+            warning!("No name specified for custom command: {value}");
+            CommandString::Constant {
+                value: value.into(),
+            }
         })
 }
 pub fn find_message(command: &CommandVoid) -> Option<&CommandString> {

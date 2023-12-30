@@ -3,7 +3,7 @@
 use super::{Compile, SharedValue, SnippetCompiler};
 use crate::{
     ast::{self, UberStateType},
-    output::{intermediate::Literal, CommandVoid, ItemMetadataEntry, StringOrPlaceholder},
+    output::{intermediate::Literal, CommandVoid, ItemMetadataEntry, StringOrPlaceholder, Timer},
 };
 use ordered_float::OrderedFloat;
 use rand::Rng;
@@ -46,6 +46,9 @@ impl<'source> Compile<'source> for ast::Command<'source> {
                 command.compile(compiler);
             }
             ast::Command::State(_, command) => {
+                command.compile(compiler);
+            }
+            ast::Command::Timer(_, command) => {
                 command.compile(compiler);
             }
             ast::Command::Let(_, command) => {
@@ -360,43 +363,11 @@ impl<'source> Compile<'source> for ast::StateArgs<'source> {
     type Output = ();
 
     fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
-        fn check_limit(
-            id: &mut usize,
-            offset: usize,
-            available: usize,
-            span: Range<usize>,
-        ) -> Result<UberIdentifier> {
-            if *id - offset < available {
-                let uber_identifier = UberIdentifier {
-                    group: 9,
-                    member: *id as i32,
-                };
-                *id += 1;
-                Ok(uber_identifier)
-            } else {
-                Err(Error::custom(format!("Only {available} UberStates of this type are available (What on earth are you doing?)"), span))
-            }
-        }
-
+        let span = self.identifier.span.start..self.ty.span.end;
         let uber_identifier = match self.ty.data {
-            UberStateType::Integer => check_limit(
-                &mut compiler.global.integer_state_id,
-                0,
-                100,
-                self.identifier.span.start..self.ty.span.end,
-            ),
-            UberStateType::Boolean => check_limit(
-                &mut compiler.global.boolean_state_id,
-                100,
-                50,
-                self.identifier.span.start..self.ty.span.end,
-            ),
-            UberStateType::Float => check_limit(
-                &mut compiler.global.float_state_id,
-                150,
-                25,
-                self.identifier.span.start..self.ty.span.end,
-            ),
+            UberStateType::Boolean => boolean_uber_state(compiler, span),
+            UberStateType::Integer => integer_uber_state(compiler, span),
+            UberStateType::Float => float_uber_state(compiler, span),
         };
 
         if let Some(uber_identifier) = compiler.consume_result(uber_identifier) {
@@ -408,6 +379,61 @@ impl<'source> Compile<'source> for ast::StateArgs<'source> {
                 }),
             );
         }
+    }
+}
+impl<'source> Compile<'source> for ast::TimerArgs<'source> {
+    type Output = ();
+
+    fn compile(self, compiler: &mut SnippetCompiler<'_, 'source, '_, '_>) -> Self::Output {
+        let toggle = boolean_uber_state(compiler, self.toggle_identifier.span);
+        let toggle = compiler.consume_result(toggle);
+        let timer = float_uber_state(compiler, self.timer_identifier.span);
+        let timer = compiler.consume_result(timer);
+
+        if let (Some(toggle), Some(timer)) = (toggle, timer) {
+            compiler.global.output.timers.push(Timer { toggle, timer });
+            compiler.variables.insert(
+                self.toggle_identifier.data,
+                Literal::UberIdentifier(UberStateAlias {
+                    uber_identifier: toggle,
+                    value: None,
+                }),
+            );
+            compiler.variables.insert(
+                self.timer_identifier.data,
+                Literal::UberIdentifier(UberStateAlias {
+                    uber_identifier: timer,
+                    value: None,
+                }),
+            );
+        }
+    }
+}
+// TODO make internal states this order?
+fn boolean_uber_state<S: Span>(compiler: &mut SnippetCompiler, span: S) -> Result<UberIdentifier> {
+    check_limit(&mut compiler.global.boolean_state_id, 100, 50, span)
+}
+fn integer_uber_state<S: Span>(compiler: &mut SnippetCompiler, span: S) -> Result<UberIdentifier> {
+    check_limit(&mut compiler.global.integer_state_id, 0, 100, span)
+}
+fn float_uber_state<S: Span>(compiler: &mut SnippetCompiler, span: S) -> Result<UberIdentifier> {
+    check_limit(&mut compiler.global.float_state_id, 150, 25, span)
+}
+fn check_limit<S: Span>(
+    id: &mut usize,
+    offset: usize,
+    available: usize,
+    span: S,
+) -> Result<UberIdentifier> {
+    if *id - offset < available {
+        let uber_identifier = UberIdentifier {
+            group: 9,
+            member: *id as i32,
+        };
+        *id += 1;
+        Ok(uber_identifier)
+    } else {
+        Err(Error::custom(format!("Only {available} UberStates of this type are available (What on earth are you doing?)"), span.span()))
     }
 }
 impl<'source> Compile<'source> for ast::LetArgs<'source> {

@@ -5,7 +5,7 @@ fn main() {
         println!("cargo:rerun-if-changed=../assets/loc_data.csv");
 
         let loc_data = wotw_seedgen_assets::LocData::from_reader(
-            include_str!("../assets/loc_data.csv").as_bytes(),
+            include_bytes!("../assets/loc_data.csv").as_slice(),
         )
         .unwrap();
         write("loc_data", &loc_data);
@@ -17,7 +17,7 @@ fn main() {
         println!("cargo:rerun-if-changed=../assets/state_data.csv");
 
         let state_data = wotw_seedgen_assets::StateData::from_reader(
-            include_str!("../assets/state_data.csv").as_bytes(),
+            include_bytes!("../assets/state_data.csv").as_slice(),
         )
         .unwrap();
         write("state_data", &state_data);
@@ -29,7 +29,7 @@ fn main() {
 
         #[allow(unused_mut)]
         let mut uber_state_data = wotw_seedgen_assets::UberStateData::from_reader(
-            include_str!("../assets/uber_state_dump.json").as_bytes(),
+            include_bytes!("../assets/uber_state_dump.json").as_slice(),
         )
         .unwrap();
         #[cfg(feature = "state_data")]

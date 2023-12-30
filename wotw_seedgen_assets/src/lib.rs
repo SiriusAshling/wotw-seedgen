@@ -1,3 +1,5 @@
+pub use wotw_seedgen_data as data;
+
 #[cfg(feature = "loc_data")]
 mod loc_data;
 use std::path::Path;

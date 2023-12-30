@@ -1,5 +1,5 @@
-use super::compile_into_lookup;
-use crate::{Compile, Event, SeedWorld, Spawn};
+use super::{compile_into_lookup, Compile};
+use crate::{Event, SeedWorld, Spawn};
 use rustc_hash::FxHashMap;
 use std::collections::hash_map::Entry;
 use wotw_seedgen_seed_language::output::CompilerOutput;
@@ -44,6 +44,7 @@ pub fn compile_intermediate_output(output: CompilerOutput) -> (SeedWorld, Vec<(S
     let seed_world = SeedWorld {
         flags,
         spawn,
+        timers: output.timers,
         events,
         command_lookup,
     };

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display, Write};
 use wotw_seedgen_data::{Position, Zone};
 use wotw_seedgen_logic_language::output::Node;
+use wotw_seedgen_seed_language::output::{Command, CommandVoid};
 
 /// Complete data to create a logic spoiler for the seed
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -28,7 +29,7 @@ impl SeedSpoiler {
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SpoilerGroup {
-    /// Either contains the new reachables for each world, or empty for placement groups before reachables are considered
+    /// The new reachables for each world
     pub reachable: Vec<Vec<NodeSummary>>,
     /// The set of items that were placed as forced progression, if any
     pub forced_items: Inventory,
@@ -45,8 +46,9 @@ pub struct SpoilerPlacement {
     pub target_world_index: usize,
     /// The placement location
     pub location: NodeSummary,
-    // TODO I guess the Command Display implementation is supposed to show something user-facing?
-    /// The name of the [`Command`], which may vary from the [`Command`]s [`Display`] implementation if a custom name for item was provided by headers
+    /// The placed command
+    pub command: CommandVoid,
+    /// The readable name of the placed item, which usually varies from the `command`s [`Display`] implementation
     pub item_name: String,
 }
 /// Select data from a [`Node`](crate::world::graph::Node)
@@ -90,8 +92,12 @@ impl Display for SeedSpoiler {
             writeln!(f, "Spawn: {spawn}")?;
         }
 
-        writeln!(f)?;
-        writeln!(f)?;
+        write!(f, "\n\n")?;
+
+        if !self.preplacements.is_empty() {
+            writeln!(f, "Preplacements")?;
+            // TODO write preplacements, the code below looks confusing, maybe improve it first
+        }
 
         let mut longest_pickup = 0;
         let mut longest_location = 0;
@@ -135,34 +141,28 @@ impl Display for SeedSpoiler {
 
         for (index, (reachable, forced_items, placements)) in spoiler_groups.into_iter().enumerate()
         {
-            write!(f, "Step {index}")?;
+            writeln!(f, "Step {index}")?;
 
-            if reachable.is_empty() {
-                writeln!(f, " (priority placements)")?;
-            } else {
-                writeln!(f)?;
+            for (world_index, world_reachable) in reachable.iter().enumerate() {
+                if multiworld {
+                    write!(f, "  [{world_index}]: ")?;
+                } else {
+                    write!(f, "  ")?;
+                }
 
-                for (world_index, world_reachable) in reachable.iter().enumerate() {
-                    if multiworld {
-                        write!(f, "  [{world_index}]: ")?;
-                    } else {
-                        write!(f, "  ")?;
+                if world_reachable.is_empty() {
+                    writeln!(f, "No new reachables")?;
+                } else {
+                    let locations = world_reachable
+                        .iter()
+                        .map(|node| &node.identifier)
+                        .format(", ");
+                    let count = world_reachable.len();
+                    write!(f, "{count} new reachable")?;
+                    if count > 1 {
+                        write!(f, "s")?;
                     }
-
-                    if world_reachable.is_empty() {
-                        writeln!(f, "No new reachables")?;
-                    } else {
-                        let locations = world_reachable
-                            .iter()
-                            .map(|node| &node.identifier)
-                            .format(", ");
-                        let count = world_reachable.len();
-                        write!(f, "{count} new reachable")?;
-                        if count > 1 {
-                            write!(f, "s")?;
-                        }
-                        writeln!(f, ": {locations}")?;
-                    }
+                    writeln!(f, ": {locations}")?;
                 }
             }
 
