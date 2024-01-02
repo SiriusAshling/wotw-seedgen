@@ -5,64 +5,39 @@ use wotw_seedgen_seed_language::output::{
     ArithmeticOperator, CommandBoolean, CommandFloat, CommandInteger, CommandVoid, Operation,
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CommonItem {
     SpiritLight(usize),
+    HealthFragment,
+    EnergyFragment,
     GorlekOre,
     Keystone,
     ShardSlot,
-    HealthFragment,
-    EnergyFragment,
-    Skill(Skill),
+    WeaponUpgrade(WeaponUpgrade),
     Shard(Shard),
     Teleporter(Teleporter),
+    Skill(Skill),
     CleanWater,
-    WeaponUpgrade(WeaponUpgrade),
 }
 impl Display for CommonItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CommonItem::SpiritLight(amount) => write!(f, "{amount} SpiritLight"), // TODO casing
+            CommonItem::HealthFragment => write!(f, "HealthFragment"),
+            CommonItem::EnergyFragment => write!(f, "EnergyFragment"),
             CommonItem::GorlekOre => write!(f, "GorlekOre"),
             CommonItem::Keystone => write!(f, "Keystone"),
             CommonItem::ShardSlot => write!(f, "ShardSlot"),
-            CommonItem::HealthFragment => write!(f, "HealthFragment"),
-            CommonItem::EnergyFragment => write!(f, "EnergyFragment"),
-            CommonItem::Skill(skill) => skill.fmt(f),
+            CommonItem::WeaponUpgrade(weapon_upgrade) => weapon_upgrade.fmt(f),
             CommonItem::Shard(shard) => shard.fmt(f),
             CommonItem::Teleporter(teleporter) => teleporter.fmt(f),
+            CommonItem::Skill(skill) => skill.fmt(f),
             CommonItem::CleanWater => write!(f, "CleanWater"),
-            CommonItem::WeaponUpgrade(weapon_upgrade) => weapon_upgrade.fmt(f),
         }
     }
 }
 
 impl CommonItem {
-    // TODO delete?
-    // pub fn into_command(self) -> CommandVoid {
-    //     match self {
-    //         CommonItem::SpiritLight(amount) => {
-    //             compile::add_integer_value(uber_identifier::SPIRIT_LIGHT, amount)
-    //         }
-    //         GorlekOre,
-    //         Keystone,
-    //         ShardSlot,
-    //         HealthFragment,
-    //         EnergyFragment,
-    //         CommonItem::Skill(skill) => compile::set_boolean_value(skill.uber_identifier(), true),
-    //         CommonItem::Shard(shard) => compile::set_boolean_value(shard.uber_identifier(), true),
-    //         CommonItem::Teleporter(teleporter) => {
-    //             compile::set_boolean_value(teleporter.uber_identifier(), true)
-    //         }
-    //         CommonItem::CleanWater => {
-    //             compile::set_boolean_value(uber_identifier::CLEAN_WATER, true)
-    //         }
-    //         CommonItem::WeaponUpgrade(weapon_upgrade) => {
-    //             compile::set_boolean_value(weapon_upgrade.uber_identifier(), true)
-    //         }
-    //     }
-    // }
-
     // TODO could do an iterator here and it would probably be a performance advantage
     pub fn from_command(command: &CommandVoid) -> Vec<Self> {
         match command {
@@ -74,19 +49,18 @@ impl CommonItem {
                 value: CommandBoolean::Constant { value: true },
                 ..
             } => {
-                if let Some(skill) = Skill::from_uber_identifier(*uber_identifier) {
-                    vec![CommonItem::Skill(skill)]
+                if let Some(weapon_upgrade) = WeaponUpgrade::from_uber_identifier(*uber_identifier)
+                {
+                    vec![CommonItem::WeaponUpgrade(weapon_upgrade)]
                 } else if let Some(shard) = Shard::from_uber_identifier(*uber_identifier) {
                     vec![CommonItem::Shard(shard)]
                 } else if let Some(teleporter) = Teleporter::from_uber_identifier(*uber_identifier)
                 {
                     vec![CommonItem::Teleporter(teleporter)]
+                } else if let Some(skill) = Skill::from_uber_identifier(*uber_identifier) {
+                    vec![CommonItem::Skill(skill)]
                 } else if *uber_identifier == uber_identifier::CLEAN_WATER {
                     vec![CommonItem::CleanWater]
-                } else if let Some(weapon_upgrade) =
-                    WeaponUpgrade::from_uber_identifier(*uber_identifier)
-                {
-                    vec![CommonItem::WeaponUpgrade(weapon_upgrade)]
                 } else {
                     vec![]
                 }
@@ -108,12 +82,13 @@ impl CommonItem {
                         uber_identifier::SPIRIT_LIGHT => {
                             vec![CommonItem::SpiritLight(*amount as usize)]
                         }
-                        uber_identifier::GORLEK_ORE if *amount == 1 => vec![CommonItem::GorlekOre],
-                        uber_identifier::KEYSTONES if *amount == 1 => vec![CommonItem::Keystone],
-                        uber_identifier::SHARD_SLOTS if *amount == 1 => vec![CommonItem::ShardSlot],
                         uber_identifier::MAX_HEALTH if *amount == 5 => {
                             vec![CommonItem::HealthFragment]
                         }
+                        uber_identifier::GORLEK_ORE if *amount == 1 => vec![CommonItem::GorlekOre],
+                        uber_identifier::KEYSTONES if *amount == 1 => vec![CommonItem::Keystone],
+                        uber_identifier::SHARD_SLOTS if *amount == 1 => vec![CommonItem::ShardSlot],
+
                         _ => vec![],
                     }
                 }
@@ -143,6 +118,12 @@ impl CommonItem {
             CommonItem::SpiritLight(amount) => {
                 inventory.spirit_light += amount;
             }
+            CommonItem::HealthFragment => {
+                inventory.health += 5;
+            }
+            CommonItem::EnergyFragment => {
+                inventory.energy += 0.5;
+            }
             CommonItem::GorlekOre => {
                 inventory.gorlek_ore += 1;
             }
@@ -152,14 +133,8 @@ impl CommonItem {
             CommonItem::ShardSlot => {
                 inventory.shard_slots += 1;
             }
-            CommonItem::HealthFragment => {
-                inventory.health += 5;
-            }
-            CommonItem::EnergyFragment => {
-                inventory.energy += 0.5;
-            }
-            CommonItem::Skill(skill) => {
-                inventory.skills.insert(skill);
+            CommonItem::WeaponUpgrade(weapon_upgrade) => {
+                inventory.weapon_upgrades.insert(weapon_upgrade);
             }
             CommonItem::Shard(shard) => {
                 inventory.shards.insert(shard);
@@ -167,11 +142,11 @@ impl CommonItem {
             CommonItem::Teleporter(teleporter) => {
                 inventory.teleporters.insert(teleporter);
             }
+            CommonItem::Skill(skill) => {
+                inventory.skills.insert(skill);
+            }
             CommonItem::CleanWater => {
                 inventory.clean_water = true;
-            }
-            CommonItem::WeaponUpgrade(weapon_upgrade) => {
-                inventory.weapon_upgrades.insert(weapon_upgrade);
             }
         }
     }
@@ -179,6 +154,12 @@ impl CommonItem {
         match self {
             CommonItem::SpiritLight(amount) => {
                 inventory.spirit_light -= amount;
+            }
+            CommonItem::HealthFragment => {
+                inventory.health -= 5;
+            }
+            CommonItem::EnergyFragment => {
+                inventory.energy -= 0.5;
             }
             CommonItem::GorlekOre => {
                 inventory.gorlek_ore -= 1;
@@ -189,14 +170,8 @@ impl CommonItem {
             CommonItem::ShardSlot => {
                 inventory.shard_slots -= 1;
             }
-            CommonItem::HealthFragment => {
-                inventory.health -= 5;
-            }
-            CommonItem::EnergyFragment => {
-                inventory.energy -= 0.5;
-            }
-            CommonItem::Skill(skill) => {
-                inventory.skills.remove(&skill);
+            CommonItem::WeaponUpgrade(weapon_upgrade) => {
+                inventory.weapon_upgrades.remove(&weapon_upgrade);
             }
             CommonItem::Shard(shard) => {
                 inventory.shards.remove(&shard);
@@ -204,11 +179,11 @@ impl CommonItem {
             CommonItem::Teleporter(teleporter) => {
                 inventory.teleporters.remove(&teleporter);
             }
+            CommonItem::Skill(skill) => {
+                inventory.skills.remove(&skill);
+            }
             CommonItem::CleanWater => {
                 inventory.clean_water = true;
-            }
-            CommonItem::WeaponUpgrade(weapon_upgrade) => {
-                inventory.weapon_upgrades.remove(&weapon_upgrade);
             }
         }
     }
@@ -216,16 +191,16 @@ impl CommonItem {
     pub const fn map_icon(&self) -> MapIcon {
         match self {
             CommonItem::SpiritLight(_) => MapIcon::Experience,
+            CommonItem::HealthFragment => MapIcon::HealthFragment,
+            CommonItem::EnergyFragment => MapIcon::EnergyFragment,
             CommonItem::GorlekOre => MapIcon::Ore,
             CommonItem::Keystone => MapIcon::Keystone,
             CommonItem::ShardSlot => MapIcon::ShardSlotUpgrade,
-            CommonItem::HealthFragment => MapIcon::HealthFragment,
-            CommonItem::EnergyFragment => MapIcon::EnergyFragment,
-            CommonItem::Skill(_) => MapIcon::AbilityPedestal,
+            CommonItem::WeaponUpgrade(_) => MapIcon::BonusItem, // TODO is this good?
             CommonItem::Shard(_) => MapIcon::SpiritShard,
             CommonItem::Teleporter(_) => MapIcon::Teleporter,
+            CommonItem::Skill(_) => MapIcon::AbilityPedestal,
             CommonItem::CleanWater => MapIcon::CleanWater,
-            CommonItem::WeaponUpgrade(_) => MapIcon::BonusItem, // TODO is this good?
         }
     }
 

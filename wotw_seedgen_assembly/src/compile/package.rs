@@ -11,7 +11,7 @@ pub fn compile_intermediate_output(output: CompilerOutput) -> (SeedWorld, Vec<(S
         .spawn
         .map(|position| Spawn {
             position,
-            identifier: "Custom Spawn".to_string(), // TODO
+            identifier: "Custom Spawn".to_string(), // TODO is this important?
         })
         .unwrap_or_default();
 

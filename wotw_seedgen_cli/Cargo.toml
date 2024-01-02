@@ -5,6 +5,13 @@ edition = "2021"
 
 [dependencies]
 wotw_seedgen = { version = "0.4", path = "../wotw_seedgen", features = ["log"] }
-clap = { version = "4.4", features = ["derive"] }
+clap = { version = "4.4", features = ["derive", "string"] }
+itertools = "0.12"
 rand = "0.8"
+serde = "1.0"
 serde_json = "1.0"
+strum = "0.25"
+
+[[bin]]
+name = "seedgen"
+path = "src/main.rs"

@@ -28,9 +28,6 @@ fn some_seeds() {
         .init();
 
     let mut universe_settings = UniverseSettings::new(String::default());
-    universe_settings.world_settings[0]
-        .snippets
-        .push("teleporters".to_string()); // TODO for debugging convenience, remove
     let mut graph = Graph::compile(
         AREAS.clone(),
         LOC_DATA.clone(),

@@ -3,7 +3,7 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 #[cfg(feature = "strum")]
 use strum::{Display, EnumString};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize_repr, Serialize_repr))]
 #[cfg_attr(feature = "strum", derive(Display, EnumString))]
 #[repr(u8)]
@@ -21,7 +21,7 @@ pub enum OpherIcon {
     WaterBreath = 10,
     FastTravel = 11,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize_repr, Serialize_repr))]
 #[cfg_attr(feature = "strum", derive(Display, EnumString))]
 #[repr(u8)]
@@ -30,7 +30,7 @@ pub enum LupoIcon {
     HealthFragmentsMap = 1,
     ShardsMap = 2,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize_repr, Serialize_repr))]
 #[cfg_attr(feature = "strum", derive(Display, EnumString))]
 #[repr(u8)]
@@ -43,7 +43,7 @@ pub enum GromIcon {
     ThornySituation = 5,
     TheGorlekTouch = 6,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize_repr, Serialize_repr))]
 #[cfg_attr(feature = "strum", derive(Display, EnumString))]
 #[repr(u8)]
@@ -56,7 +56,7 @@ pub enum TuleyIcon {
     TheLastSeed = 5,
 }
 // should mirror https://github.com/ori-community/wotw-rando-client/blob/dev/projects/Core/enums/map_icon.h
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize_repr, Serialize_repr))]
 #[cfg_attr(feature = "strum", derive(Display, EnumString))]
 #[repr(u8)]

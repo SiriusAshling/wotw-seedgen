@@ -4,11 +4,10 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 #[cfg(feature = "strum")]
 use strum::{Display, EnumString, FromRepr};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize_repr, Serialize_repr))]
 #[cfg_attr(feature = "strum", derive(Display, EnumString, FromRepr))]
 #[repr(u8)]
-// TODO rename to ability?
 pub enum Skill {
     Bash = 0,
     // ChargeFlame = 2,

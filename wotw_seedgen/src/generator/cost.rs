@@ -48,16 +48,16 @@ impl Cost for WeaponUpgrade {
 impl Cost for Inventory {
     fn cost(&self) -> usize {
         self.spirit_light.max(0)
+            + self.health_fragments().max(0) * CommonItem::HealthFragment.cost()
+            + self.energy_fragments().max(0) * CommonItem::EnergyFragment.cost()
             + self.gorlek_ore.max(0) * CommonItem::GorlekOre.cost()
             + self.keystones.max(0) * CommonItem::Keystone.cost()
             + self.shard_slots.max(0) * CommonItem::ShardSlot.cost()
-            + self.health_fragments().max(0) * CommonItem::HealthFragment.cost()
-            + self.energy_fragments().max(0) * CommonItem::EnergyFragment.cost()
-            + self.skills.cost()
+            + self.weapon_upgrades.cost()
             + self.shards.cost()
             + self.teleporters.cost()
+            + self.skills.cost()
             + self.clean_water as usize * 1800
-            + self.weapon_upgrades.cost()
     }
 }
 impl Cost for CommandVoid {
@@ -69,15 +69,15 @@ impl Cost for CommonItem {
     fn cost(&self) -> usize {
         match self {
             CommonItem::SpiritLight(amount) => usize::max(*amount, 0),
+            CommonItem::HealthFragment | CommonItem::EnergyFragment => 120,
             CommonItem::GorlekOre => 20,
             CommonItem::Keystone => 320,
             CommonItem::ShardSlot => 480,
-            CommonItem::HealthFragment | CommonItem::EnergyFragment => 120,
-            CommonItem::Skill(skill) => skill.cost(),
+            CommonItem::WeaponUpgrade(weapon_upgrade) => weapon_upgrade.cost(),
             CommonItem::Shard(shard) => shard.cost(),
             CommonItem::Teleporter(teleporter) => teleporter.cost(),
+            CommonItem::Skill(skill) => skill.cost(),
             CommonItem::CleanWater => 1800, // Key Item
-            CommonItem::WeaponUpgrade(weapon_upgrade) => weapon_upgrade.cost(),
         }
     }
 }

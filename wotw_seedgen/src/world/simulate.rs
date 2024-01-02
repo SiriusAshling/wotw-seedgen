@@ -277,7 +277,7 @@ impl Simulate for CommandVoid {
                 let value = value.simulate(world, output);
                 world.variables.set_string(*id, value);
             }
-            // TODO simluate more maybe?
+            // TODO simulate more maybe?
             CommandVoid::QueuedMessage { .. }
             | CommandVoid::FreeMessage { .. }
             | CommandVoid::MessageDestroy { .. }
@@ -379,7 +379,7 @@ fn prevent_uber_state_change(
     value: UberStateValue,
 ) -> bool {
     match uber_identifier {
-        WELLSPRING_QUEST if world.uber_states.get(WELLSPRING_QUEST) >= value => true,
+        WELLSPRING_QUEST if world.uber_states.get(WELLSPRING_QUEST) >= value.as_integer() => true,
         KU_QUEST if value <= 4 => true,
         _ => false,
     }

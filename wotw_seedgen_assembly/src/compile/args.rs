@@ -6,8 +6,6 @@ use wotw_seedgen_seed_language::{
     output::{CommandBoolean, CommandFloat, CommandInteger, CommandString, CommandZone},
 };
 
-// TODO remove debug
-#[derive(Debug)]
 pub struct Args<'a> {
     command_lookup: &'a mut Vec<Vec<Command>>,
     commands: Vec<(usize, ArgType, (Vec<Command>, MemoryUsed))>,
@@ -24,7 +22,7 @@ impl<'a> Args<'a> {
     // TODO once deduplication exists, check if moving commands out into function calls is ever worth it
     fn arg<T>(mut self, arg: T, arg_type: ArgType) -> Self
     where
-        T: Compile<Output = (Vec<Command>, MemoryUsed)> + std::fmt::Debug, // TODO remove debug bound
+        T: Compile<Output = (Vec<Command>, MemoryUsed)>,
     {
         self.commands.push((
             self.commands.len(),

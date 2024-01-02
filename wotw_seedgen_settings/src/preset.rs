@@ -46,7 +46,7 @@ pub struct UniversePreset {
     /// When applying the parent preset, these presets will be searched as .json files in the current and /presets child directory
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub includes: Option<FxHashSet<String>>,
-    /// The seed's seed
+    /// The seed that determines all randomness
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub seed: Option<String>,
     /// The individual settings for each world of the seed

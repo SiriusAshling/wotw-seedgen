@@ -825,18 +825,6 @@ impl<'source> Compile for ast::PlainRequirement<'source> {
                         // TODO remove Ore
                         "Ore" | "GorlekOre" => get_amount().map(Requirement::GorlekOre),
                         "Keystone" => get_amount().map(Requirement::Keystone),
-                        "EastPoolsTP" => {
-                            // TODO remove
-                            Ok(Requirement::Teleporter(Teleporter::CentralLuma))
-                        }
-                        "WestPoolsTP" => {
-                            // TODO remove
-                            Ok(Requirement::Teleporter(Teleporter::LumaBoss))
-                        }
-                        "WestWastesTP" => {
-                            // TODO remove
-                            Ok(Requirement::Teleporter(Teleporter::FeedingGrounds))
-                        }
                         "Water" => no_amount().map(|()| Requirement::Water),
                         "Damage" => get_amount().map(|amount| Requirement::Damage(amount as f32)),
                         "Danger" => get_amount().map(|amount| Requirement::Danger(amount as f32)),
@@ -883,12 +871,12 @@ impl<'source> Compile for ast::PlainRequirement<'source> {
                                 ]),
                             ])
                         }),
-                        // TODO remove
+                        // TODO remove?
                         "SwordSJump" => compiler
                             .trick_requirements
                             .get(Trick::SwordSentryJump, &mut amount)
                             .ok_or_else(|| todo!()),
-                        // TODO remove
+                        // TODO remove?
                         "HammerSJump" => compiler
                             .trick_requirements
                             .get(Trick::HammerSentryJump, &mut amount)

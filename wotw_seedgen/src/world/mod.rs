@@ -1,4 +1,3 @@
-// TODO pub everything :/
 mod graph;
 mod player;
 mod reached;

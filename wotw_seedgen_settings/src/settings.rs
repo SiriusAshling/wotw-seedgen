@@ -2,9 +2,9 @@ use crate::{PresetAccess, UniversePreset, WorldPreset};
 use rustc_hash::{FxHashMap, FxHashSet};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::iter;
+use std::{convert::Infallible, iter, str::FromStr};
 #[cfg(feature = "strum")]
-use strum::{Display, EnumString};
+use strum::{Display, EnumString, EnumVariantNames};
 
 /// A representation of all the relevant settings when generating a seed
 ///
@@ -33,7 +33,7 @@ pub struct UniverseSettings {
     pub seed: String,
     /// The individual settings for each world of the seed
     ///
-    /// This is assumed never to be empty
+    /// This should never be empty
     pub world_settings: Vec<WorldSettings>,
 }
 
@@ -270,11 +270,21 @@ pub enum Spawn {
     /// Spawn on any valid anchor from the logic file
     FullyRandom,
 }
-
 pub const DEFAULT_SPAWN: &str = "MarshSpawn.Main";
 impl Default for Spawn {
     fn default() -> Spawn {
         Spawn::Set(DEFAULT_SPAWN.to_string())
+    }
+}
+impl FromStr for Spawn {
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "r" | "random" => Self::Random,
+            "f" | "fullyrandom" => Self::FullyRandom,
+            other => Self::Set(other.to_string()),
+        })
     }
 }
 
@@ -288,7 +298,7 @@ impl Default for Spawn {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(
     feature = "strum",
-    derive(Display, EnumString),
+    derive(Display, EnumString, EnumVariantNames),
     strum(serialize_all = "lowercase")
 )]
 pub enum Difficulty {
@@ -306,7 +316,7 @@ pub enum Difficulty {
 /// See the [Paths wiki page](https://wiki.orirando.com/seedgen/paths) for more information
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "strum", derive(Display, EnumString))]
+#[cfg_attr(feature = "strum", derive(Display, EnumString, EnumVariantNames))]
 pub enum Trick {
     /// Grounded Sentry Jumps with Sword
     SwordSentryJump,

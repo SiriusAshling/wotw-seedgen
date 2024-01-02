@@ -18,7 +18,7 @@ impl SpiritLightProvider {
             rng: Pcg64Mcg::from_rng(rng).expect(SEED_FAILED_MESSAGE),
             amount: amount as f32,
             next_amount: MIN_SPIRIT_LIGHT,
-            noise: Uniform::new_inclusive(0.75, 1.25), // TODO add noise
+            noise: Uniform::new_inclusive(0.75, 1.25),
         }
     }
 

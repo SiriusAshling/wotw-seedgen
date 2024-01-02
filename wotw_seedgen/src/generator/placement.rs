@@ -22,9 +22,9 @@ use rand::{
 };
 use rand_pcg::Pcg64Mcg;
 use rustc_hash::FxHashMap;
-use std::{iter, mem, ops::RangeFrom};
+use std::{cmp::Ordering, iter, mem, ops::RangeFrom};
 use wotw_seedgen_assembly::{compile_intermediate_output, Spawn};
-use wotw_seedgen_data::{Equipment, MapIcon, OpherIcon, Skill, UberIdentifier};
+use wotw_seedgen_data::{Equipment, MapIcon, OpherIcon, Skill, UberIdentifier, WeaponUpgrade};
 use wotw_seedgen_logic_language::output::{Node, Requirement};
 use wotw_seedgen_seed_language::{
     compile,
@@ -70,6 +70,7 @@ pub fn generate_placements(
         context.update_reached();
         if context.is_everything_reached() {
             context.place_remaining();
+            context.sort_spoiler_placements();
             break;
         }
         context.force_keystones();
@@ -159,10 +160,28 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
     }
 
     fn next_step(&mut self) {
-        // TODO sort spoiler placements
+        self.sort_spoiler_placements();
         self.step += 1;
         trace!("Placement step #{}", self.step);
         self.spoiler.groups.push(SpoilerGroup::default());
+    }
+
+    fn sort_spoiler_placements(&mut self) {
+        if self.step > 0 {
+            self.spoiler.groups[self.step - 1]
+                .placements
+                .sort_unstable_by(|a, b| {
+                    match (
+                        CommonItem::from_command(&a.command).into_iter().next(),
+                        CommonItem::from_command(&b.command).into_iter().next(),
+                    ) {
+                        (None, None) => b.item_name.cmp(&a.item_name),
+                        (Some(_), None) => Ordering::Greater,
+                        (None, Some(_)) => Ordering::Less,
+                        (Some(a), Some(b)) => b.cmp(&a),
+                    }
+                });
+        }
     }
 
     fn update_reached(&mut self) {
@@ -258,7 +277,7 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
             let mut placements_remaining =
                 origin_world.placements_remaining() + needs_random_placement.len();
             let mut spirit_light_placements_remaining =
-                placements_remaining - origin_world.item_pool.len();
+                placements_remaining.saturating_sub(origin_world.item_pool.len());
             for node in needs_random_placement {
                 any_placed = true; // TODO pull out of loop and skip some more calculations that way
                 let origin_world = &mut self.worlds[origin_world_index];
@@ -294,7 +313,8 @@ impl<'graph, 'settings> Context<'graph, 'settings> {
                 self.place_command_at(command, name, node, origin_world_index, target_world_index);
 
                 placements_remaining -= 1;
-                spirit_light_placements_remaining -= 1;
+                spirit_light_placements_remaining =
+                    spirit_light_placements_remaining.saturating_sub(1);
             }
         }
         any_placed
@@ -773,7 +793,8 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
     }
 
     fn spirit_light_placements_remaining(&self) -> usize {
-        self.placements_remaining() - self.item_pool.len()
+        self.placements_remaining()
+            .saturating_sub(self.item_pool.len())
     }
 
     fn reserve_placeholders(&mut self) -> Vec<&'graph Node> {
@@ -984,7 +1005,32 @@ impl<'graph, 'settings> WorldContext<'graph, 'settings> {
     }
 
     fn log_name(&self, command: &CommandVoid) -> String {
-        self.name(command).to_string()
+        self.output
+            .item_metadata
+            .name(command)
+            .map(|s| match s {
+                StringOrPlaceholder::Value(value) => strip_control_characters(&value),
+                other => other.to_string(),
+            })
+            .or_else(|| {
+                CommonItem::from_command(command)
+                    .into_iter()
+                    .next()
+                    .map(|item| item.to_string())
+            })
+            .or_else(|| {
+                find_message(command).map(|command| match command {
+                    CommandString::Constant {
+                        value: StringOrPlaceholder::Value(value),
+                    } => strip_control_characters(value),
+                    other => other.to_string(),
+                })
+            })
+            .unwrap_or_else(|| {
+                let value = command.to_string();
+                warning!("No name specified for custom command: {value}");
+                value
+            })
     }
 
     fn on_load(&mut self, command: CommandVoid) {
@@ -1150,6 +1196,9 @@ pub fn find_message(command: &CommandVoid) -> Option<&CommandString> {
         _ => None,
     }
 }
+fn strip_control_characters(s: &str) -> String {
+    s.replace(['@', '#', '$', '*'], "") // TODO strip xml
+}
 
 fn default_icon(command: &CommandVoid) -> Option<Icon> {
     CommonItem::from_command(command)
@@ -1159,6 +1208,12 @@ fn default_icon(command: &CommandVoid) -> Option<Icon> {
             CommonItem::SpiritLight(_) => {
                 Some(Icon::File("assets/icons/game/experience.png".to_string()))
             }
+            CommonItem::HealthFragment => Some(Icon::File(
+                "assets/icons/game/healthfragment.png".to_string(),
+            )),
+            CommonItem::EnergyFragment => Some(Icon::File(
+                "assets/icons/game/energyfragment.png".to_string(),
+            )),
             CommonItem::GorlekOre => {
                 Some(Icon::File("assets/icons/game/gorlekore.png".to_string()))
             }
@@ -1166,12 +1221,17 @@ fn default_icon(command: &CommandVoid) -> Option<Icon> {
             CommonItem::ShardSlot => {
                 Some(Icon::File("assets/icons/game/shardslot.png".to_string()))
             }
-            CommonItem::HealthFragment => Some(Icon::File(
-                "assets/icons/game/healthfragment.png".to_string(),
-            )),
-            CommonItem::EnergyFragment => Some(Icon::File(
-                "assets/icons/game/energyfragment.png".to_string(),
-            )),
+            CommonItem::WeaponUpgrade(weapon_upgrade) => match weapon_upgrade {
+                WeaponUpgrade::ExplodingSpear => Some(Icon::Opher(OpherIcon::ExplodingSpear)),
+                WeaponUpgrade::HammerShockwave => Some(Icon::Opher(OpherIcon::HammerShockwave)),
+                WeaponUpgrade::StaticShuriken => Some(Icon::Opher(OpherIcon::StaticShuriken)),
+                WeaponUpgrade::ChargeBlaze => Some(Icon::Opher(OpherIcon::ChargeBlaze)),
+                WeaponUpgrade::RapidSentry => Some(Icon::Opher(OpherIcon::RapidSentry)),
+            },
+            CommonItem::Shard(shard) => Some(Icon::Shard(shard)),
+            CommonItem::Teleporter(_) => {
+                Some(Icon::File("assets/icons/game/teleporter.png".to_string()))
+            }
             CommonItem::Skill(skill) => match skill {
                 Skill::Bash => Some(Icon::Equipment(Equipment::Bash)),
                 Skill::DoubleJump => Some(Icon::Equipment(Equipment::Bounce)),
@@ -1202,12 +1262,7 @@ fn default_icon(command: &CommandVoid) -> Option<Icon> {
                 )),
                 _ => None,
             },
-            CommonItem::Shard(shard) => Some(Icon::Shard(shard)),
-            CommonItem::Teleporter(_) => {
-                Some(Icon::File("assets/icons/game/teleporter.png".to_string()))
-            }
             CommonItem::CleanWater => Some(Icon::File("assets/icons/game/water.png".to_string())),
-            _ => None,
         })
 }
 

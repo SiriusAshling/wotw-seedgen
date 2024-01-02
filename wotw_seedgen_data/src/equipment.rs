@@ -3,7 +3,7 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 #[cfg(feature = "strum")]
 use strum::{Display, EnumString};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize_repr, Serialize_repr))]
 #[cfg_attr(feature = "strum", derive(Display, EnumString))]
 #[repr(u8)]
@@ -14,7 +14,7 @@ pub enum EquipSlot {
 }
 
 // TODO try for better error messages than the strum default
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Deserialize_repr, Serialize_repr))]
 #[cfg_attr(feature = "strum", derive(Display, EnumString))]
 #[repr(u16)]
